@@ -1,0 +1,1624 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clinic Daily Appointments</title>
+    <style>
+      :root {
+        --bg: #f4f7f8;
+        --panel: #fff;
+        --ink: #17222b;
+        --muted: #627489;
+        --line: #d9e4ea;
+        --primary: #0f766e;
+        --green: #008f5a;
+        --green-dark: #004f33;
+        --danger: #fde8e8;
+        --danger-ink: #9b1c1c;
+        --radius: 8px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); }
+      button, input, select { font: inherit; }
+      button { cursor: pointer; }
+      .app { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
+      .sidebar { min-height: 100vh; background: #10202b; color: #f8fbfc; padding: 22px 18px; }
+      .brand { font-size: 22px; font-weight: 800; line-height: 1.15; margin-bottom: 28px; }
+      .nav { display: grid; gap: 8px; }
+      .nav button { border: 0; border-radius: var(--radius); background: transparent; color: #d8e3e8; padding: 12px; text-align: left; }
+      .nav button.active { background: #1d3543; color: #fff; }
+      .doctor-card { margin-top: 26px; padding: 14px; border-radius: var(--radius); background: #1d3543; }
+      .doctor-card b { display: block; margin-bottom: 8px; }
+      .doctor-card input { width: 100%; min-height: 36px; border: 1px solid #365365; border-radius: var(--radius); padding: 7px 9px; background: #132938; color: #fff; }
+      .doctor-card span { display: block; margin-top: 8px; color: #bed0d9; font-size: 12px; line-height: 1.35; }
+      main { padding: 24px; overflow: auto; }
+      .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
+      h1, h2, h3, p { margin: 0; }
+      h1 { font-size: 28px; letter-spacing: 0; }
+      h2 { font-size: 18px; }
+      .date { color: var(--muted); margin-top: 5px; }
+      .actions, .filters, .button-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .actions { justify-content: flex-end; }
+      .button-row.compact, .diagnosis-row { flex-wrap: nowrap; }
+      .diagnosis-row .choice { padding: 0 10px; white-space: nowrap; }
+      .primary, .secondary, .chip, .choice {
+        border: 0; border-radius: var(--radius); min-height: 38px; padding: 0 12px; font-weight: 750;
+        text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+      }
+      .primary { background: var(--primary); color: #fff; }
+      .primary.dark { background: #128c7e; }
+      .secondary { background: #e8eef3; color: #22313f; }
+      .chip, .choice { background: #edf2f5; color: #334454; }
+      .chip.active, .choice.active, .choice.cash, .choice.gpay, .choice.came {
+        background: var(--green); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22);
+      }
+      .choice.noshow { background: var(--danger); color: var(--danger-ink); }
+      .stats { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
+      .stat, .section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+      .stat { padding: 14px; }
+      .stat span, .report-item span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+      .stat strong { font-size: 25px; }
+      .content-grid { display: grid; grid-template-columns: minmax(520px, 1.1fr) minmax(420px, .9fr); gap: 18px; align-items: start; }
+      .section { padding: 16px; }
+      .section.wide { grid-column: 1 / -1; }
+      .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+      form { display: grid; gap: 13px; }
+      label { display: grid; gap: 6px; color: #334454; font-size: 13px; font-weight: 750; }
+      input, select { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 10px; color: var(--ink); background: #fff; }
+      .two, .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+      .date-control { display: grid; grid-template-columns: 160px auto; align-items: end; gap: 10px; }
+      .patient-list { display: grid; gap: 10px; }
+      .patient { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; }
+      .patient.simple { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+      .patient b { display: block; margin-bottom: 4px; }
+      .meta, .mobile { color: var(--muted); font-size: 13px; }
+      .patient-search { display: grid; gap: 8px; }
+      .search-results { display: grid; gap: 8px; }
+      .search-result { width: 100%; justify-content: space-between; text-align: left; min-height: auto; padding: 10px 12px; }
+      .search-result span { display: block; color: var(--muted); font-size: 12px; font-weight: 650; margin-top: 3px; }
+      .followup-row { display: grid; grid-template-columns: 1.1fr .7fr .8fr .7fr auto; gap: 12px; align-items: center; }
+      .followup-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .summary-pill {
+        display: inline-flex; align-items: center; justify-content: center; min-height: 30px; border-radius: 999px;
+        padding: 0 11px; background: #edf2f5; color: #334454; font-size: 13px; font-weight: 800; white-space: nowrap;
+      }
+      .summary-pill.high { background: #fee2e2; color: #991b1b; }
+      .priority {
+        display: inline-flex; align-items: center; justify-content: center; min-height: 28px; border-radius: 999px;
+        padding: 0 10px; font-size: 12px; font-weight: 800; white-space: nowrap;
+      }
+      .priority.high { background: #fee2e2; color: #991b1b; }
+      .priority.medium { background: #fff2d7; color: #7a4b00; }
+      .priority.routine { background: #e8f3f1; color: #115e59; }
+      .consult-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+      .attendance-actions, .test-options, .payment-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .post-consult-block { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(430px, .75fr); gap: 10px; align-items: start; }
+      .test-check { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 8px; background: #fff; color: #334454; font-size: 13px; font-weight: 750; }
+      .test-check input { width: 14px; min-height: 14px; accent-color: var(--primary); }
+      .payment-group { display: grid; gap: 8px; }
+      .payment-label { min-width: 102px; color: var(--muted); font-size: 13px; font-weight: 750; }
+      .amount-input { width: 105px; min-height: 34px; padding: 6px 9px; font-weight: 750; }
+      .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; background: #fbfdfe; }
+      .report-grid { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; }
+      .report-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fbfdfe; }
+      .report-item strong { font-size: 21px; }
+      .report-list { display: grid; gap: 8px; margin-top: 14px; }
+      .report-row { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+      .preview-area { grid-column: 2; padding: 0 24px 24px; }
+      .preview-panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+      .preview-head { background: var(--primary); color: #fff; padding: 14px 16px; }
+      .preview-head p { margin-top: 3px; color: #d7fffa; font-size: 13px; }
+      .preview-body { padding: 14px; display: grid; grid-template-columns: repeat(3, minmax(260px, 1fr)); gap: 12px; }
+      .accounts-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+      .accounts-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .account-row { display: grid; grid-template-columns: 110px minmax(190px, 1fr) 90px 100px 100px minmax(160px, 1fr) auto; gap: 10px; align-items: center; }
+      .account-ledger { overflow-x: auto; padding-bottom: 4px; }
+      .account-ledger .account-row { min-width: 940px; }
+      .account-report { display: grid; gap: 12px; }
+      .ledger-head { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
+      .report-overlay { position: fixed; inset: 0; z-index: 20; display: none; background: rgba(9, 22, 31, .55); padding: 24px; overflow: auto; }
+      .report-overlay.open { display: block; }
+      .report-sheet { max-width: 1120px; margin: 0 auto; background: #fff; color: #111; border-radius: var(--radius); padding: 24px; box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
+      .report-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+      .report-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .print-report h1, .print-report h2 { margin: 0 0 12px; }
+      .print-report h2 { margin-top: 24px; font-size: 18px; }
+      .print-report table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      .print-report th, .print-report td { border: 1px solid #ccd6dc; padding: 8px; text-align: left; font-size: 13px; }
+      .print-report th { background: #f2f5f6; }
+      .print-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+      .print-box { border: 1px solid #ccd6dc; padding: 10px; border-radius: 6px; }
+      .print-box span { display: block; color: #555; font-size: 12px; }
+      .print-box strong { font-size: 20px; }
+      .record-screen { position: fixed; inset: 0; z-index: 30; display: none; grid-template-rows: auto auto 1fr; height: 100vh; background: #f6f9fa; color: var(--ink); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+      .record-screen.open { display: grid; }
+      .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 14px 18px; display: grid; grid-template-columns: minmax(320px, 1fr) auto; gap: 14px; align-items: start; }
+      .record-patient h1 { font-size: 22px; margin-bottom: 6px; font-weight: 900; }
+      .record-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 13px; font-weight: 850; }
+      .record-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+      .record-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); }
+      .record-tab.active { background: var(--primary); color: #fff; }
+      .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 145px); overflow: hidden; }
+      .record-main { display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; min-height: 0; height: 100%; }
+      .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
+      .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
+      .medical-textarea b { font-weight: 900; }
+      .dictation-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+      .dictation-input { min-height: 44px; max-height: 110px; resize: vertical; border: 0; padding: 8px; outline: none; font-family: inherit; }
+      .dictation-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+      .dictation-status { grid-column: 1 / -1; color: var(--muted); font-size: 13px; font-weight: 800; }
+      .details-panel, .previous-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
+      .details-panel { display: none; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 10px; }
+      .details-panel.open { display: grid; }
+      .details-panel label:nth-last-child(-n + 3) { grid-column: 1 / -1; }
+      .previous-panel { align-self: start; display: grid; gap: 10px; max-height: calc(100vh - 130px); overflow: auto; }
+      .details-panel label, .previous-panel h2 { font-weight: 900; }
+      .previous-panel h2 { font-size: 16px; }
+      .previous-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .previous-record { justify-content: flex-start; width: 100%; text-align: left; min-height: auto; padding: 10px; }
+      .previous-record.active { background: var(--primary); color: #fff; }
+      .previous-record.active span { color: #d7fffa; }
+      .previous-record span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+      .record-entry-row { display: grid; grid-template-columns: 1fr 38px; gap: 6px; align-items: stretch; }
+      .icon-delete { min-height: 38px; width: 38px; padding: 0; font-size: 18px; color: var(--danger-ink); background: var(--danger); }
+      .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
+      .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
+      .medical-print-content { display: none; }
+      .medical-disclaimer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #bbb; color: #555; font-size: 11px; line-height: 1.45; }
+      .unsaved-dialog { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(9, 22, 31, .55); padding: 18px; }
+      .unsaved-dialog.open { display: grid; }
+      .dialog-box { width: min(520px, 100%); background: #fff; border-radius: var(--radius); padding: 18px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
+      .dialog-box p { margin: 8px 0 16px; color: var(--muted); }
+      .dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+      .message-box { background: #e8fff1; border: 1px solid #b9efce; border-radius: var(--radius); padding: 12px; color: #174d2c; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+      .message-box h3 { font-size: 15px; margin-bottom: 8px; }
+      .message-box .primary, .message-box .secondary { width: 100%; margin-top: 12px; }
+      @media print {
+        body.print-accounts .app { display: none; }
+        body.print-accounts .report-overlay { position: static; display: block; padding: 0; background: #fff; overflow: visible; }
+        body.print-accounts .report-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
+        body.print-accounts .report-toolbar { display: none; }
+        body.print-medical .app, body.print-medical .record-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog { display: none; }
+        body.print-medical .medical-print-content { display: block; font-family: Arial, sans-serif; color: #111; padding: 18px; }
+        body.print-medical .medical-print-content h1 { font-size: 22px; margin: 0 0 8px; }
+        body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
+        body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
+        body.print-medical .medical-disclaimer { break-inside: avoid; }
+      }
+      @media (max-width: 1200px) {
+        .content-grid, .post-consult-block, .preview-body, .accounts-grid { grid-template-columns: 1fr; }
+        .followup-row { grid-template-columns: 1fr 1fr; }
+        .section.wide, .preview-area { grid-column: auto; }
+        .report-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+      }
+      @media (max-width: 760px) {
+        .app { grid-template-columns: 1fr; }
+        .sidebar { min-height: auto; }
+        main { padding: 16px; }
+        .topbar, .section-head, .consult-head { align-items: flex-start; flex-direction: column; }
+        .actions, .primary, .secondary { width: 100%; }
+        .stats, .two, .form-row, .date-control, .report-grid { grid-template-columns: 1fr; }
+        .record-top, .record-body { grid-template-columns: 1fr; }
+        .record-actions { justify-content: stretch; }
+        .details-panel { grid-template-columns: 1fr; }
+        .followup-row { grid-template-columns: 1fr; }
+        .account-row { grid-template-columns: 1fr; }
+        .button-row.compact, .diagnosis-row { flex-wrap: wrap; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">Clinic Daily<br />Appointments</div>
+        <nav class="nav" aria-label="Main">
+          <button class="active" data-scroll="today">Today</button>
+          <button data-scroll="add">Add Patient</button>
+          <button data-scroll="after">After Consultation</button>
+          <button data-scroll="followup">Follow-up List</button>
+          <button data-scroll="report">Monthly Report</button>
+        </nav>
+        <div class="doctor-card">
+          <b>Doctor WhatsApp</b>
+          <input id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
+          <span>Use country code. If WhatsApp does not open, copy the report and paste into WhatsApp.</span>
+        </div>
+      </aside>
+
+      <main>
+        <div class="topbar" id="today">
+          <div>
+            <h1>Clinic List</h1>
+            <p class="date" id="todayLabel"></p>
+          </div>
+          <div class="actions">
+            <div class="date-control">
+              <label>
+                Clinic date
+                <input id="clinicDate" type="date" />
+              </label>
+              <button class="secondary" id="todayBtn" type="button">Today</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="stats" aria-label="Daily summary">
+          <div class="stat"><span>Total patients</span><strong id="statTotal">0</strong></div>
+          <div class="stat"><span>In clinic</span><strong id="statClinic">0</strong></div>
+          <div class="stat"><span>Teleconsultation</span><strong id="statTele">0</strong></div>
+          <div class="stat"><span>Missed</span><strong id="statMissed">0</strong></div>
+          <div class="stat"><span>Marked after visit</span><strong id="statMarked">0</strong></div>
+          <div class="stat"><span>Daily total</span><strong id="statDailyTotal">0</strong></div>
+        </section>
+
+        <div class="content-grid">
+          <section class="section">
+            <div class="section-head">
+              <h2>Patient List</h2>
+              <div class="filters">
+                <button class="chip active" data-filter="all">All</button>
+                <button class="chip" data-filter="In clinic">In Clinic</button>
+                <button class="chip" data-filter="Teleconsultation">Tele</button>
+              </div>
+            </div>
+            <div class="patient-list" id="patientList"></div>
+          </section>
+
+          <section class="section" id="add">
+            <div class="section-head">
+              <h2>Add Patient</h2>
+            </div>
+            <form id="patientForm">
+              <div class="patient-search">
+                <label>Search previous patient<input id="patientSearch" autocomplete="off" placeholder="Name, mobile number, or ID" /></label>
+                <div class="search-results" id="patientSearchResults"></div>
+              </div>
+              <label>Patient name<input id="name" required autocomplete="off" /></label>
+              <div class="two">
+                <label>Age<input id="age" required inputmode="numeric" /></label>
+                <label>Sex<select id="sex"><option>Male</option><option>Female</option></select></label>
+              </div>
+              <label>Mobile number<input id="mobile" inputmode="tel" /></label>
+              <div class="form-row">
+                <label>
+                  Visit type
+                  <div class="button-row compact" data-group="visitType">
+                    <button class="choice" type="button" data-value="First consultation">First consultation</button>
+                    <button class="choice" type="button" data-value="Review">Review</button>
+                  </div>
+                </label>
+                <label>
+                  Consultation mode
+                  <div class="button-row compact" data-group="mode">
+                    <button class="choice" type="button" data-value="In clinic">In clinic</button>
+                    <button class="choice" type="button" data-value="Teleconsultation">Teleconsultation</button>
+                  </div>
+                </label>
+              </div>
+              <label>
+                Diagnosis / main symptom
+                <div class="button-row diagnosis-row" data-group="diagnosis">
+                  <button class="choice" type="button" data-value="Epilepsy">Epilepsy</button>
+                  <button class="choice" type="button" data-value="Headache">Headache</button>
+                  <button class="choice" type="button" data-value="Pain">Pain</button>
+                  <button class="choice" type="button" data-value="Stroke">Stroke</button>
+                  <button class="choice" type="button" data-value="Parkinsons">Parkinsons</button>
+                  <button class="choice" type="button" data-value="Others">Others</button>
+                </div>
+              </label>
+              <button class="primary" type="submit">Save Patient</button>
+            </form>
+          </section>
+
+          <section class="section wide" id="after">
+            <div class="section-head"><h2>After Consultation</h2><div class="filters"><button class="chip active" type="button" id="afterDateLabel"></button></div></div>
+            <div class="patient-list" id="afterList"></div>
+          </section>
+
+          <section class="section wide" id="report">
+            <div class="section-head"><h2>Monthly Report</h2><button class="secondary" id="monthLabel" type="button"></button></div>
+            <div class="report-grid" id="reportGrid"></div>
+            <div class="report-list" id="reportList"></div>
+          </section>
+
+          <section class="section wide" id="accounts">
+            <div class="section-head">
+              <h2>Accounts</h2>
+              <div class="filters">
+                <button class="secondary" type="button" id="printAccountsBtn">View monthly report</button>
+                <button class="secondary" type="button" id="toggleAccounts">Show accounts</button>
+              </div>
+            </div>
+            <div class="section-head">
+              <div class="accounts-summary" id="accountsSummary"></div>
+            </div>
+            <div id="accountsBody" class="accounts-grid">
+              <form id="accountForm">
+                <label>
+                  Entry type
+                  <select id="accountType">
+                    <option>Expense</option>
+                    <option>Bank remittance</option>
+                    <option>Other income</option>
+                  </select>
+                </label>
+                <div class="two">
+                  <label>
+                    Date
+                    <input id="accountDate" type="date" />
+                  </label>
+                  <label>
+                    Amount
+                    <input id="accountAmount" inputmode="numeric" maxlength="6" placeholder="0" />
+                  </label>
+                </div>
+                <label>
+                  Payment mode
+                  <div class="button-row compact" data-group="accountMode">
+                    <button class="choice" type="button" data-value="Cash">Cash</button>
+                    <button class="choice" type="button" data-value="GPay">GPay</button>
+                    <button class="choice" type="button" data-value="Card">Card</button>
+                    <button class="choice" type="button" data-value="Cheque">Cheque</button>
+                  </div>
+                </label>
+                <label>
+                  Bank account / expense category
+                  <select id="accountBank">
+                    <option>Dr Gigy SIB 1134</option>
+                    <option>Neurodiagnostics account</option>
+                    <option>SBI Doctor account</option>
+                    <option>SBI neurodiagnostic account</option>
+                    <option>ICICI Doctor account</option>
+                    <option>Staff salary</option>
+                    <option>Rent</option>
+                    <option>Electricity</option>
+                    <option>Internet / phone</option>
+                    <option>Clinic consumables</option>
+                    <option>Equipment maintenance</option>
+                    <option>Housekeeping</option>
+                    <option>Clinic expense</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+                <label>
+                  Notes
+                  <input id="accountNote" autocomplete="off" />
+                </label>
+                <button class="primary" type="submit">Save Account Entry</button>
+              </form>
+              <div>
+                <div class="account-report" id="accountsReport"></div>
+                <div class="report-list account-ledger" id="accountsList"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="section wide" id="followup">
+            <div class="section-head">
+              <h2>Follow-up List</h2>
+              <div class="filters">
+                <button class="chip active" type="button" data-followup="needs">Needs call back</button>
+                <button class="chip" type="button" data-followup="missed">Missed</button>
+                <button class="chip" type="button" data-followup="all">All patients</button>
+              </div>
+            </div>
+            <div class="section-head">
+              <div class="followup-summary" id="followupSummary"></div>
+              <button class="secondary" type="button" id="toggleFollowup">Show list</button>
+            </div>
+            <div class="patient-list" id="followupList"></div>
+          </section>
+        </div>
+      </main>
+
+      <aside class="preview-area">
+        <div class="preview-panel">
+          <div class="preview-head section-head"><div><h3>WhatsApp Preview</h3><p>These messages use the selected clinic date.</p></div><button class="secondary" type="button" id="toggleWhatsapp">Show preview</button></div>
+          <div class="preview-body">
+            <div class="message-box"><h3>Patient List</h3><div id="listPreview"></div><a class="primary dark" id="sendListBtn" href="#">Open in WhatsApp</a><button class="secondary" type="button" data-copy="list">Copy Patient List</button></div>
+            <div class="message-box"><h3>Daily Report</h3><div id="dailyPreview"></div><a class="primary" id="sendDailyBtn" href="#">Open in WhatsApp</a><button class="secondary" type="button" data-copy="daily">Copy Daily Report</button></div>
+            <div class="message-box"><h3>Monthly Report</h3><div id="monthlyPreview"></div><a class="primary" id="sendMonthlyBtn" href="#">Open in WhatsApp</a><button class="secondary" type="button" data-copy="monthly">Copy Monthly Report</button></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="report-overlay" id="accountsReportOverlay" aria-hidden="true">
+      <div class="report-sheet print-report">
+        <div class="report-toolbar">
+          <div>
+            <h1>Clinic Accounts Report</h1>
+            <p id="accountsReportMonth"></p>
+          </div>
+          <div class="report-actions">
+            <button class="primary" type="button" id="savePdfAccountsBtn">Save as PDF</button>
+            <button class="secondary" type="button" id="printInlineAccountsBtn">Print</button>
+            <button class="secondary" type="button" id="closeAccountsReportBtn">Close</button>
+          </div>
+        </div>
+        <div id="accountsReportContent"></div>
+      </div>
+    </div>
+
+    <section class="record-screen" id="medicalRecordScreen" aria-hidden="true">
+      <div class="record-top">
+        <div class="record-patient">
+          <h1 id="recordPatientName"></h1>
+          <div class="record-meta">
+            <span id="recordPatientId"></span>
+            <span id="recordPatientMobile"></span>
+            <span id="recordVisitDate"></span>
+          </div>
+        </div>
+        <div class="record-actions">
+          <button class="secondary" type="button" id="recordSaveBtn">Save</button>
+          <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
+          <button class="secondary" type="button" id="recordPrintBtn">Print</button>
+          <button class="secondary" type="button" id="formatGptBtn">Format GPT</button>
+          <button class="secondary" type="button" id="apiSettingsBtn">Settings</button>
+          <button class="secondary" type="button" id="recordCloseBtn">Close</button>
+          <button class="secondary" type="button" id="recordDetailsBtn">Add Details</button>
+        </div>
+      </div>
+      <div class="record-toolbar">
+        <button class="secondary record-tab active" type="button" data-record-tab="visit">Visit note</button>
+        <button class="secondary record-tab" type="button" data-record-tab="referral">Referral letter</button>
+        <button class="secondary record-tab" type="button" data-record-tab="prescription">Prescription</button>
+        <button class="secondary record-tab" type="button" data-record-tab="certificate">Certificate</button>
+      </div>
+      <div class="record-body">
+        <aside class="previous-panel">
+          <h2>Previous Records</h2>
+          <div id="previousRecordsList" class="patient-list"></div>
+        </aside>
+        <div class="record-main">
+          <div class="details-panel" id="recordDetailsPanel">
+            <label>Age<input id="recordAge" autocomplete="off" /></label>
+            <label>Gender<select id="recordSex"><option>Male</option><option>Female</option><option>Other</option></select></label>
+            <label>Address<input id="recordAddress" autocomplete="off" /></label>
+            <label>Diagnosis<input id="recordDiagnosis" autocomplete="off" /></label>
+            <label>Remarks<input id="recordRemarks" autocomplete="off" /></label>
+            <label>Allergy<input id="recordAllergy" autocomplete="off" /></label>
+            <label>Current Medications<textarea id="recordMedications" rows="2"></textarea></label>
+          </div>
+          <div class="record-status" id="recordStatus"></div>
+          <div class="medical-textarea" id="medicalNoteText" contenteditable="true" role="textbox" aria-label="Medical notes"></div>
+          <div class="dictation-composer">
+            <textarea class="dictation-input" id="dictationDraft" placeholder="Dictated text will appear here. You can edit before saving into the note."></textarea>
+            <div class="dictation-controls">
+              <button class="secondary" type="button" id="dictationStartBtn">Mic</button>
+              <button class="secondary" type="button" id="dictationPauseBtn">Pause</button>
+              <button class="primary" type="button" id="dictationSaveBtn">Save Dictation</button>
+            </div>
+            <div class="dictation-status" id="dictationStatus">Dictation off</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="medical-print-content" id="medicalPrintContent"></div>
+
+    <div class="unsaved-dialog" id="recordUnsavedDialog" aria-hidden="true">
+      <div class="dialog-box">
+        <h2>Unsaved changes</h2>
+        <p>You have unsaved changes. Save before closing?</p>
+        <div class="dialog-actions">
+          <button class="primary" type="button" id="recordDialogSaveClose">Save & Close</button>
+          <button class="secondary" type="button" id="recordDialogDiscard">Discard Changes</button>
+          <button class="secondary" type="button" id="recordDialogCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="unsaved-dialog" id="apiSettingsDialog" aria-hidden="true">
+      <div class="dialog-box">
+        <h2>GPT Settings</h2>
+        <p>Enter OpenAI API key. It will be saved only in this browser.</p>
+        <label>API key<input id="openAiApiKeyInput" type="password" autocomplete="off" placeholder="sk-..." /></label>
+        <div class="dialog-actions" style="margin-top:14px">
+          <button class="primary" type="button" id="saveApiKeyBtn">Save Key</button>
+          <button class="secondary" type="button" id="clearApiKeyBtn">Clear Key</button>
+          <button class="secondary" type="button" id="closeApiSettingsBtn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        doc,
+        setDoc,
+        deleteDoc,
+        onSnapshot,
+        query,
+        orderBy
+      } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
+      const tests = ["Nerve test", "EEG", "BAER", "VEP", "MRI", "CT scan"];
+      const storeKey = "clinicDailyPatients.v1";
+      const phoneKey = "clinicDoctorPhone.v1";
+      const selectedDateKey = "clinicSelectedDate.v1";
+      const firebaseConfig = {
+        apiKey: "AIzaSyAp2LZSC3Pr08YhkwtECnafi3rMD372LBY",
+        authDomain: "clinic-app-cccc0.firebaseapp.com",
+        projectId: "clinic-app-cccc0",
+        storageBucket: "clinic-app-cccc0.firebasestorage.app",
+        messagingSenderId: "33132615828",
+        appId: "1:33132615828:web:be437ef2859165e304fc81"
+      };
+      const firebaseApp = initializeApp(firebaseConfig);
+      const db = getFirestore(firebaseApp);
+      const patientsCollection = collection(db, "patients");
+      const accountsCollection = collection(db, "accounts");
+      const medicalRecordsCollection = collection(db, "medicalRecords");
+      const todayKey = new Date().toISOString().slice(0, 10);
+      let selectedDate = readStore(selectedDateKey, todayKey);
+      let activeFilter = "all";
+      let followupFilter = "needs";
+      let openCallbackId = "";
+      let followupExpanded = false;
+      let whatsappExpanded = false;
+      let accountsExpanded = false;
+      let medicalRecords = [];
+      let activeRecordPatientId = "";
+      let activeRecordId = "";
+      let activeRecordDate = "";
+      let activeRecordView = "single";
+      let activeRecordDirty = false;
+      let activeRecordType = "visit";
+      let activeRecordDocs = {};
+      let dictationRecognition = null;
+      let dictationBuffer = "";
+      let dictationPaused = false;
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+      function readStore(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } }
+      function writeStore(key, value) { try { localStorage.setItem(key, value); } catch {} }
+      function makeId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
+      function yearPrefix(dateKey = selectedDate) { return String(new Date(`${dateKey}T00:00:00`).getFullYear()).slice(-2); }
+      function isSequencePatientId(value, prefix = "") { return new RegExp(`^${prefix || "\\d{2}"}\\d{4}$`).test(String(value || "")); }
+      function nextPatientSequenceId(dateKey = selectedDate, rows = patients) {
+        const prefix = yearPrefix(dateKey);
+        const used = new Set(rows.map((patient) => String(patient.patientId || "")).filter((id) => isSequencePatientId(id, prefix)));
+        let next = 1;
+        while (used.has(`${prefix}${String(next).padStart(4, "0")}`)) next++;
+        return `${prefix}${String(next).padStart(4, "0")}`;
+      }
+      function ensureSequencePatientIds() {
+        let changed = false;
+        const usedByPrefix = {};
+        patients.forEach((patient) => {
+          const prefix = yearPrefix(patient.date || selectedDate);
+          usedByPrefix[prefix] ||= new Set();
+          if (isSequencePatientId(patient.patientId, prefix)) usedByPrefix[prefix].add(String(patient.patientId));
+        });
+        [...patients]
+          .filter((patient) => !isSequencePatientId(patient.patientId, yearPrefix(patient.date || selectedDate)))
+          .sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.name || "").localeCompare(b.name || ""))
+          .forEach((patient) => {
+            const prefix = yearPrefix(patient.date || selectedDate);
+            usedByPrefix[prefix] ||= new Set();
+            let next = 1;
+            while (usedByPrefix[prefix].has(`${prefix}${String(next).padStart(4, "0")}`)) next++;
+            patient.patientId = `${prefix}${String(next).padStart(4, "0")}`;
+            usedByPrefix[prefix].add(patient.patientId);
+            changed = true;
+            savePatientToCloud(patient);
+          });
+        if (changed) writeStore(storeKey, JSON.stringify(patients));
+      }
+      function parsePatients() { try { const value = JSON.parse(readStore(storeKey, "[]")); return Array.isArray(value) ? value : []; } catch { return []; } }
+      let patients = parsePatients();
+      let accounts = [];
+
+      $("#clinicDate").value = selectedDate;
+      $("#accountDate").value = selectedDate;
+      $("#doctorPhone").value = readStore(phoneKey, "919846066990");
+
+      function dateLabel(dateKey) {
+        return new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "short", year: "numeric" });
+      }
+      function monthLabel(dateKey) {
+        return new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+      }
+      function save() {
+        writeStore(storeKey, JSON.stringify(patients));
+        writeStore(phoneKey, $("#doctorPhone").value.trim());
+        writeStore(selectedDateKey, selectedDate);
+      }
+      async function savePatientToCloud(patient) {
+        try {
+          await setDoc(doc(db, "patients", patient.id), patient, { merge: true });
+        } catch (error) {
+          console.error("Firebase save failed", error);
+        }
+      }
+      async function deletePatientFromCloud(id) {
+        try {
+          await deleteDoc(doc(db, "patients", id));
+        } catch (error) {
+          console.error("Firebase delete failed", error);
+        }
+      }
+      async function saveAccountToCloud(entry) {
+        try {
+          await setDoc(doc(db, "accounts", entry.id), entry, { merge: true });
+        } catch (error) {
+          console.error("Firebase account save failed", error);
+        }
+      }
+      async function saveMedicalRecordToCloud(record) {
+        try {
+          await setDoc(doc(db, "medicalRecords", record.id), record, { merge: true });
+        } catch (error) {
+          console.error("Firebase medical record save failed", error);
+        }
+      }
+      async function deleteMedicalRecordFromCloud(id) {
+        try {
+          await deleteDoc(doc(db, "medicalRecords", id));
+        } catch (error) {
+          console.error("Firebase medical record delete failed", error);
+        }
+      }
+      async function deleteAccountFromCloud(id) {
+        try {
+          await deleteDoc(doc(db, "accounts", id));
+        } catch (error) {
+          console.error("Firebase account delete failed", error);
+        }
+      }
+      function startFirebaseSync() {
+        const patientsQuery = query(patientsCollection, orderBy("date", "desc"));
+        onSnapshot(patientsQuery, (snapshot) => {
+          patients = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+          ensureSequencePatientIds();
+          writeStore(storeKey, JSON.stringify(patients));
+          render();
+        }, (error) => {
+          console.error("Firebase sync failed", error);
+          alert("Firebase could not load. Check Firestore is created and security rules allow access.");
+        });
+        const accountsQuery = query(accountsCollection, orderBy("date", "desc"));
+        onSnapshot(accountsQuery, (snapshot) => {
+          accounts = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+          render();
+        }, (error) => {
+          console.error("Firebase accounts sync failed", error);
+        });
+        const medicalRecordsQuery = query(medicalRecordsCollection, orderBy("date", "desc"));
+        onSnapshot(medicalRecordsQuery, (snapshot) => {
+          medicalRecords = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+          renderPreviousRecords();
+        }, (error) => {
+          console.error("Firebase medical records sync failed", error);
+        });
+      }
+      function selected(group) { return document.querySelector(`[data-group="${group}"] .active`)?.dataset.value || ""; }
+      function setChoice(button) {
+        const group = button.closest("[data-group]");
+        group.querySelectorAll(".choice").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+      }
+      function setChoiceByValue(groupName, value) {
+        const group = document.querySelector(`[data-group="${groupName}"]`);
+        if (!group || !value) return;
+        group.querySelectorAll(".choice").forEach((button) => button.classList.toggle("active", button.dataset.value === value));
+      }
+      function money(value) { const number = Number(value || 0); return number ? number.toLocaleString("en-IN") : "0"; }
+      function selectedDayPatients() { return patients.filter((patient) => patient.date === selectedDate); }
+      function filteredPatients() { return selectedDayPatients().filter((patient) => activeFilter === "all" || patient.mode === activeFilter); }
+      function selectedMonthPatients() { return patients.filter((patient) => patient.date.slice(0, 7) === selectedDate.slice(0, 7)); }
+      function patientDisplayId(patient) { return patient.patientId || nextPatientSequenceId(patient.date || selectedDate); }
+      function patientLine(patient) { return `${patient.name}, ${patient.age}/${patient.sex[0]} · ID: ${patientDisplayId(patient)}`; }
+      function uniquePatients() {
+        const byKey = new Map();
+        [...patients].sort((a, b) => b.date.localeCompare(a.date)).forEach((patient) => {
+          const key = recordPatientKey(patient);
+          if (!byKey.has(key)) byKey.set(key, patient);
+        });
+        return [...byKey.values()];
+      }
+      function renderPatientSearch() {
+        const queryText = ($("#patientSearch")?.value || "").trim().toLowerCase();
+        const box = $("#patientSearchResults");
+        if (!box) return;
+        if (queryText.length < 2) {
+          box.innerHTML = "";
+          return;
+        }
+        const digits = queryText.replace(/\D/g, "");
+        const matches = uniquePatients().filter((patient) => {
+          const text = `${patient.name || ""} ${patient.mobile || ""} ${patientDisplayId(patient)} ${patient.diagnosis || ""}`.toLowerCase();
+          return text.includes(queryText) || (digits && (patient.mobile || "").replace(/\D/g, "").includes(digits));
+        }).slice(0, 8);
+        box.innerHTML = matches.length ? matches.map((patient) => `
+          <button class="secondary search-result" type="button" data-reuse-patient="${patient.id}">
+            <strong>${patient.name}</strong>
+            <span>ID: ${patientDisplayId(patient)} · Mobile: ${patient.mobile || "-"} · Last visit: ${dateLabel(patient.date)} · ${patient.diagnosis || "-"}</span>
+          </button>
+        `).join("") : `<div class="empty">No previous patient found.</div>`;
+      }
+      function reusePatient(patientId) {
+        const patient = patients.find((item) => item.id === patientId);
+        if (!patient) return;
+        $("#name").value = patient.name || "";
+        $("#age").value = patient.age || "";
+        $("#sex").value = patient.sex || "Male";
+        $("#mobile").value = patient.mobile || "";
+        setChoiceByValue("diagnosis", patient.diagnosis);
+        setChoiceByValue("visitType", "Review");
+        setChoiceByValue("mode", patient.mode || "In clinic");
+        $("#patientSearch").value = `${patient.name} (${patientDisplayId(patient)})`;
+        $("#patientSearchResults").innerHTML = `<div class="empty">Previous patient selected. Save Patient will add a new appointment for ${dateLabel(selectedDate)}.</div>`;
+      }
+      function recordIdFor(patient) { return `${patient.id}_${patient.date}`; }
+      function activeRecordPatient() { return patients.find((patient) => patient.id === activeRecordPatientId); }
+      function recordPatientKey(patient) { return (patient.mobile || patient.name || patient.id).trim().toLowerCase(); }
+      function recordMatchesPatient(record, patient) { return patient && (record.patientKey === recordPatientKey(patient) || record.patientAppointmentId === patient.id); }
+      function patientMedicalRecords(patient) {
+        return medicalRecords.filter((record) => recordMatchesPatient(record, patient)).sort((a, b) => b.date.localeCompare(a.date));
+      }
+      function needsFollowup(patient) {
+        if (patient.followupRemoved) return false;
+        const alreadyHandled = ["Appointment given", "TM scheduled"].includes(patient.callbackStatus);
+        if (alreadyHandled) return false;
+        if (patient.attendance === "No show") return true;
+        return !patient.attendance && patient.date < todayKey;
+      }
+      function isMissed(patient) {
+        if (patient.followupRemoved) return false;
+        const alreadyHandled = ["Appointment given", "TM scheduled"].includes(patient.callbackStatus);
+        return !alreadyHandled && patient.date <= todayKey && patient.attendance !== "Came";
+      }
+      function priority(patient) {
+        if (["Stroke", "Epilepsy"].includes(patient.diagnosis)) return { label: "High priority", className: "high", rank: 1 };
+        if (["Parkinsons", "Pain"].includes(patient.diagnosis)) return { label: "Medium priority", className: "medium", rank: 2 };
+        return { label: "Routine", className: "routine", rank: 3 };
+      }
+      function updatePatient(id, patch) {
+        let updatedPatient = null;
+        patients = patients.map((patient) => {
+          if (patient.id !== id) return patient;
+          updatedPatient = { ...patient, ...patch };
+          return updatedPatient;
+        });
+        if (updatedPatient) savePatientToCloud(updatedPatient);
+        save(); render();
+      }
+      function updatePayment(id, field, value, shouldRender = true) {
+        const patient = patients.find((item) => item.id === id);
+        if (!patient) return;
+        patient[field] = value;
+        savePatientToCloud(patient);
+        save();
+        if (shouldRender) render();
+      }
+      function toggleTest(id, test, checked) {
+        const patient = patients.find((item) => item.id === id);
+        if (!patient) return;
+        const ordered = new Set(patient.tests || []);
+        checked ? ordered.add(test) : ordered.delete(test);
+        patient.tests = [...ordered];
+        savePatientToCloud(patient);
+        save(); render();
+      }
+      function collectRecordDetails() {
+        return {
+          age: $("#recordAge").value.trim(),
+          sex: $("#recordSex").value,
+          address: $("#recordAddress").value.trim(),
+          diagnosis: $("#recordDiagnosis").value.trim(),
+          remarks: $("#recordRemarks").value.trim(),
+          allergy: $("#recordAllergy").value.trim(),
+          currentMedications: $("#recordMedications").value.trim()
+        };
+      }
+      function setRecordDirty() {
+        activeRecordDirty = true;
+        $("#recordStatus").textContent = "Unsaved changes";
+      }
+      function renderPreviousRecords() {
+        const patient = activeRecordPatient();
+        const list = $("#previousRecordsList");
+        if (!list) return;
+        if (!patient || !activeRecordPatientId) {
+          list.innerHTML = `<div class="empty">No previous records.</div>`;
+          return;
+        }
+        const rows = patientMedicalRecords(patient);
+        list.innerHTML = `
+          <div class="previous-actions">
+            <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
+            <button class="primary previous-record" type="button" data-new-record="true">+ Add</button>
+          </div>
+          ${rows.length ? rows.map((record) => `
+          <div class="record-entry-row">
+            <button class="secondary previous-record ${activeRecordView === "single" && record.id === activeRecordId ? "active" : ""}" type="button" data-open-record="${record.id}">
+              <strong>${dateLabel(record.date)}</strong>
+              <span>Entry: ${record.updatedAt ? dateLabel(record.updatedAt.slice(0, 10)) : dateLabel(record.date)}</span>
+            </button>
+            <button class="icon-delete" type="button" data-delete-record="${record.id}" title="Delete entry" aria-label="Delete entry">×</button>
+          </div>
+          ${record.docs?.prescription ? `<button class="secondary previous-record" type="button" data-print-prescription="${record.id}">Print prescription<span>${dateLabel(record.date)}</span></button>` : ""}
+        `).join("") : `<div class="empty">No entries yet. Click + Add.</div>`}
+        `;
+      }
+      function medicalPrintDisclaimer() {
+        return `<div class="medical-disclaimer"><strong>Disclaimer:</strong> This medical note is generated with AI assistance and may contain errors. Please inform us if you notice any errors.</div>`;
+      }
+      function printPrescriptionRecord(recordId) {
+        const record = medicalRecords.find((item) => item.id === recordId);
+        if (!record?.docs?.prescription) return;
+        $("#medicalPrintContent").innerHTML = `
+          <h1>${record.name || "Prescription"}</h1>
+          <div class="meta">ID: ${record.patientId || "-"} | Mobile: ${record.mobile || "-"} | Visit: ${dateLabel(record.date)}</div>
+          <div>${record.docs.prescription}</div>
+          ${medicalPrintDisclaimer()}
+        `;
+        document.body.classList.add("print-medical");
+        window.print();
+      }
+      function deleteMedicalEntry(recordId) {
+        const record = medicalRecords.find((item) => item.id === recordId);
+        if (!record) return;
+        if (!confirm(`Delete medical record entry for ${dateLabel(record.date)}?`)) return;
+        medicalRecords = medicalRecords.filter((item) => item.id !== recordId);
+        deleteMedicalRecordFromCloud(recordId);
+        if (activeRecordId === recordId) renderAllMedicalEntries();
+        else renderPreviousRecords();
+      }
+      function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+      }
+      function medicalNoteTemplate(dateKey) {
+        return `<b>Chief Complaints:</b><br><br><br><b>HOPI (History of Present Illness):</b><br><br><br><b>Physical Examination:</b><br><br><b>Diagnosis:</b><br><br><br><b>Review of Investigations:</b><br><br><b>Allergies:</b><br><br><br><b>Current Medications:</b><br><br><br><b>Orders:</b><br><br><b>Advice / Follow-Up:</b><br>`;
+      }
+      function blankDocumentTemplate(type, dateKey) {
+        if (type === "visit") return medicalNoteTemplate(dateKey);
+        if (type === "prescription") return `<b>Prescription:</b><br>1. `;
+        if (type === "referral") return `<b>Referral Letter:</b><br><br>`;
+        return `<b>Certificate:</b><br><br>`;
+      }
+      function renderAllMedicalEntries() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        const rows = patientMedicalRecords(patient);
+        activeRecordView = "all";
+        activeRecordId = "";
+        activeRecordDate = "";
+        activeRecordDocs = {};
+        activeRecordDirty = false;
+        $("#medicalNoteText").setAttribute("contenteditable", "false");
+        $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => `
+          <section class="timeline-entry" id="entry-${record.id}">
+            <h2>${dateLabel(record.date)}</h2>
+            <div>${record.docs?.visit || record.noteHtml || plainTextToHtml(record.note || "")}</div>
+          </section>
+        `).join("") : `<div class="empty">No medical records yet. Click + Add to create the first note.</div>`;
+        $("#recordVisitDate").textContent = "All visit notes";
+        $("#recordStatus").textContent = "All entries";
+        renderPreviousRecords();
+      }
+      function createNewMedicalEntry() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        activeRecordView = "single";
+        activeRecordId = `${patient.id}_${todayKey}_${makeId().slice(0, 8)}`;
+        activeRecordDate = todayKey;
+        activeRecordType = "visit";
+        activeRecordDocs = { visit: medicalNoteTemplate(todayKey) };
+        $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === "visit"));
+        $("#medicalNoteText").setAttribute("contenteditable", "true");
+        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        $("#recordVisitDate").textContent = `Entry: ${dateLabel(todayKey)}`;
+        $("#recordStatus").textContent = "New entry";
+        activeRecordDirty = true;
+        renderPreviousRecords();
+        $("#medicalNoteText").focus();
+      }
+      function persistCurrentRecordTab() {
+        if (!activeRecordId || activeRecordView !== "single") return;
+        activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
+      }
+      function switchRecordTab(type) {
+        if (activeRecordView === "all") createNewMedicalEntry();
+        persistCurrentRecordTab();
+        activeRecordType = type;
+        $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === type));
+        $("#medicalNoteText").innerHTML = activeRecordDocs[type] || blankDocumentTemplate(type, activeRecordPatient()?.date || selectedDate);
+        $("#recordStatus").textContent = type === "visit" ? "Visit note" : type === "referral" ? "Referral letter" : type === "prescription" ? "Prescription" : "Certificate";
+      }
+      function plainTextToHtml(value) {
+        return escapeHtml(value).replace(/\n/g, "<br>");
+      }
+      function formatMedicalPaste(text) {
+        const headings = [
+          "Chief Complaints",
+          "HOPI (History of Present Illness)",
+          "Physical Examination",
+          "Diagnosis",
+          "Review of Investigations",
+          "Allergies",
+          "Current Medications",
+          "Orders",
+          "Advice / Follow-Up"
+        ];
+        return escapeHtml(text).split(/\r?\n/).map((line) => {
+          const clean = line.trim().replace(/:$/, "");
+          const heading = headings.find((item) => item.toLowerCase() === clean.toLowerCase());
+          return heading ? `<b>${heading}:</b>` : line;
+        }).join("<br>");
+      }
+      function printActiveMedicalRecord() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        $("#medicalPrintContent").innerHTML = `
+          <h1>${patient.name}</h1>
+          <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All visit notes" : `Visit: ${dateLabel(activeRecordDate || patient.date)}`}</div>
+          <div>${$("#medicalNoteText").innerHTML || "No notes entered."}</div>
+          ${medicalPrintDisclaimer()}
+        `;
+        document.body.classList.add("print-medical");
+        window.print();
+      }
+      async function saveActiveMedicalRecord(silent = false) {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        if (activeRecordView === "all" || !activeRecordId) createNewMedicalEntry();
+        persistCurrentRecordTab();
+        const details = collectRecordDetails();
+        Object.assign(patient, {
+          age: details.age,
+          sex: details.sex,
+          address: details.address,
+          diagnosis: details.diagnosis || patient.diagnosis,
+          remarks: details.remarks,
+          allergy: details.allergy,
+          currentMedications: details.currentMedications
+        });
+        const record = {
+          id: activeRecordId,
+          patientAppointmentId: patient.id,
+          patientId: patientDisplayId(patient),
+          patientKey: recordPatientKey(patient),
+          name: patient.name,
+          mobile: patient.mobile || "",
+          date: activeRecordDate || patient.date,
+          note: activeRecordDocs.visit ? activeRecordDocs.visit.replace(/<[^>]+>/g, "\n") : $("#medicalNoteText").innerText,
+          noteHtml: activeRecordDocs.visit || $("#medicalNoteText").innerHTML,
+          docs: activeRecordDocs,
+          details,
+          updatedAt: new Date().toISOString()
+        };
+        medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== activeRecordId)];
+        await saveMedicalRecordToCloud(record);
+        savePatientToCloud(patient);
+        save();
+        activeRecordDirty = false;
+        $("#recordStatus").textContent = silent ? "Saved automatically" : "Saved";
+        renderPatientList();
+        renderAfterList();
+        renderPreviousRecords();
+      }
+      function openMedicalRecord(patientId, recordId = "") {
+        const patient = patients.find((item) => item.id === patientId);
+        if (!patient) return;
+        activeRecordPatientId = patient.id;
+        const patientRecords = patientMedicalRecords(patient);
+        if (!recordId && patientRecords.length) {
+          $("#recordPatientName").textContent = patient.name;
+          $("#recordPatientId").textContent = `ID: ${patientDisplayId(patient)}`;
+          $("#recordPatientMobile").textContent = `Mobile: ${patient.mobile || "-"}`;
+          $("#recordAge").value = patient.age ?? "";
+          $("#recordSex").value = patient.sex ?? "Male";
+          $("#recordAddress").value = patient.address ?? "";
+          $("#recordDiagnosis").value = patient.diagnosis ?? "";
+          $("#recordRemarks").value = patient.remarks ?? "";
+          $("#recordAllergy").value = patient.allergy ?? "";
+          $("#recordMedications").value = patient.currentMedications ?? "";
+          $("#recordDetailsPanel").classList.remove("open");
+          $("#recordDetailsBtn").textContent = "Add Details";
+          $("#medicalRecordScreen").classList.add("open");
+          $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
+          renderAllMedicalEntries();
+          return;
+        }
+        activeRecordId = recordId || recordIdFor(patient);
+        const record = medicalRecords.find((item) => item.id === activeRecordId);
+        activeRecordView = "single";
+        activeRecordDate = record?.date || patient.date;
+        const details = record?.details || {};
+        $("#recordPatientName").textContent = record?.name || patient.name;
+        $("#recordPatientId").textContent = `ID: ${record?.patientId || patientDisplayId(patient)}`;
+        $("#recordPatientMobile").textContent = `Mobile: ${record?.mobile || patient.mobile || "-"}`;
+        $("#recordVisitDate").textContent = `Entry: ${dateLabel(activeRecordDate)}`;
+        activeRecordDocs = record?.docs || { visit: record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : medicalNoteTemplate(patient.date)) };
+        activeRecordType = "visit";
+        $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === "visit"));
+        $("#medicalNoteText").innerHTML = activeRecordDocs.visit || medicalNoteTemplate(patient.date);
+        $("#recordAge").value = details.age ?? patient.age ?? "";
+        $("#recordSex").value = details.sex ?? patient.sex ?? "Male";
+        $("#recordAddress").value = details.address ?? patient.address ?? "";
+        $("#recordDiagnosis").value = details.diagnosis ?? patient.diagnosis ?? "";
+        $("#recordRemarks").value = details.remarks ?? patient.remarks ?? "";
+        $("#recordAllergy").value = details.allergy ?? patient.allergy ?? "";
+        $("#recordMedications").value = details.currentMedications ?? patient.currentMedications ?? "";
+        $("#recordStatus").textContent = record ? "Existing record opened" : "Blank record";
+        $("#recordDetailsPanel").classList.remove("open");
+        $("#recordDetailsBtn").textContent = "Add Details";
+        activeRecordDirty = false;
+        $("#medicalRecordScreen").classList.add("open");
+        $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
+        $("#medicalNoteText").setAttribute("contenteditable", "true");
+        renderPreviousRecords();
+        $("#medicalNoteText").focus();
+      }
+      function closeMedicalRecordScreen(discard = false) {
+        if (activeRecordDirty && !discard) {
+          $("#recordUnsavedDialog").classList.add("open");
+          $("#recordUnsavedDialog").setAttribute("aria-hidden", "false");
+          return;
+        }
+        $("#medicalRecordScreen").classList.remove("open");
+        $("#medicalRecordScreen").setAttribute("aria-hidden", "true");
+        $("#recordUnsavedDialog").classList.remove("open");
+        $("#recordUnsavedDialog").setAttribute("aria-hidden", "true");
+        activeRecordPatientId = "";
+        activeRecordId = "";
+        activeRecordDate = "";
+        activeRecordView = "single";
+        activeRecordDirty = false;
+        activeRecordDocs = {};
+        activeRecordType = "visit";
+      }
+      function insertIntoMedicalEditor(html) {
+        $("#medicalNoteText").focus();
+        document.execCommand("insertHTML", false, html);
+        setRecordDirty();
+      }
+      function setupDictation() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert("Dictation is not supported in this browser. Try Chrome or Safari.");
+          return null;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-IN";
+        recognition.onresult = (event) => {
+          if (dictationPaused) return;
+          let finalText = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) finalText += `${event.results[i][0].transcript} `;
+          }
+          if (finalText.trim()) {
+            dictationBuffer += finalText;
+            $("#dictationDraft").value = dictationBuffer.trim();
+            $("#dictationStatus").textContent = "Listening...";
+          }
+        };
+        recognition.onend = () => {
+          if ($("#medicalRecordScreen").classList.contains("open") && !dictationPaused) {
+            try { recognition.start(); } catch {}
+          }
+        };
+        return recognition;
+      }
+      function startDictation() {
+        dictationRecognition ||= setupDictation();
+        if (!dictationRecognition) return;
+        dictationPaused = false;
+        dictationBuffer = "";
+        $("#dictationDraft").value = "";
+        $("#dictationPauseBtn").textContent = "Pause";
+        $("#dictationStatus").textContent = "Listening...";
+        try { dictationRecognition.start(); } catch {}
+      }
+      function toggleDictationPause() {
+        dictationPaused = !dictationPaused;
+        $("#dictationPauseBtn").textContent = dictationPaused ? "Resume" : "Pause";
+        $("#dictationStatus").textContent = dictationPaused ? "Dictation paused" : "Listening...";
+      }
+      async function saveDictationToNote() {
+        const text = ($("#dictationDraft").value || dictationBuffer).trim();
+        if (!text) { alert("No dictated text captured yet."); return; }
+        if (activeRecordView === "all") createNewMedicalEntry();
+        const apiKey = readStore("clinicOpenAiKey.v1", "");
+        let html = `<br>${formatMedicalPaste(text)}<br>`;
+        if (apiKey) {
+          $("#dictationStatus").textContent = "Formatting dictation with GPT...";
+          try {
+            html = `<br>${await formatTextWithGpt(text, apiKey)}<br>`;
+          } catch (error) {
+            console.error(error);
+            alert("GPT formatting failed. Saving raw dictation instead.");
+          }
+        }
+        insertIntoMedicalEditor(html);
+        activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
+        dictationBuffer = "";
+        $("#dictationDraft").value = "";
+        $("#dictationStatus").textContent = apiKey ? "Dictation formatted and added" : "Dictation added to note";
+      }
+      function openApiSettings() {
+        $("#openAiApiKeyInput").value = readStore("clinicOpenAiKey.v1", "");
+        $("#apiSettingsDialog").classList.add("open");
+        $("#apiSettingsDialog").setAttribute("aria-hidden", "false");
+      }
+      function closeApiSettings() {
+        $("#apiSettingsDialog").classList.remove("open");
+        $("#apiSettingsDialog").setAttribute("aria-hidden", "true");
+      }
+      function gptPrompt(text) {
+        return `You are a clinical note assistant helping a doctor structure a dictated medical note.
+
+The doctor has dictated a continuous note. Your job is to:
+1. Correct spelling and grammar of the dictated text
+2. Place each piece of information into the correct section
+3. Do NOT add, infer, assume, or hallucinate any clinical information
+4. If information for a section was not dictated, write exactly: Not dictated
+5. Correct obvious medical spelling errors
+6. Maintain the original meaning exactly
+7. Do not add anything not dictated. Do not leave out anything that was dictated.
+
+Investigations, medications, and prescription MUST be numbered lists, one item per line.
+
+Return JSON only with keys:
+chief_complaints, hopi, physical_examination, diagnosis, review_of_investigations, allergies, current_medications, orders, prescription, advice_follow_up.
+
+DICTATED TEXT:
+${text}`;
+      }
+      async function formatTextWithGpt(text, apiKey) {
+        const response = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: "gpt-4o-mini", input: gptPrompt(text) })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || "OpenAI API request failed");
+        const output = data.output_text || data.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "";
+        const parsed = JSON.parse(output);
+        return `<b>Chief Complaints:</b><br>${plainTextToHtml(parsed.chief_complaints)}<br><br><b>HOPI (History of Present Illness):</b><br>${plainTextToHtml(parsed.hopi)}<br><br><b>Physical Examination:</b><br>${plainTextToHtml(parsed.physical_examination)}<br><br><b>Diagnosis:</b><br>${plainTextToHtml(parsed.diagnosis)}<br><br><b>Review of Investigations:</b><br>${plainTextToHtml(parsed.review_of_investigations)}<br><br><b>Allergies:</b><br>${plainTextToHtml(parsed.allergies)}<br><br><b>Current Medications:</b><br>${plainTextToHtml(parsed.current_medications)}<br><br><b>Orders:</b><br>${plainTextToHtml(parsed.orders)}<br><br><b>Prescription:</b><br>${plainTextToHtml(parsed.prescription)}<br><br><b>Advice / Follow-Up:</b><br>${plainTextToHtml(parsed.advice_follow_up)}`;
+      }
+      async function formatCurrentNoteWithGpt() {
+        const apiKey = readStore("clinicOpenAiKey.v1", "");
+        if (!apiKey) { openApiSettings(); return; }
+        const text = $("#medicalNoteText").innerText.trim();
+        if (!text) { alert("No note text to format."); return; }
+        $("#recordStatus").textContent = "Formatting with GPT...";
+        try {
+          const html = await formatTextWithGpt(text, apiKey);
+          $("#medicalNoteText").innerHTML = html;
+          activeRecordDocs.visit = html;
+          setRecordDirty();
+          $("#recordStatus").textContent = "GPT formatting complete";
+        } catch (error) {
+          console.error(error);
+          $("#recordStatus").textContent = "GPT formatting failed";
+          alert("GPT formatting failed. Check API key and internet connection.");
+        }
+      }
+      function totals(rows = selectedDayPatients()) {
+        const result = { total: rows.length, clinic: 0, tele: 0, came: 0, noShow: 0, first: 0, review: 0, consultCash: 0, consultGpay: 0, consultCard: 0, testCash: 0, testGpay: 0, testCard: 0, tests: Object.fromEntries(tests.map((test) => [test, 0])), diagnosis: {} };
+        rows.forEach((p) => {
+          if (p.mode === "In clinic") result.clinic++;
+          if (p.mode === "Teleconsultation") result.tele++;
+          if (p.attendance === "Came") result.came++;
+          if (p.attendance === "No show") result.noShow++;
+          if (p.visitType === "First consultation") result.first++;
+          if (p.visitType === "Review") result.review++;
+          result.diagnosis[p.diagnosis] = (result.diagnosis[p.diagnosis] || 0) + 1;
+          (p.tests || []).forEach((test) => result.tests[test]++);
+          if (p.consultPayMode === "Cash") result.consultCash += Number(p.consultAmount || 0);
+          if (p.consultPayMode === "GPay") result.consultGpay += Number(p.consultAmount || 0);
+          if (p.consultPayMode === "Card") result.consultCard += Number(p.consultAmount || 0);
+          if (p.testPayMode === "Cash") result.testCash += Number(p.testAmount || 0);
+          if (p.testPayMode === "GPay") result.testGpay += Number(p.testAmount || 0);
+          if (p.testPayMode === "Card") result.testCard += Number(p.testAmount || 0);
+        });
+        result.consultTotal = result.consultCash + result.consultGpay + result.consultCard;
+        result.testTotal = result.testCash + result.testGpay + result.testCard;
+        result.cashTotal = result.consultCash + result.testCash;
+        result.gpayTotal = result.consultGpay + result.testGpay;
+        result.cardTotal = result.consultCard + result.testCard;
+        result.grandTotal = result.consultTotal + result.testTotal;
+        return result;
+      }
+      function selectedMonthAccounts() { return accounts.filter((entry) => entry.date?.slice(0, 7) === selectedDate.slice(0, 7)); }
+      function accountTotals(rows = selectedMonthAccounts()) {
+        const result = {
+          expense: 0, remittance: 0, otherIncome: 0,
+          cashExpense: 0, gpayExpense: 0, cardExpense: 0, chequeExpense: 0,
+          cashOtherIncome: 0, gpayOtherIncome: 0, cardOtherIncome: 0, chequeOtherIncome: 0,
+          cashRemittance: 0, gpayRemittance: 0, cardRemittance: 0, chequeRemittance: 0,
+          bank: {}, expenseCategory: {}, otherIncomeCategory: {}
+        };
+        rows.forEach((entry) => {
+          const amount = Number(entry.amount || 0);
+          if (entry.type === "Expense") {
+            result.expense += amount;
+            if (entry.mode === "Cash") result.cashExpense += amount;
+            if (entry.mode === "GPay") result.gpayExpense += amount;
+            if (entry.mode === "Card") result.cardExpense += amount;
+            if (entry.mode === "Cheque") result.chequeExpense += amount;
+            result.expenseCategory[entry.bank] = (result.expenseCategory[entry.bank] || 0) + amount;
+          }
+          if (entry.type === "Other income") {
+            result.otherIncome += amount;
+            if (entry.mode === "Cash") result.cashOtherIncome += amount;
+            if (entry.mode === "GPay") result.gpayOtherIncome += amount;
+            if (entry.mode === "Card") result.cardOtherIncome += amount;
+            if (entry.mode === "Cheque") result.chequeOtherIncome += amount;
+            result.otherIncomeCategory[entry.bank] = (result.otherIncomeCategory[entry.bank] || 0) + amount;
+          }
+          if (entry.type === "Bank remittance") {
+            result.remittance += amount;
+            if (entry.mode === "Cash") result.cashRemittance += amount;
+            if (entry.mode === "GPay") result.gpayRemittance += amount;
+            if (entry.mode === "Card") result.cardRemittance += amount;
+            if (entry.mode === "Cheque") result.chequeRemittance += amount;
+            result.bank[entry.bank] = (result.bank[entry.bank] || 0) + amount;
+          }
+        });
+        return result;
+      }
+      function renderPatientList() {
+        const rows = filteredPatients();
+        $("#patientList").innerHTML = rows.length ? rows.map((p) => `
+          <article class="patient simple"><div><b>${patientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div><div class="mobile">Mobile: ${p.mobile || "-"}</div></div><button class="secondary" data-delete="${p.id}" type="button">Delete</button></article>
+        `).join("") : `<div class="empty">No patients added for this date.</div>`;
+      }
+      function renderAfterList() {
+        const rows = selectedDayPatients();
+        $("#afterList").innerHTML = rows.length ? rows.map((p) => `
+          <article class="patient">
+            <div class="consult-head"><div><b>${patientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div><div class="attendance-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button></div></div>
+            <div class="post-consult-block">
+              <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
+              <div class="payment-group">
+                <div class="payment-row"><span class="payment-label">Consultation</span><input class="amount-input" data-amount="${p.id}:consultAmount" value="${p.consultAmount || ""}" placeholder="0" inputmode="numeric" maxlength="4" pattern="[0-9]{0,4}" /><button class="choice ${p.consultPayMode === "Cash" ? "cash" : ""}" data-pay="${p.id}:consultPayMode:Cash" type="button">Cash</button><button class="choice ${p.consultPayMode === "GPay" ? "gpay" : ""}" data-pay="${p.id}:consultPayMode:GPay" type="button">GPay</button><button class="choice ${p.consultPayMode === "Card" ? "gpay" : ""}" data-pay="${p.id}:consultPayMode:Card" type="button">Card</button></div>
+                <div class="payment-row"><span class="payment-label">Tests</span><input class="amount-input" data-amount="${p.id}:testAmount" value="${p.testAmount || ""}" placeholder="0" inputmode="numeric" maxlength="4" pattern="[0-9]{0,4}" /><button class="choice ${p.testPayMode === "Cash" ? "cash" : ""}" data-pay="${p.id}:testPayMode:Cash" type="button">Cash</button><button class="choice ${p.testPayMode === "GPay" ? "gpay" : ""}" data-pay="${p.id}:testPayMode:GPay" type="button">GPay</button><button class="choice ${p.testPayMode === "Card" ? "gpay" : ""}" data-pay="${p.id}:testPayMode:Card" type="button">Card</button></div>
+              </div>
+            </div>
+          </article>
+        `).join("") : `<div class="empty">Select a date with patients, then enter attendance, investigations, and payment details here.</div>`;
+      }
+      function renderFollowupList() {
+        const needsRows = patients.filter(needsFollowup);
+        const missedRows = patients.filter(isMissed);
+        const highNeeds = needsRows.filter((p) => priority(p).className === "high").length;
+        $("#followupSummary").innerHTML = `
+          <span class="summary-pill high">High priority: ${highNeeds}</span>
+          <span class="summary-pill">Needs call back: ${needsRows.length}</span>
+          <span class="summary-pill">Missed: ${missedRows.length}</span>
+          <span class="summary-pill">Total booked: ${patients.length}</span>
+        `;
+        $("#toggleFollowup").textContent = followupExpanded ? "Hide list" : "Show list";
+        $("#followupList").style.display = followupExpanded ? "grid" : "none";
+        if (!followupExpanded) {
+          $("#followupList").innerHTML = "";
+          return;
+        }
+        const baseRows = followupFilter === "needs"
+          ? needsRows
+          : followupFilter === "missed"
+            ? missedRows
+            : patients;
+        const rows = [...baseRows].sort((a, b) => {
+          const needsA = needsFollowup(a) ? 0 : 1;
+          const needsB = needsFollowup(b) ? 0 : 1;
+          return needsA - needsB || priority(a).rank - priority(b).rank || b.date.localeCompare(a.date);
+        });
+        $("#followupList").innerHTML = rows.length ? rows.map((p) => {
+          const pPriority = priority(p);
+          const needsCall = needsFollowup(p);
+          const callbackOpen = openCallbackId === p.id;
+          return `
+            <article class="patient followup-row">
+              <div><b>${patientLine(p)}</b><div class="meta"><strong>Date: ${dateLabel(p.date)}</strong> · ${p.visitType} · ${p.mode}</div></div>
+              <div><span class="mobile">${p.mobile || "-"}</span></div>
+              <div><b>${p.diagnosis}</b><div class="meta">${p.attendance || "Not marked"}${p.callbackStatus ? ` · ${p.callbackStatus}` : ""}</div></div>
+              <div><span class="priority ${pPriority.className}">${pPriority.label}</span></div>
+              <div>
+                ${needsCall ? `<button class="secondary" type="button" data-callback-open="${p.id}">Call back</button>` : `<span class="meta">Seen</span>`}
+                <button class="secondary" type="button" data-followup-delete="${p.id}">Delete</button>
+                ${callbackOpen ? `<div class="attendance-actions" style="margin-top:8px">
+                  <button class="choice ${p.callbackStatus === "No response" ? "noshow" : ""}" type="button" data-callback="${p.id}:No response">No response</button>
+                  <button class="choice ${p.callbackStatus === "Appointment given" ? "came" : ""}" type="button" data-callback="${p.id}:Appointment given">Appointment given</button>
+                  <button class="choice ${p.callbackStatus === "TM scheduled" ? "came" : ""}" type="button" data-callback="${p.id}:TM scheduled">TM scheduled</button>
+                </div>` : ""}
+              </div>
+            </article>
+          `;
+        }).join("") : `<div class="empty">${followupFilter === "needs" ? "No patients currently need call back." : followupFilter === "missed" ? "No missed patients currently need follow-up." : "No booked patients yet."}</div>`;
+      }
+      function renderStats() {
+        const summary = totals();
+        $("#todayLabel").textContent = dateLabel(selectedDate);
+        $("#afterDateLabel").textContent = dateLabel(selectedDate);
+        $("#monthLabel").textContent = monthLabel(selectedDate);
+        $("#statTotal").textContent = summary.total;
+        $("#statClinic").textContent = summary.clinic;
+        $("#statTele").textContent = summary.tele;
+        $("#statMissed").textContent = summary.total - summary.came;
+        $("#statMarked").textContent = summary.came + summary.noShow;
+        $("#statDailyTotal").textContent = money(summary.grandTotal);
+      }
+      function renderReport() {
+        const summary = totals(selectedMonthPatients());
+        const noShowRate = summary.total ? Math.round((summary.noShow / summary.total) * 100) : 0;
+        $("#reportGrid").innerHTML = [["Total booked", summary.total], ["Came", summary.came], ["Missed", summary.total - summary.came], ["No show", summary.noShow], ["Cash total", money(summary.cashTotal)], ["GPay total", money(summary.gpayTotal)], ["Card total", money(summary.cardTotal)], ["First consultation", summary.first], ["Review", summary.review], ["Monthly total", money(summary.grandTotal)]].map(([label, value]) => `<div class="report-item"><span>${label}</span><strong>${value}</strong></div>`).join("");
+        const common = Object.entries(summary.diagnosis).sort((a, b) => b[1] - a[1])[0];
+        $("#reportList").innerHTML = `<div class="report-row"><span>No show rate</span><strong>${noShowRate}%</strong></div><div class="report-row"><span>Most common diagnosis</span><strong>${common ? `${common[0]}: ${common[1]}` : "-"}</strong></div><div class="report-row"><span>In clinic vs teleconsultation</span><strong>${summary.clinic} / ${summary.tele}</strong></div><div class="report-row"><span>Tests ordered</span><strong>${tests.map((test) => `${test}: ${summary.tests[test]}`).join(" · ")}</strong></div><div class="report-row"><span>Consultation payment</span><strong>Cash ${money(summary.consultCash)} · GPay ${money(summary.consultGpay)} · Card ${money(summary.consultCard)} · Total ${money(summary.consultTotal)}</strong></div><div class="report-row"><span>Test payment</span><strong>Cash ${money(summary.testCash)} · GPay ${money(summary.testGpay)} · Card ${money(summary.testCard)} · Total ${money(summary.testTotal)}</strong></div><div class="report-row"><span>Total collection</span><strong>Cash ${money(summary.cashTotal)} · GPay ${money(summary.gpayTotal)} · Card ${money(summary.cardTotal)} · Total ${money(summary.grandTotal)}</strong></div>`;
+      }
+      function renderAccounts() {
+        const clinic = totals(selectedMonthPatients());
+        const account = accountTotals();
+        const bankText = Object.entries(account.bank).length
+          ? Object.entries(account.bank).map(([bank, amount]) => `${bank}: ${money(amount)}`).join(" · ")
+          : "No remittance entered";
+        const categoryText = Object.entries(account.expenseCategory).length
+          ? Object.entries(account.expenseCategory).map(([category, amount]) => `${category}: ${money(amount)}`).join(" · ")
+          : "No expenses entered";
+        const totalIncome = clinic.grandTotal + account.otherIncome;
+        const autoDoctorGpay = clinic.consultGpay;
+        const autoDoctorCard = clinic.consultCard;
+        const autoNeuroGpay = clinic.testGpay;
+        const autoNeuroCard = clinic.testCard;
+        const autoDoctorCredit = autoDoctorGpay + autoDoctorCard;
+        const autoNeuroCredit = autoNeuroGpay + autoNeuroCard;
+        const autoBankCredit = autoDoctorCredit + autoNeuroCredit + account.gpayOtherIncome + account.cardOtherIncome + account.chequeOtherIncome;
+        const totalBankCredit = autoBankCredit + account.remittance;
+        const cashBalance = clinic.cashTotal + account.cashOtherIncome - account.cashExpense - account.cashRemittance;
+        $("#accountsSummary").innerHTML = `
+          <span class="summary-pill">Month income: ${money(totalIncome)}</span>
+          <span class="summary-pill">Expenses: ${money(account.expense)}</span>
+          <span class="summary-pill">Bank credited: ${money(totalBankCredit)}</span>
+          <span class="summary-pill">Cash balance: ${money(cashBalance)}</span>
+        `;
+        $("#toggleAccounts").textContent = accountsExpanded ? "Hide accounts" : "Show accounts";
+        $("#accountsBody").style.display = accountsExpanded ? "grid" : "none";
+        if (!accountsExpanded) return;
+        const rows = selectedMonthAccounts();
+        $("#accountsReport").innerHTML = `
+          <div class="report-grid">
+            <div class="report-item"><span>Clinic income</span><strong>${money(clinic.grandTotal)}</strong></div>
+            <div class="report-item"><span>Other income</span><strong>${money(account.otherIncome)}</strong></div>
+            <div class="report-item"><span>Total income</span><strong>${money(totalIncome)}</strong></div>
+            <div class="report-item"><span>Expenses</span><strong>${money(account.expense)}</strong></div>
+            <div class="report-item"><span>Bank credited</span><strong>${money(totalBankCredit)}</strong></div>
+            <div class="report-item"><span>Cash balance</span><strong>${money(cashBalance)}</strong></div>
+          </div>
+          <div class="report-list">
+            <div class="report-row"><span>Consultation income</span><strong>Cash ${money(clinic.consultCash)} · GPay ${money(clinic.consultGpay)} · Card ${money(clinic.consultCard)} · Total ${money(clinic.consultTotal)}</strong></div>
+            <div class="report-row"><span>Test income</span><strong>Cash ${money(clinic.testCash)} · GPay ${money(clinic.testGpay)} · Card ${money(clinic.testCard)} · Total ${money(clinic.testTotal)}</strong></div>
+            <div class="report-row"><span>Total by payment mode</span><strong>Cash ${money(clinic.cashTotal)} · GPay ${money(clinic.gpayTotal)} · Card ${money(clinic.cardTotal)}</strong></div>
+            <div class="report-row"><span>Auto bank credit</span><strong>Dr Gigy SIB 1134: GPay ${money(autoDoctorGpay)} · Card ${money(autoDoctorCard)} · Total ${money(autoDoctorCredit)}<br />Neurodiagnostics account: GPay ${money(autoNeuroGpay)} · Card ${money(autoNeuroCard)} · Total ${money(autoNeuroCredit)}</strong></div>
+            <div class="report-row"><span>Expense categories</span><strong>${categoryText}</strong></div>
+            <div class="report-row"><span>Manual bank remittance</span><strong>Cash ${money(account.cashRemittance)} · GPay ${money(account.gpayRemittance)} · Card ${money(account.cardRemittance)} · Cheque ${money(account.chequeRemittance)} · ${bankText}</strong></div>
+          </div>
+        `;
+        $("#accountsList").innerHTML = `
+          <div class="ledger-head account-row"><div>Date</div><div>Particulars</div><div>Mode</div><div>Income</div><div>Expense</div><div>Notes</div><div></div></div>
+          ${rows.length ? rows.map((entry) => `
+            <article class="patient account-row">
+              <div><b>${entry.date}</b></div>
+              <div>${entry.type}<div class="meta">${entry.bank}</div></div>
+              <div>${entry.mode || "-"}</div>
+              <div><b>${entry.type === "Expense" ? "-" : money(entry.amount)}</b></div>
+              <div><b>${entry.type === "Expense" ? money(entry.amount) : "-"}</b></div>
+              <div class="meta">${entry.note || "-"}</div>
+              <button class="secondary" type="button" data-account-delete="${entry.id}">Delete</button>
+            </article>
+          `).join("") : `<div class="empty">No account entries for this month.</div>`}
+        `;
+      }
+      function listMessage() {
+        const rows = selectedDayPatients();
+        if (!rows.length) return `Patient List - ${dateLabel(selectedDate)}\n\nNo patients added.`;
+        return `Patient List - ${dateLabel(selectedDate)}\n\n${rows.map((p, i) => `${i + 1}. ${patientLine(p)}\n   ${p.diagnosis} | ${p.visitType} | ${p.mode}\n   Mobile: ${p.mobile || "-"}`).join("\n\n")}\n\nTotal: ${rows.length} patients`;
+      }
+      function dailyMessage() {
+        const rows = selectedDayPatients();
+        const summary = totals(rows);
+        if (!rows.length) return `Daily Report - ${dateLabel(selectedDate)}\n\nNo patients added.`;
+        return `Daily Report - ${dateLabel(selectedDate)}\n\n${rows.map((p, i) => `${i + 1}. ${patientLine(p)}\n${p.diagnosis} | ${p.visitType} | ${p.mode}\nAttendance: ${p.attendance || "Not marked"}\nTests: ${(p.tests || []).join(", ") || "None"}\nConsultation: ${money(p.consultAmount)} ${p.consultPayMode || ""}\nTests payment: ${money(p.testAmount)} ${p.testPayMode || ""}`).join("\n\n")}\n\nSummary\nTotal booked: ${summary.total}\nCame: ${summary.came}\nMissed: ${summary.total - summary.came}\nNo show: ${summary.noShow}\nConsultation Cash: ${money(summary.consultCash)}\nConsultation GPay: ${money(summary.consultGpay)}\nConsultation Card: ${money(summary.consultCard)}\nConsultation Total: ${money(summary.consultTotal)}\nTests Cash: ${money(summary.testCash)}\nTests GPay: ${money(summary.testGpay)}\nTests Card: ${money(summary.testCard)}\nTests Total: ${money(summary.testTotal)}\nCash Total: ${money(summary.cashTotal)}\nGPay Total: ${money(summary.gpayTotal)}\nCard Total: ${money(summary.cardTotal)}\nDaily Total: ${money(summary.grandTotal)}`;
+      }
+      function monthlyMessage() {
+        const rows = selectedMonthPatients();
+        const summary = totals(rows);
+        const noShowRate = summary.total ? Math.round((summary.noShow / summary.total) * 100) : 0;
+        return `Monthly Report - ${monthLabel(selectedDate)}\n\nTotal booked: ${summary.total}\nCame: ${summary.came}\nMissed: ${summary.total - summary.came}\nNo show: ${summary.noShow}\nNo show rate: ${noShowRate}%\nFirst consultation: ${summary.first}\nReview: ${summary.review}\n\nTests ordered\n${tests.map((test) => `${test}: ${summary.tests[test]}`).join("\n")}\n\nPayments\nConsultation Cash: ${money(summary.consultCash)}\nConsultation GPay: ${money(summary.consultGpay)}\nConsultation Card: ${money(summary.consultCard)}\nConsultation Total: ${money(summary.consultTotal)}\nTests Cash: ${money(summary.testCash)}\nTests GPay: ${money(summary.testGpay)}\nTests Card: ${money(summary.testCard)}\nTests Total: ${money(summary.testTotal)}\nCash Total: ${money(summary.cashTotal)}\nGPay Total: ${money(summary.gpayTotal)}\nCard Total: ${money(summary.cardTotal)}\nMonthly Total: ${money(summary.grandTotal)}`;
+      }
+      function whatsAppUrl(message) {
+        const phone = $("#doctorPhone").value.replace(/\D/g, "");
+        return phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}` : "#";
+      }
+      function renderMessages() {
+        const list = listMessage(), daily = dailyMessage(), monthly = monthlyMessage();
+        $("#listPreview").textContent = list;
+        $("#dailyPreview").textContent = daily;
+        $("#monthlyPreview").textContent = monthly;
+        $("#sendListBtn").href = whatsAppUrl(list);
+        $("#sendDailyBtn").href = whatsAppUrl(daily);
+        $("#sendMonthlyBtn").href = whatsAppUrl(monthly);
+      }
+      function renderWhatsappPreview() {
+        $("#toggleWhatsapp").textContent = whatsappExpanded ? "Hide preview" : "Show preview";
+        document.querySelector(".preview-body").style.display = whatsappExpanded ? "grid" : "none";
+      }
+      function printAccountsReport() {
+        const clinic = totals(selectedMonthPatients());
+        const account = accountTotals();
+        const rows = selectedMonthAccounts();
+        const totalIncome = clinic.grandTotal + account.otherIncome;
+        const autoDoctorGpay = clinic.consultGpay;
+        const autoDoctorCard = clinic.consultCard;
+        const autoNeuroGpay = clinic.testGpay;
+        const autoNeuroCard = clinic.testCard;
+        const autoDoctorCredit = autoDoctorGpay + autoDoctorCard;
+        const autoNeuroCredit = autoNeuroGpay + autoNeuroCard;
+        const autoBankCredit = autoDoctorCredit + autoNeuroCredit + account.gpayOtherIncome + account.cardOtherIncome + account.chequeOtherIncome;
+        const totalBankCredit = autoBankCredit + account.remittance;
+        const cashBalance = clinic.cashTotal + account.cashOtherIncome - account.cashExpense - account.cashRemittance;
+        const bankRows = Object.entries(account.bank).map(([bank, amount]) => `<tr><td>${bank}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No remittance entered</td></tr>`;
+        const expenseRows = Object.entries(account.expenseCategory).map(([category, amount]) => `<tr><td>${category}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No expenses entered</td></tr>`;
+        const ledgerRows = rows.map((entry) => `<tr><td>${entry.date}</td><td>${entry.type}</td><td>${entry.bank}</td><td>${entry.mode || "-"}</td><td>${entry.type === "Expense" ? "-" : money(entry.amount)}</td><td>${entry.type === "Expense" ? money(entry.amount) : "-"}</td><td>${entry.note || ""}</td></tr>`).join("") || `<tr><td colspan="7">No manual account entries</td></tr>`;
+        $("#accountsReportMonth").textContent = monthLabel(selectedDate);
+        $("#accountsReportContent").innerHTML = `
+          <div class="print-summary">
+            <div class="print-box"><span>Clinic income</span><strong>${money(clinic.grandTotal)}</strong></div>
+            <div class="print-box"><span>Other income</span><strong>${money(account.otherIncome)}</strong></div>
+            <div class="print-box"><span>Total income</span><strong>${money(totalIncome)}</strong></div>
+            <div class="print-box"><span>Expenses</span><strong>${money(account.expense)}</strong></div>
+            <div class="print-box"><span>Bank credited</span><strong>${money(totalBankCredit)}</strong></div>
+            <div class="print-box"><span>Cash balance</span><strong>${money(cashBalance)}</strong></div>
+          </div>
+          <h2>Income Breakup</h2>
+          <table><tr><th>Type</th><th>Cash</th><th>GPay</th><th>Card</th><th>Total</th></tr>
+          <tr><td>Consultation</td><td>${money(clinic.consultCash)}</td><td>${money(clinic.consultGpay)}</td><td>${money(clinic.consultCard)}</td><td>${money(clinic.consultTotal)}</td></tr>
+          <tr><td>Tests</td><td>${money(clinic.testCash)}</td><td>${money(clinic.testGpay)}</td><td>${money(clinic.testCard)}</td><td>${money(clinic.testTotal)}</td></tr>
+          <tr><th>Total</th><th>${money(clinic.cashTotal)}</th><th>${money(clinic.gpayTotal)}</th><th>${money(clinic.cardTotal)}</th><th>${money(clinic.grandTotal)}</th></tr></table>
+          <h2>Auto Bank Credit</h2>
+          <table><tr><th>Account</th><th>GPay</th><th>Card</th><th>Total</th></tr><tr><td>Dr Gigy SIB 1134</td><td>${money(autoDoctorGpay)}</td><td>${money(autoDoctorCard)}</td><td>${money(autoDoctorCredit)}</td></tr><tr><td>Neurodiagnostics account</td><td>${money(autoNeuroGpay)}</td><td>${money(autoNeuroCard)}</td><td>${money(autoNeuroCredit)}</td></tr></table>
+          <h2>Expense Categories</h2><table><tr><th>Category</th><th>Amount</th></tr>${expenseRows}</table>
+          <h2>Manual Bank Remittance</h2>
+          <table><tr><th>Mode</th><th>Amount</th></tr><tr><td>Cash</td><td>${money(account.cashRemittance)}</td></tr><tr><td>GPay</td><td>${money(account.gpayRemittance)}</td></tr><tr><td>Card</td><td>${money(account.cardRemittance)}</td></tr><tr><td>Cheque</td><td>${money(account.chequeRemittance)}</td></tr></table>
+          <table><tr><th>Account</th><th>Amount</th></tr>${bankRows}</table>
+          <h2>Ledger Entries</h2><table><tr><th>Date</th><th>Type</th><th>Account / Category</th><th>Mode</th><th>Income</th><th>Expense</th><th>Notes</th></tr>${ledgerRows}</table>
+        `;
+        $("#accountsReportOverlay").classList.add("open");
+        $("#accountsReportOverlay").setAttribute("aria-hidden", "false");
+      }
+      async function copyReport(kind) {
+        const message = kind === "list" ? listMessage() : kind === "daily" ? dailyMessage() : monthlyMessage();
+        try { await navigator.clipboard.writeText(message); } catch {
+          const box = document.createElement("textarea");
+          box.value = message; document.body.appendChild(box); box.select(); document.execCommand("copy"); box.remove();
+        }
+        alert("Report copied. Open WhatsApp and paste it.");
+      }
+      function render() { renderPatientList(); renderAfterList(); renderFollowupList(); renderStats(); renderReport(); renderMessages(); renderAccounts(); renderWhatsappPreview(); }
+
+      $("#patientForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const visitType = selected("visitType"), mode = selected("mode"), diagnosis = selected("diagnosis");
+        if (!visitType || !mode || !diagnosis) { alert("Please select visit type, consultation mode, and diagnosis."); return; }
+        const id = makeId();
+        const patient = { id, patientId: nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
+        patients.push(patient);
+        savePatientToCloud(patient);
+        event.target.reset();
+        $("#patientSearchResults").innerHTML = "";
+        $$("[data-group]").forEach((group) => group.querySelectorAll(".choice").forEach((button) => button.classList.remove("active")));
+        save(); render();
+      });
+      $("#accountForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const mode = selected("accountMode");
+        const amount = $("#accountAmount").value.replace(/\D/g, "").slice(0, 6);
+        if (!amount) { alert("Enter amount."); return; }
+        if (!mode) { alert("Select Cash, GPay, Card, or Cheque."); return; }
+        const entry = {
+          id: makeId(),
+          date: $("#accountDate").value || selectedDate,
+          type: $("#accountType").value,
+          amount,
+          mode,
+          bank: $("#accountBank").value,
+          note: $("#accountNote").value.trim()
+        };
+        accounts.push(entry);
+        saveAccountToCloud(entry);
+        event.target.reset();
+        $("#accountDate").value = selectedDate;
+        $$("[data-group='accountMode'] .choice").forEach((button) => button.classList.remove("active"));
+        render();
+      });
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest("button, a");
+        if (!button) return;
+        if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
+        if (button.matches("[data-scroll]")) { event.preventDefault(); document.getElementById(button.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        if (button.matches("[data-group] .choice")) setChoice(button);
+        if (button.dataset.filter) { activeFilter = button.dataset.filter; $$("[data-filter]").forEach((item) => item.classList.toggle("active", item === button)); renderPatientList(); }
+        if (button.dataset.followup) { followupFilter = button.dataset.followup; $$("[data-followup]").forEach((item) => item.classList.toggle("active", item === button)); renderFollowupList(); }
+        if (button.dataset.delete) { const id = button.dataset.delete; patients = patients.filter((p) => p.id !== id); deletePatientFromCloud(id); save(); render(); }
+        if (button.dataset.followupDelete) updatePatient(button.dataset.followupDelete, { followupRemoved: true });
+        if (button.dataset.attendance) { const [id, attendance] = button.dataset.attendance.split(":"); updatePatient(id, { attendance }); }
+        if (button.dataset.callbackOpen) { openCallbackId = openCallbackId === button.dataset.callbackOpen ? "" : button.dataset.callbackOpen; renderFollowupList(); }
+        if (button.dataset.callback) { const [id, callbackStatus] = button.dataset.callback.split(":"); openCallbackId = ""; updatePatient(id, { callbackStatus }); }
+        if (button.dataset.pay) { const [id, field, value] = button.dataset.pay.split(":"); updatePayment(id, field, value); }
+        if (button.dataset.reusePatient) reusePatient(button.dataset.reusePatient);
+        if (button.dataset.medicalRecord) openMedicalRecord(button.dataset.medicalRecord);
+        if (button.dataset.recordTab) switchRecordTab(button.dataset.recordTab);
+        if (button.dataset.allRecords) renderAllMedicalEntries();
+        if (button.dataset.newRecord) createNewMedicalEntry();
+        if (button.dataset.openRecord) {
+          openMedicalRecord(activeRecordPatientId, button.dataset.openRecord);
+        }
+        if (button.dataset.deleteRecord) deleteMedicalEntry(button.dataset.deleteRecord);
+        if (button.dataset.printPrescription) printPrescriptionRecord(button.dataset.printPrescription);
+        if (button.dataset.copy) copyReport(button.dataset.copy);
+        if (button.id === "toggleFollowup") { followupExpanded = !followupExpanded; renderFollowupList(); }
+        if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
+        if (button.id === "toggleAccounts") { accountsExpanded = !accountsExpanded; renderAccounts(); }
+        if (button.id === "printAccountsBtn") printAccountsReport();
+        if (button.id === "closeAccountsReportBtn") { $("#accountsReportOverlay").classList.remove("open"); $("#accountsReportOverlay").setAttribute("aria-hidden", "true"); }
+        if (button.id === "savePdfAccountsBtn" || button.id === "printInlineAccountsBtn") { document.body.classList.add("print-accounts"); window.print(); }
+        if (button.id === "recordSaveBtn") await saveActiveMedicalRecord(false);
+        if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(false); closeMedicalRecordScreen(true); }
+        if (button.id === "recordPrintBtn") printActiveMedicalRecord();
+        if (button.id === "apiSettingsBtn") openApiSettings();
+        if (button.id === "formatGptBtn") await formatCurrentNoteWithGpt();
+        if (button.id === "recordCloseBtn") closeMedicalRecordScreen(false);
+        if (button.id === "dictationStartBtn") startDictation();
+        if (button.id === "dictationPauseBtn") toggleDictationPause();
+        if (button.id === "dictationSaveBtn") saveDictationToNote();
+        if (button.id === "recordDetailsBtn") {
+          $("#recordDetailsPanel").classList.toggle("open");
+          button.textContent = $("#recordDetailsPanel").classList.contains("open") ? "Hide Details" : "Add Details";
+        }
+        if (button.id === "recordDialogSaveClose") { await saveActiveMedicalRecord(false); closeMedicalRecordScreen(true); }
+        if (button.id === "recordDialogDiscard") closeMedicalRecordScreen(true);
+        if (button.id === "recordDialogCancel") { $("#recordUnsavedDialog").classList.remove("open"); $("#recordUnsavedDialog").setAttribute("aria-hidden", "true"); }
+        if (button.id === "saveApiKeyBtn") { writeStore("clinicOpenAiKey.v1", $("#openAiApiKeyInput").value.trim()); closeApiSettings(); $("#dictationStatus").textContent = "GPT key saved"; }
+        if (button.id === "clearApiKeyBtn") { writeStore("clinicOpenAiKey.v1", ""); $("#openAiApiKeyInput").value = ""; $("#dictationStatus").textContent = "GPT key cleared"; }
+        if (button.id === "closeApiSettingsBtn") closeApiSettings();
+        if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
+        if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
+      });
+      window.addEventListener("afterprint", () => document.body.classList.remove("print-accounts", "print-medical"));
+      document.addEventListener("change", (event) => {
+        if (event.target.id === "clinicDate") { selectedDate = event.target.value || todayKey; $("#accountDate").value = selectedDate; save(); render(); }
+        if (event.target.dataset.test) { const [id, test] = event.target.dataset.test.split(":"); toggleTest(id, test, event.target.checked); }
+        if (event.target.id === "doctorPhone") { save(); renderMessages(); }
+        if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
+      });
+      document.addEventListener("input", (event) => {
+        if (event.target.dataset.amount) { const [id, field] = event.target.dataset.amount.split(":"); event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4); updatePayment(id, field, event.target.value, false); }
+        if (event.target.id === "accountAmount") { event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6); }
+        if (event.target.id === "patientSearch") renderPatientSearch();
+        if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
+      });
+      $("#medicalNoteText").addEventListener("paste", (event) => {
+        event.preventDefault();
+        document.execCommand("insertHTML", false, formatMedicalPaste(event.clipboardData.getData("text/plain")));
+        setRecordDirty();
+      });
+      setInterval(() => {
+        if ($("#medicalRecordScreen").classList.contains("open") && activeRecordDirty) saveActiveMedicalRecord(true);
+      }, 5000);
+      document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
+      render();
+      startFirebaseSync();
+    </script>
+  </body>
+</html>
