@@ -911,10 +911,10 @@
         activeRecordId = `${patient.id}_${todayKey}_${makeId().slice(0, 8)}`;
         activeRecordDate = todayKey;
         activeRecordType = "visit";
-        activeRecordDocs = { visit: medicalNoteTemplate(todayKey) };
+        activeRecordDocs = { visit: "" };
         $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === "visit"));
         $("#medicalNoteText").setAttribute("contenteditable", "true");
-        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        $("#medicalNoteText").innerHTML = "";
         $("#recordVisitDate").textContent = `Entry: ${dateLabel(todayKey)}`;
         $("#recordStatus").textContent = "New entry";
         activeRecordDirty = true;
