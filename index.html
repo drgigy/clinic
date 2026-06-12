@@ -132,29 +132,20 @@
       .print-box { border: 1px solid #ccd6dc; padding: 10px; border-radius: 6px; }
       .print-box span { display: block; color: #555; font-size: 12px; }
       .print-box strong { font-size: 20px; }
-      .record-screen { position: fixed; inset: 0; z-index: 30; display: none; grid-template-rows: auto auto 1fr; height: 100vh; background: #f6f9fa; color: var(--ink); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+      .record-screen { position: fixed; inset: 0; z-index: 30; display: none; grid-template-rows: auto 1fr; height: 100vh; background: #f6f9fa; color: var(--ink); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
       .record-screen.open { display: grid; }
       .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 14px 18px; display: grid; grid-template-columns: minmax(320px, 1fr) auto; gap: 14px; align-items: start; }
       .record-patient h1 { font-size: 22px; margin-bottom: 6px; font-weight: 900; }
       .record-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 13px; font-weight: 850; }
       .record-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-      .record-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 18px; background: #fff; border-bottom: 1px solid var(--line); }
-      .record-tab.active { background: var(--primary); color: #fff; }
-      .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 145px); overflow: hidden; }
-      .record-main { display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; min-height: 0; height: 100%; }
+      .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
+      .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b { font-weight: 900; }
-      .dictation-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
-      .dictation-input { min-height: 44px; max-height: 110px; resize: vertical; border: 0; padding: 8px; outline: none; font-family: inherit; }
-      .dictation-controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
-      .dictation-status { grid-column: 1 / -1; color: var(--muted); font-size: 13px; font-weight: 800; }
-      .details-panel, .previous-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
-      .details-panel { display: none; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 10px; }
-      .details-panel.open { display: grid; }
-      .details-panel label:nth-last-child(-n + 3) { grid-column: 1 / -1; }
+      .previous-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
       .previous-panel { align-self: start; display: grid; gap: 10px; max-height: calc(100vh - 130px); overflow: auto; }
-      .details-panel label, .previous-panel h2 { font-weight: 900; }
+      .previous-panel h2 { font-weight: 900; }
       .previous-panel h2 { font-size: 16px; }
       .previous-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .previous-record { justify-content: flex-start; width: 100%; text-align: left; min-height: auto; padding: 10px; }
@@ -202,7 +193,6 @@
         .stats, .two, .form-row, .date-control, .report-grid { grid-template-columns: 1fr; }
         .record-top, .record-body { grid-template-columns: 1fr; }
         .record-actions { justify-content: stretch; }
-        .details-panel { grid-template-columns: 1fr; }
         .followup-row { grid-template-columns: 1fr; }
         .account-row { grid-template-columns: 1fr; }
         .button-row.compact, .diagnosis-row { flex-wrap: wrap; }
@@ -456,17 +446,8 @@
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
           <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
           <button class="secondary" type="button" id="recordPrintBtn">Print</button>
-          <button class="secondary" type="button" id="formatGptBtn">Format GPT</button>
-          <button class="secondary" type="button" id="apiSettingsBtn">Settings</button>
           <button class="secondary" type="button" id="recordCloseBtn">Close</button>
-          <button class="secondary" type="button" id="recordDetailsBtn">Add Details</button>
         </div>
-      </div>
-      <div class="record-toolbar">
-        <button class="secondary record-tab active" type="button" data-record-tab="visit">Visit note</button>
-        <button class="secondary record-tab" type="button" data-record-tab="referral">Referral letter</button>
-        <button class="secondary record-tab" type="button" data-record-tab="prescription">Prescription</button>
-        <button class="secondary record-tab" type="button" data-record-tab="certificate">Certificate</button>
       </div>
       <div class="record-body">
         <aside class="previous-panel">
@@ -474,26 +455,8 @@
           <div id="previousRecordsList" class="patient-list"></div>
         </aside>
         <div class="record-main">
-          <div class="details-panel" id="recordDetailsPanel">
-            <label>Age<input id="recordAge" autocomplete="off" /></label>
-            <label>Gender<select id="recordSex"><option>Male</option><option>Female</option><option>Other</option></select></label>
-            <label>Address<input id="recordAddress" autocomplete="off" /></label>
-            <label>Diagnosis<input id="recordDiagnosis" autocomplete="off" /></label>
-            <label>Remarks<input id="recordRemarks" autocomplete="off" /></label>
-            <label>Allergy<input id="recordAllergy" autocomplete="off" /></label>
-            <label>Current Medications<textarea id="recordMedications" rows="2"></textarea></label>
-          </div>
           <div class="record-status" id="recordStatus"></div>
           <div class="medical-textarea" id="medicalNoteText" contenteditable="true" role="textbox" aria-label="Medical notes"></div>
-          <div class="dictation-composer">
-            <textarea class="dictation-input" id="dictationDraft" placeholder="Dictated text will appear here. You can edit before saving into the note."></textarea>
-            <div class="dictation-controls">
-              <button class="secondary" type="button" id="dictationStartBtn">Mic</button>
-              <button class="secondary" type="button" id="dictationPauseBtn">Pause</button>
-              <button class="primary" type="button" id="dictationSaveBtn">Save Dictation</button>
-            </div>
-            <div class="dictation-status" id="dictationStatus">Dictation off</div>
-          </div>
         </div>
       </div>
     </section>
@@ -507,19 +470,6 @@
           <button class="primary" type="button" id="recordDialogSaveClose">Save & Close</button>
           <button class="secondary" type="button" id="recordDialogDiscard">Discard Changes</button>
           <button class="secondary" type="button" id="recordDialogCancel">Cancel</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="unsaved-dialog" id="apiSettingsDialog" aria-hidden="true">
-      <div class="dialog-box">
-        <h2>GPT Settings</h2>
-        <p>Enter OpenAI API key. It will be saved only in this browser.</p>
-        <label>API key<input id="openAiApiKeyInput" type="password" autocomplete="off" placeholder="sk-..." /></label>
-        <div class="dialog-actions" style="margin-top:14px">
-          <button class="primary" type="button" id="saveApiKeyBtn">Save Key</button>
-          <button class="secondary" type="button" id="clearApiKeyBtn">Clear Key</button>
-          <button class="secondary" type="button" id="closeApiSettingsBtn">Close</button>
         </div>
       </div>
     </div>
@@ -570,9 +520,6 @@
       let activeRecordDirty = false;
       let activeRecordType = "visit";
       let activeRecordDocs = {};
-      let dictationRecognition = null;
-      let dictationBuffer = "";
-      let dictationPaused = false;
       const $ = (selector) => document.querySelector(selector);
       const $$ = (selector) => [...document.querySelectorAll(selector)];
 
@@ -808,14 +755,15 @@
         save(); render();
       }
       function collectRecordDetails() {
+        const patient = activeRecordPatient() || {};
         return {
-          age: $("#recordAge").value.trim(),
-          sex: $("#recordSex").value,
-          address: $("#recordAddress").value.trim(),
-          diagnosis: $("#recordDiagnosis").value.trim(),
-          remarks: $("#recordRemarks").value.trim(),
-          allergy: $("#recordAllergy").value.trim(),
-          currentMedications: $("#recordMedications").value.trim()
+          age: patient.age || "",
+          sex: patient.sex || "",
+          address: patient.address || "",
+          diagnosis: patient.diagnosis || "",
+          remarks: patient.remarks || "",
+          allergy: patient.allergy || "",
+          currentMedications: patient.currentMedications || ""
         };
       }
       function setRecordDirty() {
@@ -844,24 +792,11 @@
             </button>
             <button class="icon-delete" type="button" data-delete-record="${record.id}" title="Delete entry" aria-label="Delete entry">×</button>
           </div>
-          ${record.docs?.prescription ? `<button class="secondary previous-record" type="button" data-print-prescription="${record.id}">Print prescription<span>${dateLabel(record.date)}</span></button>` : ""}
         `).join("") : `<div class="empty">No entries yet. Click + Add.</div>`}
         `;
       }
       function medicalPrintDisclaimer() {
         return `<div class="medical-disclaimer"><strong>Disclaimer:</strong> This medical note is generated with AI assistance and may contain errors. Please inform us if you notice any errors.</div>`;
-      }
-      function printPrescriptionRecord(recordId) {
-        const record = medicalRecords.find((item) => item.id === recordId);
-        if (!record?.docs?.prescription) return;
-        $("#medicalPrintContent").innerHTML = `
-          <h1>${record.name || "Prescription"}</h1>
-          <div class="meta">ID: ${record.patientId || "-"} | Mobile: ${record.mobile || "-"} | Visit: ${dateLabel(record.date)}</div>
-          <div>${record.docs.prescription}</div>
-          ${medicalPrintDisclaimer()}
-        `;
-        document.body.classList.add("print-medical");
-        window.print();
       }
       function deleteMedicalEntry(recordId) {
         const record = medicalRecords.find((item) => item.id === recordId);
@@ -874,15 +809,6 @@
       }
       function escapeHtml(value) {
         return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
-      }
-      function medicalNoteTemplate(dateKey) {
-        return `<b>Chief Complaints:</b><br><br><br><b>HOPI (History of Present Illness):</b><br><br><br><b>Physical Examination:</b><br><br><b>Diagnosis:</b><br><br><br><b>Review of Investigations:</b><br><br><b>Allergies:</b><br><br><br><b>Current Medications:</b><br><br><br><b>Orders:</b><br><br><b>Advice / Follow-Up:</b><br>`;
-      }
-      function blankDocumentTemplate(type, dateKey) {
-        if (type === "visit") return medicalNoteTemplate(dateKey);
-        if (type === "prescription") return `<b>Prescription:</b><br>1. `;
-        if (type === "referral") return `<b>Referral Letter:</b><br><br>`;
-        return `<b>Certificate:</b><br><br>`;
       }
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
@@ -912,7 +838,6 @@
         activeRecordDate = todayKey;
         activeRecordType = "visit";
         activeRecordDocs = { visit: "" };
-        $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === "visit"));
         $("#medicalNoteText").setAttribute("contenteditable", "true");
         $("#medicalNoteText").innerHTML = "";
         $("#recordVisitDate").textContent = `Entry: ${dateLabel(todayKey)}`;
@@ -925,34 +850,8 @@
         if (!activeRecordId || activeRecordView !== "single") return;
         activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
       }
-      function switchRecordTab(type) {
-        if (activeRecordView === "all") createNewMedicalEntry();
-        persistCurrentRecordTab();
-        activeRecordType = type;
-        $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === type));
-        $("#medicalNoteText").innerHTML = activeRecordDocs[type] || blankDocumentTemplate(type, activeRecordPatient()?.date || selectedDate);
-        $("#recordStatus").textContent = type === "visit" ? "Visit note" : type === "referral" ? "Referral letter" : type === "prescription" ? "Prescription" : "Certificate";
-      }
       function plainTextToHtml(value) {
         return escapeHtml(value).replace(/\n/g, "<br>");
-      }
-      function formatMedicalPaste(text) {
-        const headings = [
-          "Chief Complaints",
-          "HOPI (History of Present Illness)",
-          "Physical Examination",
-          "Diagnosis",
-          "Review of Investigations",
-          "Allergies",
-          "Current Medications",
-          "Orders",
-          "Advice / Follow-Up"
-        ];
-        return escapeHtml(text).split(/\r?\n/).map((line) => {
-          const clean = line.trim().replace(/:$/, "");
-          const heading = headings.find((item) => item.toLowerCase() === clean.toLowerCase());
-          return heading ? `<b>${heading}:</b>` : line;
-        }).join("<br>");
       }
       function printActiveMedicalRecord() {
         const patient = activeRecordPatient();
@@ -1014,15 +913,6 @@
           $("#recordPatientName").textContent = patient.name;
           $("#recordPatientId").textContent = `ID: ${patientDisplayId(patient)}`;
           $("#recordPatientMobile").textContent = `Mobile: ${patient.mobile || "-"}`;
-          $("#recordAge").value = patient.age ?? "";
-          $("#recordSex").value = patient.sex ?? "Male";
-          $("#recordAddress").value = patient.address ?? "";
-          $("#recordDiagnosis").value = patient.diagnosis ?? "";
-          $("#recordRemarks").value = patient.remarks ?? "";
-          $("#recordAllergy").value = patient.allergy ?? "";
-          $("#recordMedications").value = patient.currentMedications ?? "";
-          $("#recordDetailsPanel").classList.remove("open");
-          $("#recordDetailsBtn").textContent = "Add Details";
           $("#medicalRecordScreen").classList.add("open");
           $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
           renderAllMedicalEntries();
@@ -1032,25 +922,16 @@
         const record = medicalRecords.find((item) => item.id === activeRecordId);
         activeRecordView = "single";
         activeRecordDate = record?.date || patient.date;
-        const details = record?.details || {};
         $("#recordPatientName").textContent = record?.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${record?.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${record?.mobile || patient.mobile || "-"}`;
         $("#recordVisitDate").textContent = `Entry: ${dateLabel(activeRecordDate)}`;
-        activeRecordDocs = record?.docs || { visit: record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : medicalNoteTemplate(patient.date)) };
+        activeRecordDocs = {
+          visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
+        };
         activeRecordType = "visit";
-        $$(".record-tab").forEach((button) => button.classList.toggle("active", button.dataset.recordTab === "visit"));
-        $("#medicalNoteText").innerHTML = activeRecordDocs.visit || medicalNoteTemplate(patient.date);
-        $("#recordAge").value = details.age ?? patient.age ?? "";
-        $("#recordSex").value = details.sex ?? patient.sex ?? "Male";
-        $("#recordAddress").value = details.address ?? patient.address ?? "";
-        $("#recordDiagnosis").value = details.diagnosis ?? patient.diagnosis ?? "";
-        $("#recordRemarks").value = details.remarks ?? patient.remarks ?? "";
-        $("#recordAllergy").value = details.allergy ?? patient.allergy ?? "";
-        $("#recordMedications").value = details.currentMedications ?? patient.currentMedications ?? "";
+        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         $("#recordStatus").textContent = record ? "Existing record opened" : "Blank record";
-        $("#recordDetailsPanel").classList.remove("open");
-        $("#recordDetailsBtn").textContent = "Add Details";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
@@ -1075,135 +956,6 @@
         activeRecordDirty = false;
         activeRecordDocs = {};
         activeRecordType = "visit";
-      }
-      function insertIntoMedicalEditor(html) {
-        $("#medicalNoteText").focus();
-        document.execCommand("insertHTML", false, html);
-        setRecordDirty();
-      }
-      function setupDictation() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          alert("Dictation is not supported in this browser. Try Chrome or Safari.");
-          return null;
-        }
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-IN";
-        recognition.onresult = (event) => {
-          if (dictationPaused) return;
-          let finalText = "";
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) finalText += `${event.results[i][0].transcript} `;
-          }
-          if (finalText.trim()) {
-            dictationBuffer += finalText;
-            $("#dictationDraft").value = dictationBuffer.trim();
-            $("#dictationStatus").textContent = "Listening...";
-          }
-        };
-        recognition.onend = () => {
-          if ($("#medicalRecordScreen").classList.contains("open") && !dictationPaused) {
-            try { recognition.start(); } catch {}
-          }
-        };
-        return recognition;
-      }
-      function startDictation() {
-        dictationRecognition ||= setupDictation();
-        if (!dictationRecognition) return;
-        dictationPaused = false;
-        dictationBuffer = "";
-        $("#dictationDraft").value = "";
-        $("#dictationPauseBtn").textContent = "Pause";
-        $("#dictationStatus").textContent = "Listening...";
-        try { dictationRecognition.start(); } catch {}
-      }
-      function toggleDictationPause() {
-        dictationPaused = !dictationPaused;
-        $("#dictationPauseBtn").textContent = dictationPaused ? "Resume" : "Pause";
-        $("#dictationStatus").textContent = dictationPaused ? "Dictation paused" : "Listening...";
-      }
-      async function saveDictationToNote() {
-        const text = ($("#dictationDraft").value || dictationBuffer).trim();
-        if (!text) { alert("No dictated text captured yet."); return; }
-        if (activeRecordView === "all") createNewMedicalEntry();
-        const apiKey = readStore("clinicOpenAiKey.v1", "");
-        let html = `<br>${formatMedicalPaste(text)}<br>`;
-        if (apiKey) {
-          $("#dictationStatus").textContent = "Formatting dictation with GPT...";
-          try {
-            html = `<br>${await formatTextWithGpt(text, apiKey)}<br>`;
-          } catch (error) {
-            console.error(error);
-            alert("GPT formatting failed. Saving raw dictation instead.");
-          }
-        }
-        insertIntoMedicalEditor(html);
-        activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
-        dictationBuffer = "";
-        $("#dictationDraft").value = "";
-        $("#dictationStatus").textContent = apiKey ? "Dictation formatted and added" : "Dictation added to note";
-      }
-      function openApiSettings() {
-        $("#openAiApiKeyInput").value = readStore("clinicOpenAiKey.v1", "");
-        $("#apiSettingsDialog").classList.add("open");
-        $("#apiSettingsDialog").setAttribute("aria-hidden", "false");
-      }
-      function closeApiSettings() {
-        $("#apiSettingsDialog").classList.remove("open");
-        $("#apiSettingsDialog").setAttribute("aria-hidden", "true");
-      }
-      function gptPrompt(text) {
-        return `You are a clinical note assistant helping a doctor structure a dictated medical note.
-
-The doctor has dictated a continuous note. Your job is to:
-1. Correct spelling and grammar of the dictated text
-2. Place each piece of information into the correct section
-3. Do NOT add, infer, assume, or hallucinate any clinical information
-4. If information for a section was not dictated, write exactly: Not dictated
-5. Correct obvious medical spelling errors
-6. Maintain the original meaning exactly
-7. Do not add anything not dictated. Do not leave out anything that was dictated.
-
-Investigations, medications, and prescription MUST be numbered lists, one item per line.
-
-Return JSON only with keys:
-chief_complaints, hopi, physical_examination, diagnosis, review_of_investigations, allergies, current_medications, orders, prescription, advice_follow_up.
-
-DICTATED TEXT:
-${text}`;
-      }
-      async function formatTextWithGpt(text, apiKey) {
-        const response = await fetch("https://api.openai.com/v1/responses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: "gpt-4o-mini", input: gptPrompt(text) })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || "OpenAI API request failed");
-        const output = data.output_text || data.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("") || "";
-        const parsed = JSON.parse(output);
-        return `<b>Chief Complaints:</b><br>${plainTextToHtml(parsed.chief_complaints)}<br><br><b>HOPI (History of Present Illness):</b><br>${plainTextToHtml(parsed.hopi)}<br><br><b>Physical Examination:</b><br>${plainTextToHtml(parsed.physical_examination)}<br><br><b>Diagnosis:</b><br>${plainTextToHtml(parsed.diagnosis)}<br><br><b>Review of Investigations:</b><br>${plainTextToHtml(parsed.review_of_investigations)}<br><br><b>Allergies:</b><br>${plainTextToHtml(parsed.allergies)}<br><br><b>Current Medications:</b><br>${plainTextToHtml(parsed.current_medications)}<br><br><b>Orders:</b><br>${plainTextToHtml(parsed.orders)}<br><br><b>Prescription:</b><br>${plainTextToHtml(parsed.prescription)}<br><br><b>Advice / Follow-Up:</b><br>${plainTextToHtml(parsed.advice_follow_up)}`;
-      }
-      async function formatCurrentNoteWithGpt() {
-        const apiKey = readStore("clinicOpenAiKey.v1", "");
-        if (!apiKey) { openApiSettings(); return; }
-        const text = $("#medicalNoteText").innerText.trim();
-        if (!text) { alert("No note text to format."); return; }
-        $("#recordStatus").textContent = "Formatting with GPT...";
-        try {
-          const html = await formatTextWithGpt(text, apiKey);
-          $("#medicalNoteText").innerHTML = html;
-          activeRecordDocs.visit = html;
-          setRecordDirty();
-          $("#recordStatus").textContent = "GPT formatting complete";
-        } catch (error) {
-          console.error(error);
-          $("#recordStatus").textContent = "GPT formatting failed";
-          alert("GPT formatting failed. Check API key and internet connection.");
-        }
       }
       function totals(rows = selectedDayPatients()) {
         const result = { total: rows.length, clinic: 0, tele: 0, came: 0, noShow: 0, first: 0, review: 0, consultCash: 0, consultGpay: 0, consultCard: 0, testCash: 0, testGpay: 0, testCard: 0, tests: Object.fromEntries(tests.map((test) => [test, 0])), diagnosis: {} };
@@ -1558,14 +1310,12 @@ ${text}`;
         if (button.dataset.pay) { const [id, field, value] = button.dataset.pay.split(":"); updatePayment(id, field, value); }
         if (button.dataset.reusePatient) reusePatient(button.dataset.reusePatient);
         if (button.dataset.medicalRecord) openMedicalRecord(button.dataset.medicalRecord);
-        if (button.dataset.recordTab) switchRecordTab(button.dataset.recordTab);
         if (button.dataset.allRecords) renderAllMedicalEntries();
         if (button.dataset.newRecord) createNewMedicalEntry();
         if (button.dataset.openRecord) {
           openMedicalRecord(activeRecordPatientId, button.dataset.openRecord);
         }
         if (button.dataset.deleteRecord) deleteMedicalEntry(button.dataset.deleteRecord);
-        if (button.dataset.printPrescription) printPrescriptionRecord(button.dataset.printPrescription);
         if (button.dataset.copy) copyReport(button.dataset.copy);
         if (button.id === "toggleFollowup") { followupExpanded = !followupExpanded; renderFollowupList(); }
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
@@ -1576,22 +1326,10 @@ ${text}`;
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord(false);
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(false); closeMedicalRecordScreen(true); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
-        if (button.id === "apiSettingsBtn") openApiSettings();
-        if (button.id === "formatGptBtn") await formatCurrentNoteWithGpt();
         if (button.id === "recordCloseBtn") closeMedicalRecordScreen(false);
-        if (button.id === "dictationStartBtn") startDictation();
-        if (button.id === "dictationPauseBtn") toggleDictationPause();
-        if (button.id === "dictationSaveBtn") saveDictationToNote();
-        if (button.id === "recordDetailsBtn") {
-          $("#recordDetailsPanel").classList.toggle("open");
-          button.textContent = $("#recordDetailsPanel").classList.contains("open") ? "Hide Details" : "Add Details";
-        }
         if (button.id === "recordDialogSaveClose") { await saveActiveMedicalRecord(false); closeMedicalRecordScreen(true); }
         if (button.id === "recordDialogDiscard") closeMedicalRecordScreen(true);
         if (button.id === "recordDialogCancel") { $("#recordUnsavedDialog").classList.remove("open"); $("#recordUnsavedDialog").setAttribute("aria-hidden", "true"); }
-        if (button.id === "saveApiKeyBtn") { writeStore("clinicOpenAiKey.v1", $("#openAiApiKeyInput").value.trim()); closeApiSettings(); $("#dictationStatus").textContent = "GPT key saved"; }
-        if (button.id === "clearApiKeyBtn") { writeStore("clinicOpenAiKey.v1", ""); $("#openAiApiKeyInput").value = ""; $("#dictationStatus").textContent = "GPT key cleared"; }
-        if (button.id === "closeApiSettingsBtn") closeApiSettings();
         if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
         if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
       });
@@ -1610,7 +1348,7 @@ ${text}`;
       });
       $("#medicalNoteText").addEventListener("paste", (event) => {
         event.preventDefault();
-        document.execCommand("insertHTML", false, formatMedicalPaste(event.clipboardData.getData("text/plain")));
+        document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
         setRecordDirty();
       });
       setInterval(() => {
