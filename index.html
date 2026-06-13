@@ -20,6 +20,7 @@
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
       body { margin: 0; background: var(--bg); color: var(--ink); }
       button, input, select { font: inherit; }
       button { cursor: pointer; }
@@ -33,6 +34,14 @@
       .doctor-card b { display: block; margin-bottom: 8px; }
       .doctor-card input { width: 100%; min-height: 36px; border: 1px solid #365365; border-radius: var(--radius); padding: 7px 9px; background: #132938; color: #fff; }
       .doctor-card span { display: block; margin-top: 8px; color: #bed0d9; font-size: 12px; line-height: 1.35; }
+      .sign-out { width: 100%; margin-top: 12px; background: #2a4352; color: #fff; }
+      .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: #10202b; }
+      .login-card { width: min(390px, 100%); padding: 24px; border-radius: 12px; background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+      .login-card h1 { font-size: 25px; margin-bottom: 8px; }
+      .login-card p { color: var(--muted); line-height: 1.45; margin-bottom: 18px; }
+      .login-card form { gap: 12px; }
+      .pin-input { font-size: 24px; font-weight: 800; letter-spacing: .35em; text-align: center; }
+      .login-error { min-height: 20px; color: var(--danger-ink); font-size: 13px; font-weight: 750; }
       main { padding: 24px; overflow: auto; }
       .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
       h1, h2, h3, p { margin: 0; }
@@ -201,7 +210,26 @@
     </style>
   </head>
   <body>
-    <div class="app">
+    <section class="login-screen" id="loginScreen">
+      <div class="login-card">
+        <h1 id="loginTitle">Clinic Login</h1>
+        <p id="loginHelp">Enter your four-digit PIN to open the clinic app.</p>
+        <form id="loginForm">
+          <label>
+            Four-digit PIN
+            <input class="pin-input" id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="4" pattern="[0-9]{4}" required />
+          </label>
+          <label id="confirmPinLabel" hidden>
+            Confirm PIN
+            <input class="pin-input" id="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" pattern="[0-9]{4}" />
+          </label>
+          <div class="login-error" id="loginError" role="alert"></div>
+          <button class="primary" id="loginBtn" type="submit">Unlock</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="app" id="clinicApp" hidden>
       <aside class="sidebar">
         <div class="brand">Clinic Daily<br />Appointments</div>
         <nav class="nav" aria-label="Main">
@@ -216,6 +244,7 @@
           <input id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
           <span>Use country code. If WhatsApp does not open, copy the report and paste into WhatsApp.</span>
         </div>
+        <button class="secondary sign-out" id="signOutBtn" type="button">Sign out</button>
       </aside>
 
       <main>
@@ -488,6 +517,8 @@
       const storeKey = "clinicDailyPatients.v1";
       const phoneKey = "clinicDoctorPhone.v1";
       const selectedDateKey = "clinicSelectedDate.v1";
+      const pinHashKey = "clinicPinHash.v1";
+      const signedInKey = "clinicSignedIn.v1";
       const firebaseConfig = {
         apiKey: "AIzaSyAp2LZSC3Pr08YhkwtECnafi3rMD372LBY",
         authDomain: "clinic-app-cccc0.firebaseapp.com",
@@ -518,11 +549,48 @@
       let activeRecordDirty = false;
       let activeRecordType = "visit";
       let activeRecordDocs = {};
+      let appStarted = false;
       const $ = (selector) => document.querySelector(selector);
       const $$ = (selector) => [...document.querySelectorAll(selector)];
 
       function readStore(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } }
       function writeStore(key, value) { try { localStorage.setItem(key, value); } catch {} }
+      function removeStore(key) { try { localStorage.removeItem(key); } catch {} }
+      async function hashPin(pin) {
+        const bytes = new TextEncoder().encode(`clinic-app:${pin}`);
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+      function showClinicApp() {
+        $("#loginScreen").hidden = true;
+        $("#clinicApp").hidden = false;
+        if (appStarted) return;
+        appStarted = true;
+        render();
+        startFirebaseSync();
+      }
+      function showLoginScreen() {
+        const isSetup = !readStore(pinHashKey, "");
+        $("#clinicApp").hidden = true;
+        $("#loginScreen").hidden = false;
+        $("#loginTitle").textContent = isSetup ? "Create Clinic PIN" : "Clinic Login";
+        $("#loginHelp").textContent = isSetup
+          ? "Choose a four-digit PIN for this clinic app."
+          : "Enter your four-digit PIN to open the clinic app.";
+        $("#confirmPinLabel").hidden = !isSetup;
+        $("#confirmPin").required = isSetup;
+        $("#loginBtn").textContent = isSetup ? "Create PIN" : "Unlock";
+        $("#loginError").textContent = "";
+        $("#loginPin").value = "";
+        $("#confirmPin").value = "";
+        $("#loginPin").focus();
+      }
+      async function initializeLogin() {
+        const hasPin = Boolean(readStore(pinHashKey, ""));
+        const isSignedIn = readStore(signedInKey, "") === "yes";
+        if (hasPin && isSignedIn) showClinicApp();
+        else showLoginScreen();
+      }
       function makeId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
       function yearPrefix(dateKey = selectedDate) { return String(new Date(`${dateKey}T00:00:00`).getFullYear()).slice(-2); }
       function isSequencePatientId(value, prefix = "") { return new RegExp(`^${prefix || "\\d{2}"}\\d{4}$`).test(String(value || "")); }
@@ -1325,6 +1393,34 @@
         $$("[data-group='accountMode'] .choice").forEach((button) => button.classList.remove("active"));
         render();
       });
+      $("#loginForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const pin = $("#loginPin").value;
+        const existingHash = readStore(pinHashKey, "");
+        $("#loginError").textContent = "";
+        if (!/^\d{4}$/.test(pin)) {
+          $("#loginError").textContent = "Enter exactly four digits.";
+          return;
+        }
+        if (!existingHash) {
+          if (pin !== $("#confirmPin").value) {
+            $("#loginError").textContent = "The PINs do not match.";
+            return;
+          }
+          writeStore(pinHashKey, await hashPin(pin));
+          writeStore(signedInKey, "yes");
+          showClinicApp();
+          return;
+        }
+        if (await hashPin(pin) !== existingHash) {
+          $("#loginError").textContent = "Incorrect PIN.";
+          $("#loginPin").value = "";
+          $("#loginPin").focus();
+          return;
+        }
+        writeStore(signedInKey, "yes");
+        showClinicApp();
+      });
       document.addEventListener("click", async (event) => {
         const button = event.target.closest("button, a");
         if (!button) return;
@@ -1358,6 +1454,10 @@
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
         if (button.id === "recordDeleteBtn" && activeRecordId) deleteMedicalEntry(activeRecordId);
         if (button.id === "recordCloseBtn") closeMedicalRecordScreen();
+        if (button.id === "signOutBtn") {
+          removeStore(signedInKey);
+          window.location.reload();
+        }
         if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
         if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
       });
@@ -1369,6 +1469,9 @@
         if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
       });
       document.addEventListener("input", (event) => {
+        if (event.target.id === "loginPin" || event.target.id === "confirmPin") {
+          event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4);
+        }
         if (event.target.dataset.amount) { const [id, field] = event.target.dataset.amount.split(":"); event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4); updatePayment(id, field, event.target.value, false); }
         if (event.target.id === "accountAmount") { event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6); }
         if (event.target.id === "patientSearch") renderPatientSearch();
@@ -1380,8 +1483,7 @@
         setRecordDirty();
       });
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
-      render();
-      startFirebaseSync();
+      initializeLogin();
     </script>
   </body>
 </html>
