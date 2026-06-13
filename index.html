@@ -152,8 +152,9 @@
       .previous-record.active { background: var(--primary); color: #fff; }
       .previous-record.active span { color: #d7fffa; }
       .previous-record span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
-      .record-entry-row { display: grid; grid-template-columns: 1fr 38px; gap: 6px; align-items: stretch; }
-      .icon-delete { min-height: 38px; width: 38px; padding: 0; font-size: 18px; color: var(--danger-ink); background: var(--danger); }
+      .record-entry-row { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: stretch; }
+      .icon-delete { min-height: 38px; width: 38px; padding: 0; color: var(--danger-ink); background: var(--danger); }
+      .icon-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
       .medical-print-content { display: none; }
@@ -446,6 +447,14 @@
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
           <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
           <button class="secondary" type="button" id="recordPrintBtn">Print</button>
+          <button class="icon-delete" type="button" id="recordDeleteBtn" title="Delete note" aria-label="Delete note" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18" />
+              <path d="M8 6V4h8v2" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v5M14 11v5" />
+            </svg>
+          </button>
           <button class="secondary" type="button" id="recordCloseBtn">Close</button>
         </div>
       </div>
@@ -461,18 +470,6 @@
       </div>
     </section>
     <div class="medical-print-content" id="medicalPrintContent"></div>
-
-    <div class="unsaved-dialog" id="recordUnsavedDialog" aria-hidden="true">
-      <div class="dialog-box">
-        <h2>Unsaved changes</h2>
-        <p>You have unsaved changes. Save before closing?</p>
-        <div class="dialog-actions">
-          <button class="primary" type="button" id="recordDialogSaveClose">Save & Close</button>
-          <button class="secondary" type="button" id="recordDialogDiscard">Discard Changes</button>
-          <button class="secondary" type="button" id="recordDialogCancel">Cancel</button>
-        </div>
-      </div>
-    </div>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
@@ -504,7 +501,7 @@
       const patientsCollection = collection(db, "patients");
       const accountsCollection = collection(db, "accounts");
       const medicalRecordsCollection = collection(db, "medicalRecords");
-      const todayKey = new Date().toISOString().slice(0, 10);
+      const todayKey = localDateKey();
       let selectedDate = readStore(selectedDateKey, todayKey);
       let activeFilter = "all";
       let followupFilter = "needs";
@@ -516,6 +513,7 @@
       let activeRecordPatientId = "";
       let activeRecordId = "";
       let activeRecordDate = "";
+      let activeRecordCreatedAt = "";
       let activeRecordView = "single";
       let activeRecordDirty = false;
       let activeRecordType = "visit";
@@ -568,6 +566,25 @@
 
       function dateLabel(dateKey) {
         return new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "short", year: "numeric" });
+      }
+      function localDateKey(date = new Date()) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+      function dateTimeLabel(value) {
+        const date = value ? new Date(value) : new Date();
+        return date.toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
+      function recordTimestamp(record) {
+        return record.createdAt || record.updatedAt || `${record.date}T00:00:00`;
       }
       function monthLabel(dateKey) {
         return new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -708,7 +725,9 @@
       function recordPatientKey(patient) { return (patient.mobile || patient.name || patient.id).trim().toLowerCase(); }
       function recordMatchesPatient(record, patient) { return patient && (record.patientKey === recordPatientKey(patient) || record.patientAppointmentId === patient.id); }
       function patientMedicalRecords(patient) {
-        return medicalRecords.filter((record) => recordMatchesPatient(record, patient)).sort((a, b) => b.date.localeCompare(a.date));
+        return medicalRecords
+          .filter((record) => recordMatchesPatient(record, patient))
+          .sort((a, b) => recordTimestamp(b).localeCompare(recordTimestamp(a)));
       }
       function needsFollowup(patient) {
         if (patient.followupRemoved) return false;
@@ -782,17 +801,15 @@
         list.innerHTML = `
           <div class="previous-actions">
             <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
-            <button class="primary previous-record" type="button" data-new-record="true">+ Add</button>
+            <button class="primary previous-record" type="button" data-new-record="true">+ Add note</button>
           </div>
           ${rows.length ? rows.map((record) => `
           <div class="record-entry-row">
             <button class="secondary previous-record ${activeRecordView === "single" && record.id === activeRecordId ? "active" : ""}" type="button" data-open-record="${record.id}">
-              <strong>${dateLabel(record.date)}</strong>
-              <span>Entry: ${record.updatedAt ? dateLabel(record.updatedAt.slice(0, 10)) : dateLabel(record.date)}</span>
+              <strong>${dateTimeLabel(recordTimestamp(record))}</strong>
             </button>
-            <button class="icon-delete" type="button" data-delete-record="${record.id}" title="Delete entry" aria-label="Delete entry">×</button>
           </div>
-        `).join("") : `<div class="empty">No entries yet. Click + Add.</div>`}
+        `).join("") : `<div class="empty">No notes yet. Click Add note.</div>`}
         `;
       }
       function medicalPrintDisclaimer() {
@@ -801,47 +818,40 @@
       function deleteMedicalEntry(recordId) {
         const record = medicalRecords.find((item) => item.id === recordId);
         if (!record) return;
-        if (!confirm(`Delete medical record entry for ${dateLabel(record.date)}?`)) return;
+        if (!confirm(`Delete medical note from ${dateTimeLabel(recordTimestamp(record))}?`)) return;
         medicalRecords = medicalRecords.filter((item) => item.id !== recordId);
         deleteMedicalRecordFromCloud(recordId);
-        if (activeRecordId === recordId) renderAllMedicalEntries();
-        else renderPreviousRecords();
+        if (activeRecordView === "all") {
+          renderAllMedicalEntries();
+          return;
+        }
+        if (activeRecordId !== recordId) {
+          renderPreviousRecords();
+          return;
+        }
+        const patient = activeRecordPatient();
+        const remainingRecords = patient ? patientMedicalRecords(patient) : [];
+        if (remainingRecords.length) openMedicalRecord(activeRecordPatientId, remainingRecords[0].id);
+        else createNewMedicalEntry();
       }
       function escapeHtml(value) {
         return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
       }
-      function renderAllMedicalEntries() {
-        const patient = activeRecordPatient();
-        if (!patient) return;
-        const rows = patientMedicalRecords(patient);
-        activeRecordView = "all";
-        activeRecordId = "";
-        activeRecordDate = "";
-        activeRecordDocs = {};
-        activeRecordDirty = false;
-        $("#medicalNoteText").setAttribute("contenteditable", "false");
-        $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => `
-          <section class="timeline-entry" id="entry-${record.id}">
-            <h2>${dateLabel(record.date)}</h2>
-            <div>${record.docs?.visit || record.noteHtml || plainTextToHtml(record.note || "")}</div>
-          </section>
-        `).join("") : `<div class="empty">No medical records yet. Click + Add to create the first note.</div>`;
-        $("#recordVisitDate").textContent = "All visit notes";
-        $("#recordStatus").textContent = "All entries";
-        renderPreviousRecords();
-      }
       function createNewMedicalEntry() {
         const patient = activeRecordPatient();
         if (!patient) return;
+        const createdAt = new Date().toISOString();
         activeRecordView = "single";
         activeRecordId = `${patient.id}_${todayKey}_${makeId().slice(0, 8)}`;
-        activeRecordDate = todayKey;
+        activeRecordDate = localDateKey();
+        activeRecordCreatedAt = createdAt;
         activeRecordType = "visit";
         activeRecordDocs = { visit: "" };
         $("#medicalNoteText").setAttribute("contenteditable", "true");
         $("#medicalNoteText").innerHTML = "";
-        $("#recordVisitDate").textContent = `Entry: ${dateLabel(todayKey)}`;
-        $("#recordStatus").textContent = "New entry";
+        $("#recordDeleteBtn").hidden = true;
+        $("#recordVisitDate").textContent = dateTimeLabel(createdAt);
+        $("#recordStatus").textContent = "New note";
         activeRecordDirty = true;
         renderPreviousRecords();
         $("#medicalNoteText").focus();
@@ -853,22 +863,44 @@
       function plainTextToHtml(value) {
         return escapeHtml(value).replace(/\n/g, "<br>");
       }
+      function renderAllMedicalEntries() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        const rows = patientMedicalRecords(patient);
+        activeRecordView = "all";
+        activeRecordId = "";
+        activeRecordDate = "";
+        activeRecordCreatedAt = "";
+        activeRecordDocs = {};
+        activeRecordDirty = false;
+        $("#medicalNoteText").setAttribute("contenteditable", "false");
+        $("#recordDeleteBtn").hidden = true;
+        $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => `
+          <section class="timeline-entry" id="entry-${record.id}">
+            <h2>${dateTimeLabel(recordTimestamp(record))}</h2>
+            <div>${record.docs?.visit || record.noteHtml || plainTextToHtml(record.note || "")}</div>
+          </section>
+        `).join("") : `<div class="empty">No notes yet. Click Add note.</div>`;
+        $("#recordVisitDate").textContent = "All entries";
+        $("#recordStatus").textContent = `${rows.length} ${rows.length === 1 ? "note" : "notes"}`;
+        renderPreviousRecords();
+      }
       function printActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
         $("#medicalPrintContent").innerHTML = `
           <h1>${patient.name}</h1>
-          <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All visit notes" : `Visit: ${dateLabel(activeRecordDate || patient.date)}`}</div>
+          <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `Note: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
           <div>${$("#medicalNoteText").innerHTML || "No notes entered."}</div>
           ${medicalPrintDisclaimer()}
         `;
         document.body.classList.add("print-medical");
         window.print();
       }
-      async function saveActiveMedicalRecord(silent = false) {
+      async function saveActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
-        if (activeRecordView === "all" || !activeRecordId) createNewMedicalEntry();
+        if (!activeRecordId) return;
         persistCurrentRecordTab();
         const details = collectRecordDetails();
         Object.assign(patient, {
@@ -892,6 +924,7 @@
           noteHtml: activeRecordDocs.visit || $("#medicalNoteText").innerHTML,
           docs: activeRecordDocs,
           details,
+          createdAt: activeRecordCreatedAt || new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== activeRecordId)];
@@ -899,7 +932,8 @@
         savePatientToCloud(patient);
         save();
         activeRecordDirty = false;
-        $("#recordStatus").textContent = silent ? "Saved automatically" : "Saved";
+        $("#recordDeleteBtn").hidden = false;
+        $("#recordStatus").textContent = "Saved";
         renderPatientList();
         renderAfterList();
         renderPreviousRecords();
@@ -909,29 +943,32 @@
         if (!patient) return;
         activeRecordPatientId = patient.id;
         const patientRecords = patientMedicalRecords(patient);
-        if (!recordId && patientRecords.length) {
+        if (!recordId) {
           $("#recordPatientName").textContent = patient.name;
           $("#recordPatientId").textContent = `ID: ${patientDisplayId(patient)}`;
           $("#recordPatientMobile").textContent = `Mobile: ${patient.mobile || "-"}`;
           $("#medicalRecordScreen").classList.add("open");
           $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
-          renderAllMedicalEntries();
+          if (patientRecords.length) renderAllMedicalEntries();
+          else createNewMedicalEntry();
           return;
         }
-        activeRecordId = recordId || recordIdFor(patient);
+        activeRecordId = recordId || patientRecords[0].id;
         const record = medicalRecords.find((item) => item.id === activeRecordId);
         activeRecordView = "single";
-        activeRecordDate = record?.date || patient.date;
+        activeRecordCreatedAt = record ? recordTimestamp(record) : new Date().toISOString();
+        activeRecordDate = record?.date || activeRecordCreatedAt.slice(0, 10);
         $("#recordPatientName").textContent = record?.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${record?.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${record?.mobile || patient.mobile || "-"}`;
-        $("#recordVisitDate").textContent = `Entry: ${dateLabel(activeRecordDate)}`;
+        $("#recordVisitDate").textContent = dateTimeLabel(activeRecordCreatedAt);
         activeRecordDocs = {
           visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
         activeRecordType = "visit";
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
-        $("#recordStatus").textContent = record ? "Existing record opened" : "Blank record";
+        $("#recordDeleteBtn").hidden = !record;
+        $("#recordStatus").textContent = record ? "Saved note" : "New note";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
@@ -939,19 +976,13 @@
         renderPreviousRecords();
         $("#medicalNoteText").focus();
       }
-      function closeMedicalRecordScreen(discard = false) {
-        if (activeRecordDirty && !discard) {
-          $("#recordUnsavedDialog").classList.add("open");
-          $("#recordUnsavedDialog").setAttribute("aria-hidden", "false");
-          return;
-        }
+      function closeMedicalRecordScreen() {
         $("#medicalRecordScreen").classList.remove("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "true");
-        $("#recordUnsavedDialog").classList.remove("open");
-        $("#recordUnsavedDialog").setAttribute("aria-hidden", "true");
         activeRecordPatientId = "";
         activeRecordId = "";
         activeRecordDate = "";
+        activeRecordCreatedAt = "";
         activeRecordView = "single";
         activeRecordDirty = false;
         activeRecordDocs = {};
@@ -1315,7 +1346,6 @@
         if (button.dataset.openRecord) {
           openMedicalRecord(activeRecordPatientId, button.dataset.openRecord);
         }
-        if (button.dataset.deleteRecord) deleteMedicalEntry(button.dataset.deleteRecord);
         if (button.dataset.copy) copyReport(button.dataset.copy);
         if (button.id === "toggleFollowup") { followupExpanded = !followupExpanded; renderFollowupList(); }
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
@@ -1323,13 +1353,11 @@
         if (button.id === "printAccountsBtn") printAccountsReport();
         if (button.id === "closeAccountsReportBtn") { $("#accountsReportOverlay").classList.remove("open"); $("#accountsReportOverlay").setAttribute("aria-hidden", "true"); }
         if (button.id === "savePdfAccountsBtn" || button.id === "printInlineAccountsBtn") { document.body.classList.add("print-accounts"); window.print(); }
-        if (button.id === "recordSaveBtn") await saveActiveMedicalRecord(false);
-        if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(false); closeMedicalRecordScreen(true); }
+        if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
+        if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
-        if (button.id === "recordCloseBtn") closeMedicalRecordScreen(false);
-        if (button.id === "recordDialogSaveClose") { await saveActiveMedicalRecord(false); closeMedicalRecordScreen(true); }
-        if (button.id === "recordDialogDiscard") closeMedicalRecordScreen(true);
-        if (button.id === "recordDialogCancel") { $("#recordUnsavedDialog").classList.remove("open"); $("#recordUnsavedDialog").setAttribute("aria-hidden", "true"); }
+        if (button.id === "recordDeleteBtn" && activeRecordId) deleteMedicalEntry(activeRecordId);
+        if (button.id === "recordCloseBtn") closeMedicalRecordScreen();
         if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
         if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
       });
@@ -1351,9 +1379,6 @@
         document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
         setRecordDirty();
       });
-      setInterval(() => {
-        if ($("#medicalRecordScreen").classList.contains("open") && activeRecordDirty) saveActiveMedicalRecord(true);
-      }, 5000);
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
       render();
       startFirebaseSync();
