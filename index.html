@@ -564,6 +564,7 @@
       let activeRecordDocs = {};
       let firebaseSyncStarted = false;
       let firebaseUnsubscribers = [];
+      let reusedPatientUhid = "";
       const $ = (selector) => document.querySelector(selector);
       const $$ = (selector) => [...document.querySelectorAll(selector)];
 
@@ -735,7 +736,7 @@
       function uniquePatients() {
         const byKey = new Map();
         [...patients].sort((a, b) => b.date.localeCompare(a.date)).forEach((patient) => {
-          const key = recordPatientKey(patient);
+          const key = patientDisplayId(patient);
           if (!byKey.has(key)) byKey.set(key, patient);
         });
         return [...byKey.values()];
@@ -770,13 +771,20 @@
         setChoiceByValue("diagnosis", patient.diagnosis);
         setChoiceByValue("visitType", "Review");
         setChoiceByValue("mode", patient.mode || "In clinic");
+        reusedPatientUhid = patientDisplayId(patient);
         $("#patientSearch").value = `${patient.name} (${patientDisplayId(patient)})`;
         $("#patientSearchResults").innerHTML = `<div class="empty">Previous patient selected. Save Patient will add a new appointment for ${dateLabel(selectedDate)}.</div>`;
       }
       function recordIdFor(patient) { return `${patient.id}_${patient.date}`; }
       function activeRecordPatient() { return patients.find((patient) => patient.id === activeRecordPatientId); }
-      function recordPatientKey(patient) { return (patient.mobile || patient.name || patient.id).trim().toLowerCase(); }
-      function recordMatchesPatient(record, patient) { return patient && (record.patientKey === recordPatientKey(patient) || record.patientAppointmentId === patient.id); }
+      function recordPatientKey(patient) { return String(patientDisplayId(patient) || "").trim(); }
+      function recordMatchesPatient(record, patient) {
+        if (!patient) return false;
+        const uhid = patientDisplayId(patient);
+        if (record.patientId && String(record.patientId) === String(uhid)) return true;
+        if (record.patientKey && String(record.patientKey) === String(uhid)) return true;
+        return !record.patientId && !record.patientKey && record.patientAppointmentId === patient.id;
+      }
       function patientMedicalRecords(patient) {
         return medicalRecords
           .filter((record) => recordMatchesPatient(record, patient))
@@ -1348,10 +1356,11 @@
         const visitType = selected("visitType"), mode = selected("mode"), diagnosis = selected("diagnosis");
         if (!visitType || !mode || !diagnosis) { alert("Please select visit type, consultation mode, and diagnosis."); return; }
         const id = makeId();
-        const patient = { id, patientId: nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
+        const patient = { id, patientId: reusedPatientUhid || nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
         patients.push(patient);
         savePatientToCloud(patient);
         event.target.reset();
+        reusedPatientUhid = "";
         $("#patientSearchResults").innerHTML = "";
         $$("[data-group]").forEach((group) => group.querySelectorAll(".choice").forEach((button) => button.classList.remove("active")));
         save(); render();
@@ -1446,7 +1455,7 @@
       document.addEventListener("input", (event) => {
         if (event.target.dataset.amount) { const [id, field] = event.target.dataset.amount.split(":"); event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4); updatePayment(id, field, event.target.value, false); }
         if (event.target.id === "accountAmount") { event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6); }
-        if (event.target.id === "patientSearch") renderPatientSearch();
+        if (event.target.id === "patientSearch") { reusedPatientUhid = ""; renderPatientSearch(); }
         if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
       });
       $("#medicalNoteText").addEventListener("paste", (event) => {
