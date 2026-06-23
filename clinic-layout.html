@@ -145,6 +145,10 @@
       .account-ledger { overflow-x: auto; padding-bottom: 4px; }
       .account-ledger .account-row { min-width: 940px; }
       .account-report { display: grid; gap: 12px; }
+      .neuro-expense-card { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 14px; display: grid; gap: 12px; }
+      .neuro-expense-card .wide { grid-column: 1 / -1; }
+      .neuro-expense-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+      .neuro-expense-actions { display: flex; justify-content: flex-end; }
       .ledger-head { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
       .report-overlay { position: fixed; inset: 0; z-index: 80; display: none; background: rgba(9, 22, 31, .55); padding: 24px; overflow: auto; }
       .report-overlay.open { display: block; }
@@ -254,6 +258,7 @@
         .followup-row { grid-template-columns: 1fr; }
         .account-row { grid-template-columns: 1fr; }
         .neuro-row, .neuro-row.expense { grid-template-columns: 1fr; }
+        .neuro-expense-fields { grid-template-columns: 1fr; }
         .neuro-summary { grid-template-columns: 1fr; }
         .analysis-controls { width: 100%; flex-wrap: wrap; justify-content: stretch; }
         .analysis-controls select, .analysis-controls input[type="month"], .analysis-controls input[type="number"], .analysis-controls button { width: 100%; }
@@ -398,8 +403,17 @@
           <section class="section wide" id="accounts">
             <div class="section-head">
               <h2>Accounts</h2>
-              <div class="filters">
-                <button class="secondary" type="button" id="printAccountsBtn">View monthly report</button>
+              <div class="filters analysis-controls">
+                <select id="accountsReportRange" aria-label="Accounts report duration">
+                  <option value="month">Month</option>
+                  <option value="period">Defined period</option>
+                  <option value="year">Yearly</option>
+                </select>
+                <input id="accountsReportMonth" type="month" aria-label="Accounts report month" />
+                <input id="accountsReportFromMonth" type="month" aria-label="Accounts report from month" hidden />
+                <input id="accountsReportToMonth" type="month" aria-label="Accounts report to month" hidden />
+                <input id="accountsReportYear" type="number" min="2000" max="2100" aria-label="Accounts report year" hidden />
+                <button class="secondary" type="button" id="printAccountsBtn">View report</button>
                 <button class="secondary" type="button" id="toggleAccounts">Show accounts</button>
               </div>
             </div>
@@ -742,6 +756,10 @@
 
       $("#clinicDate").value = selectedDate;
       $("#accountDate").value = selectedDate;
+      $("#accountsReportMonth").value = selectedDate.slice(0, 7);
+      $("#accountsReportFromMonth").value = selectedDate.slice(0, 7);
+      $("#accountsReportToMonth").value = selectedDate.slice(0, 7);
+      $("#accountsReportYear").value = selectedDate.slice(0, 4);
       $("#neuroMonth").value = selectedDate.slice(0, 7);
       $("#neuroAnalysisMonth").value = selectedDate.slice(0, 7);
       $("#neuroAnalysisFromMonth").value = selectedDate.slice(0, 7);
@@ -890,6 +908,45 @@
       function selectedDayPatients() { return patients.filter((patient) => patient.date === selectedDate); }
       function filteredPatients() { return selectedDayPatients().filter((patient) => activeFilter === "all" || patient.mode === activeFilter); }
       function selectedMonthPatients() { return patients.filter((patient) => patient.date.slice(0, 7) === selectedDate.slice(0, 7)); }
+      function monthInRange(dateKey, startMonth, endMonth) {
+        const month = dateKey?.slice(0, 7);
+        return month && month >= startMonth && month <= endMonth;
+      }
+      function selectedAccountsReport() {
+        const range = $("#accountsReportRange")?.value || "month";
+        if (range === "year") {
+          const year = $("#accountsReportYear")?.value || selectedDate.slice(0, 4);
+          return {
+            label: `${year}`,
+            patients: patients.filter((patient) => patient.date?.startsWith(`${year}-`)),
+            accounts: accounts.filter((entry) => entry.date?.startsWith(`${year}-`))
+          };
+        }
+        if (range === "period") {
+          const from = $("#accountsReportFromMonth")?.value || selectedDate.slice(0, 7);
+          const to = $("#accountsReportToMonth")?.value || from;
+          const start = from <= to ? from : to;
+          const end = from <= to ? to : from;
+          return {
+            label: `${monthLabel(`${start}-01`)} to ${monthLabel(`${end}-01`)}`,
+            patients: patients.filter((patient) => monthInRange(patient.date, start, end)),
+            accounts: accounts.filter((entry) => monthInRange(entry.date, start, end))
+          };
+        }
+        const month = $("#accountsReportMonth")?.value || selectedDate.slice(0, 7);
+        return {
+          label: monthLabel(`${month}-01`),
+          patients: patients.filter((patient) => patient.date?.slice(0, 7) === month),
+          accounts: accounts.filter((entry) => entry.date?.slice(0, 7) === month)
+        };
+      }
+      function updateAccountsReportControls() {
+        const range = $("#accountsReportRange")?.value || "month";
+        $("#accountsReportMonth").hidden = range !== "month";
+        $("#accountsReportFromMonth").hidden = range !== "period";
+        $("#accountsReportToMonth").hidden = range !== "period";
+        $("#accountsReportYear").hidden = range !== "year";
+      }
       function patientDisplayId(patient) { return patient.patientId || nextPatientSequenceId(patient.date || selectedDate); }
       function patientLine(patient) { return `${patient.name}, ${patient.age}/${patient.sex[0]} · ID: ${patientDisplayId(patient)}`; }
       function uniquePatients() {
@@ -1613,19 +1670,20 @@
         return `
           <table class="statement-table">
             <colgroup>
-              <col style="width: 20%" />
-              <col style="width: 8%" />
-              <col style="width: 8%" />
-              <col style="width: 16%" />
-              <col style="width: 13%" />
+              <col style="width: 18%" />
+              <col style="width: 7%" />
+              <col style="width: 7%" />
               <col style="width: 15%" />
               <col style="width: 13%" />
+              <col style="width: 14%" />
+              <col style="width: 12%" />
+              <col style="width: 7%" />
               <col style="width: 7%" />
             </colgroup>
-            <thead><tr><th>Centre</th><th>NCS</th><th>EEG</th><th>Total cases</th><th>Income</th><th>Expenses</th><th>Net</th><th>Edit</th></tr></thead>
+            <thead><tr><th>Centre</th><th>NCS</th><th>EEG</th><th>Total cases</th><th>Income</th><th>Expenses</th><th>Net</th><th>Edit</th><th>Delete</th></tr></thead>
             <tbody>
-              ${rows.length ? rows.map((row) => `<tr><td>${escapeHtml(row.center || "General expense")}</td><td>${row.ncs}</td><td>${row.eeg}</td><td>${row.total}</td><td>${money(row.income)}</td><td>${money(row.expenses)}</td><td>${money(row.income - row.expenses)}</td><td><button class="secondary" type="button" data-neuro-edit="${encodeURIComponent(row.group)}|${encodeURIComponent(row.center)}">Edit</button></td></tr>`).join("") : `<tr><td colspan="8">No income entries</td></tr>`}
-              ${rows.length || total.expenses ? `<tr><td><strong>Group total</strong></td><td><strong>${total.ncs}</strong></td><td><strong>${total.eeg}</strong></td><td><strong>${total.total}</strong></td><td><strong>${money(total.income)}</strong></td><td><strong>${money(total.expenses)}</strong></td><td><strong>${money(total.income - total.expenses)}</strong></td><td></td></tr>` : ""}
+              ${rows.length ? rows.map((row) => `<tr><td>${escapeHtml(row.center || "General expense")}</td><td>${row.ncs}</td><td>${row.eeg}</td><td>${row.total}</td><td>${money(row.income)}</td><td>${money(row.expenses)}</td><td>${money(row.income - row.expenses)}</td><td><button class="secondary" type="button" data-neuro-edit="${encodeURIComponent(row.group)}|${encodeURIComponent(row.center)}">Edit</button></td><td><button class="secondary" type="button" data-neuro-source-delete="${encodeURIComponent(row.group)}|${encodeURIComponent(row.center)}">Delete</button></td></tr>`).join("") : `<tr><td colspan="9">No income entries</td></tr>`}
+              ${rows.length || total.expenses ? `<tr><td><strong>Group total</strong></td><td><strong>${total.ncs}</strong></td><td><strong>${total.eeg}</strong></td><td><strong>${total.total}</strong></td><td><strong>${money(total.income)}</strong></td><td><strong>${money(total.expenses)}</strong></td><td><strong>${money(total.income - total.expenses)}</strong></td><td></td><td></td></tr>` : ""}
             </tbody>
           </table>
         `;
@@ -1654,17 +1712,18 @@
           <h3>Grand total</h3>
           <table class="statement-table">
             <colgroup>
-              <col style="width: 20%" />
-              <col style="width: 8%" />
-              <col style="width: 8%" />
-              <col style="width: 16%" />
-              <col style="width: 13%" />
+              <col style="width: 18%" />
+              <col style="width: 7%" />
+              <col style="width: 7%" />
               <col style="width: 15%" />
               <col style="width: 13%" />
+              <col style="width: 14%" />
+              <col style="width: 12%" />
+              <col style="width: 7%" />
               <col style="width: 7%" />
             </colgroup>
-            <thead><tr><th>Centre</th><th>NCS</th><th>EEG</th><th>Total cases</th><th>Income</th><th>Expenses</th><th>Net</th><th>Edit</th></tr></thead>
-            <tbody><tr><td><strong>All groups</strong></td><td><strong>${total.ncs}</strong></td><td><strong>${total.eeg}</strong></td><td><strong>${total.total}</strong></td><td><strong>${money(total.income)}</strong></td><td><strong>${money(total.expenses)}</strong></td><td><strong>${money(total.income - total.expenses)}</strong></td><td></td></tr></tbody>
+            <thead><tr><th>Centre</th><th>NCS</th><th>EEG</th><th>Total cases</th><th>Income</th><th>Expenses</th><th>Net</th><th>Edit</th><th>Delete</th></tr></thead>
+            <tbody><tr><td><strong>All groups</strong></td><td><strong>${total.ncs}</strong></td><td><strong>${total.eeg}</strong></td><td><strong>${total.total}</strong></td><td><strong>${money(total.income)}</strong></td><td><strong>${money(total.expenses)}</strong></td><td><strong>${money(total.income - total.expenses)}</strong></td><td></td><td></td></tr></tbody>
           </table>`;
       }
       function renderNeuroIncomeRows(reset = false) {
@@ -1686,28 +1745,34 @@
         const rows = hasSavedExpenses ? expenses.map((expense) => ({ ...expense, group: expense.group || section || "" })) : [{ group: "", center: "", category: "", detail: "", amount: "" }];
         $("#neuroExpenseRows").innerHTML = `
           ${rows.map((expense, index) => `
-            <div class="neuro-row expense" data-neuro-expense-row data-neuro-expense-existing="${hasSavedExpenses ? "true" : ""}" data-neuro-expense-id="${escapeHtml(expense.id || "")}">
-              <label><span class="meta">Group</span><select data-neuro-expense-group>${neuroSectionOptions(expense.group || "")}</select></label>
-              <label><span class="meta">Centre</span><select data-neuro-expense-center>${neuroCenterOptions(expense.center || expense.centre || "")}</select></label>
-              <label><span class="meta">Category</span><input data-neuro-expense-category value="${escapeHtml(expense.category || "")}" placeholder="Salary, electricity, consumables" /></label>
-              <label><span class="meta">Detail</span><input data-neuro-expense-detail value="${escapeHtml(expense.detail || "")}" placeholder="Staff name or bill details" /></label>
-              <label><span class="meta">Amount</span><input data-neuro-expense-amount inputmode="numeric" value="${escapeHtml(expense.amount || "")}" placeholder="0" /></label>
-              <button class="primary" type="button" data-save-neuro-row="true">Save</button>
+            <div class="neuro-expense-card" data-neuro-expense-row data-neuro-expense-existing="${hasSavedExpenses ? "true" : ""}" data-neuro-expense-id="${escapeHtml(expense.id || "")}">
+              <label class="wide"><span class="meta">Entry type</span><input value="Expense" disabled /></label>
+              <div class="neuro-expense-fields">
+                <label><span class="meta">Group</span><select data-neuro-expense-group>${neuroSectionOptions(expense.group || "")}</select></label>
+                <label><span class="meta">Centre</span><select data-neuro-expense-center>${neuroCenterOptions(expense.center || expense.centre || "")}</select></label>
+                <label><span class="meta">Category</span><input data-neuro-expense-category value="${escapeHtml(expense.category || "")}" placeholder="Salary, electricity, consumables" /></label>
+                <label><span class="meta">Amount</span><input data-neuro-expense-amount inputmode="numeric" value="${escapeHtml(expense.amount || "")}" placeholder="0" /></label>
+                <label class="wide"><span class="meta">Notes</span><input data-neuro-expense-detail value="${escapeHtml(expense.detail || "")}" placeholder="Staff name or bill details" /></label>
+              </div>
+              <div class="neuro-expense-actions"><button class="primary" type="button" data-save-neuro-row="true">Save expense</button></div>
             </div>
           `).join("")}
         `;
       }
       function addNeuroExpenseRow() {
         const row = document.createElement("div");
-        row.className = "neuro-row expense";
+        row.className = "neuro-expense-card";
         row.dataset.neuroExpenseRow = "true";
         row.innerHTML = `
-          <label><span class="meta">Group</span><select data-neuro-expense-group>${neuroSectionOptions("")}</select></label>
-          <label><span class="meta">Centre</span><select data-neuro-expense-center>${neuroCenterOptions()}</select></label>
-          <label><span class="meta">Category</span><input data-neuro-expense-category placeholder="Salary, electricity, consumables" /></label>
-          <label><span class="meta">Detail</span><input data-neuro-expense-detail placeholder="Staff name or bill details" /></label>
-          <label><span class="meta">Amount</span><input data-neuro-expense-amount inputmode="numeric" placeholder="0" /></label>
-          <button class="primary" type="button" data-save-neuro-row="true">Save</button>
+          <label class="wide"><span class="meta">Entry type</span><input value="Expense" disabled /></label>
+          <div class="neuro-expense-fields">
+            <label><span class="meta">Group</span><select data-neuro-expense-group>${neuroSectionOptions("")}</select></label>
+            <label><span class="meta">Centre</span><select data-neuro-expense-center>${neuroCenterOptions()}</select></label>
+            <label><span class="meta">Category</span><input data-neuro-expense-category placeholder="Salary, electricity, consumables" /></label>
+            <label><span class="meta">Amount</span><input data-neuro-expense-amount inputmode="numeric" placeholder="0" /></label>
+            <label class="wide"><span class="meta">Notes</span><input data-neuro-expense-detail placeholder="Staff name or bill details" /></label>
+          </div>
+          <div class="neuro-expense-actions"><button class="primary" type="button" data-save-neuro-row="true">Save expense</button></div>
         `;
         $("#neuroExpenseRows").appendChild(row);
       }
@@ -1829,6 +1894,21 @@
         row.querySelector("[data-neuro-amount]").value = source.amount || "";
         renderNeuroExpenseRows(entry?.expenses || [], group);
         $("#neuroIncomeRows").scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      async function deleteNeuroStatementRow(value) {
+        const [group, center] = value.split("|").map((part) => decodeURIComponent(part || ""));
+        const entry = neuroStats.find((item) => item.id === neuroEntryId(group, selectedNeuroMonth()));
+        if (!entry || !center) return;
+        const proceed = confirm(`Delete the income/cases row for ${center}? Expenses will remain.`);
+        if (!proceed) return;
+        const updated = {
+          ...entry,
+          sources: (entry.sources || []).filter((source) => source.name !== center),
+          updatedAt: new Date().toISOString()
+        };
+        neuroStats = neuroStats.map((item) => item.id === updated.id ? updated : item);
+        await saveNeuroStatToCloud(updated);
+        renderNeuro();
       }
       function editNeuroExpenseEntry(value) {
         const [group, id] = value.split("|").map((part) => decodeURIComponent(part || ""));
@@ -1973,9 +2053,10 @@
         document.querySelector(".preview-body").style.display = whatsappExpanded ? "grid" : "none";
       }
       function printAccountsReport() {
-        const clinic = totals(selectedMonthPatients());
-        const account = accountTotals();
-        const rows = selectedMonthAccounts();
+        const report = selectedAccountsReport();
+        const clinic = totals(report.patients);
+        const account = accountTotals(report.accounts);
+        const rows = report.accounts;
         const totalIncome = clinic.grandTotal + account.otherIncome;
         const autoDoctorGpay = clinic.consultGpay;
         const autoDoctorCard = clinic.consultCard;
@@ -1989,7 +2070,7 @@
         const bankRows = Object.entries(account.bank).map(([bank, amount]) => `<tr><td>${bank}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No remittance entered</td></tr>`;
         const expenseRows = Object.entries(account.expenseCategory).map(([category, amount]) => `<tr><td>${category}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No expenses entered</td></tr>`;
         const ledgerRows = rows.map((entry) => `<tr><td>${entry.date}</td><td>${entry.type}</td><td>${entry.bank}</td><td>${entry.mode || "-"}</td><td>${entry.type === "Expense" ? "-" : money(entry.amount)}</td><td>${entry.type === "Expense" ? money(entry.amount) : "-"}</td><td>${entry.note || ""}</td></tr>`).join("") || `<tr><td colspan="7">No manual account entries</td></tr>`;
-        $("#accountsReportMonth").textContent = monthLabel(selectedDate);
+        $("#accountsReportMonth").textContent = report.label;
         $("#accountsReportContent").innerHTML = `
           <div class="print-summary">
             <div class="print-box"><span>Clinic income</span><strong>${money(clinic.grandTotal)}</strong></div>
@@ -2023,7 +2104,7 @@
         }
         alert("Report copied. Open WhatsApp and paste it.");
       }
-      function render() { renderPatientList(); renderAfterList(); renderFollowupList(); renderStats(); renderReport(); renderMessages(); renderAccounts(); renderWhatsappPreview(); renderNeuro(); }
+      function render() { renderPatientList(); renderAfterList(); renderFollowupList(); renderStats(); renderReport(); renderMessages(); updateAccountsReportControls(); renderAccounts(); renderWhatsappPreview(); renderNeuro(); }
 
       $("#patientForm").addEventListener("submit", (event) => {
         event.preventDefault();
@@ -2113,6 +2194,7 @@
         if (button.id === "addNeuroExpenseBtn") addNeuroExpenseRow();
         if (button.dataset.neuroExpenseDelete) await deleteNeuroExpenseEntry(button.dataset.neuroExpenseDelete);
         if (button.dataset.neuroExpenseEdit) editNeuroExpenseEntry(button.dataset.neuroExpenseEdit);
+        if (button.dataset.neuroSourceDelete) await deleteNeuroStatementRow(button.dataset.neuroSourceDelete);
         if (button.dataset.neuroEdit) editNeuroStatementRow(button.dataset.neuroEdit);
         if (button.dataset.saveNeuroRow) await saveNeuroCurrentMonth(true);
         if (button.id === "toggleNeuroStatementBtn") { neuroStatementExpanded = !neuroStatementExpanded; renderNeuro(); }
@@ -2159,7 +2241,17 @@
       });
       window.addEventListener("afterprint", () => document.body.classList.remove("print-accounts", "print-medical"));
       document.addEventListener("change", (event) => {
-        if (event.target.id === "clinicDate") { selectedDate = event.target.value || todayKey; $("#accountDate").value = selectedDate; save(); render(); }
+        if (event.target.id === "clinicDate") {
+          selectedDate = event.target.value || todayKey;
+          $("#accountDate").value = selectedDate;
+          $("#accountsReportMonth").value = selectedDate.slice(0, 7);
+          $("#accountsReportFromMonth").value = selectedDate.slice(0, 7);
+          $("#accountsReportToMonth").value = selectedDate.slice(0, 7);
+          $("#accountsReportYear").value = selectedDate.slice(0, 4);
+          save();
+          render();
+        }
+        if (event.target.matches("#accountsReportRange, #accountsReportMonth, #accountsReportFromMonth, #accountsReportToMonth, #accountsReportYear")) updateAccountsReportControls();
         if (event.target.id === "neuroMonth") {
           $("#neuroAnalysisMonth").value = event.target.value || selectedDate.slice(0, 7);
           renderNeuro();
