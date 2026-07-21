@@ -746,6 +746,7 @@
       let activeRecordType = "visit";
       let activeRecordDocs = {};
       let activeRecordSource = "typed";
+      let draftMedicalRecord = null;
       let ambientRecorder = null;
       let ambientStream = null;
       let ambientChunks = [];
@@ -1235,9 +1236,11 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         pause.title = ambientState === "paused" ? "Resume" : "Pause";
         pause.setAttribute("aria-label", ambientState === "paused" ? "Resume recording" : "Pause recording");
       }
-      function renderAmbientPanel(initialText = "") {
-        ambientRemainingMs = 5 * 60 * 1000;
-        ambientState = initialText ? "ready" : "idle";
+      function renderAmbientPanel(initialText = "", resetState = true) {
+        if (resetState) {
+          ambientRemainingMs = 5 * 60 * 1000;
+          ambientState = initialText ? "ready" : "idle";
+        }
         $("#medicalNoteText").setAttribute("contenteditable", "false");
         $("#medicalNoteText").innerHTML = `
           <div class="ambient-panel">
@@ -1273,7 +1276,18 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
             </div>
           </div>
         `;
-        if (initialText) showAmbientResult(initialText, false);
+        if (ambientState === "ready" && initialText) {
+          showAmbientResult(initialText, false);
+        } else if (ambientState === "recording") {
+          setAmbientStatus("Recording in progress...", true);
+        } else if (ambientState === "paused") {
+          setAmbientStatus("Paused. Press Space or Resume to continue.");
+        } else if (ambientState === "stopped") {
+          setAmbientStatus("Recording stopped. Press Enter or click Stop & process to process audio.");
+        } else if (ambientState === "processing") {
+          $("#ambientStage")?.classList.add("processing");
+          setAmbientStatus("Sending audio to Gemini...");
+        }
         updateAmbientCountdown();
         setAmbientButtons();
       }
@@ -1292,6 +1306,12 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
       function persistAmbientNote() {
         const text = ambientTextarea()?.value || "";
         activeRecordDocs.visit = plainTextToHtml(text);
+        if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
+          draftMedicalRecord.note = text;
+          draftMedicalRecord.noteHtml = activeRecordDocs.visit;
+          draftMedicalRecord.docs = { visit: activeRecordDocs.visit };
+          draftMedicalRecord.updatedAt = new Date().toISOString();
+        }
         return text;
       }
       function tickAmbientTimer() {
@@ -1434,8 +1454,21 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           if (!response.ok) throw new Error(result?.error?.message || "Gemini request failed.");
           const note = (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("\n").trim();
           if (!note) throw new Error("Gemini did not return note text.");
-          showAmbientResult(note);
-          $("#recordStatus").textContent = "AI note ready. Review and save.";
+          activeRecordDocs.visit = plainTextToHtml(note);
+          if (draftMedicalRecord) {
+            draftMedicalRecord.note = note;
+            draftMedicalRecord.noteHtml = activeRecordDocs.visit;
+            draftMedicalRecord.docs = { visit: activeRecordDocs.visit };
+            draftMedicalRecord.updatedAt = new Date().toISOString();
+          }
+          if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
+            showAmbientResult(note);
+            $("#recordStatus").textContent = "AI note ready. Review and save.";
+          } else {
+            activeRecordDirty = true;
+            $("#recordStatus").textContent = "AI note ready in draft.";
+            renderPreviousRecords();
+          }
         } catch (error) {
           console.error("Ambient processing failed", error);
           ambientState = "stopped";
@@ -1447,6 +1480,53 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           setAmbientButtons();
         }
       }
+      function activeDraftForPatient(patient) {
+        return draftMedicalRecord && patient && draftMedicalRecord.patientKey === recordPatientKey(patient) ? draftMedicalRecord : null;
+      }
+      function captureActiveDraft() {
+        if (!draftMedicalRecord || activeRecordView !== "draft" || activeRecordId !== draftMedicalRecord.id) return;
+        if (activeRecordSource === "ambient") {
+          const text = ambientTextarea()?.value;
+          if (text !== undefined) {
+            activeRecordDocs.visit = plainTextToHtml(text);
+            draftMedicalRecord.note = text;
+            draftMedicalRecord.noteHtml = activeRecordDocs.visit;
+          }
+        } else {
+          activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
+          draftMedicalRecord.note = htmlToPlainText(activeRecordDocs.visit);
+          draftMedicalRecord.noteHtml = activeRecordDocs.visit;
+        }
+        draftMedicalRecord.docs = { ...activeRecordDocs };
+        draftMedicalRecord.updatedAt = new Date().toISOString();
+        draftMedicalRecord.source = activeRecordSource;
+      }
+      function openDraftMedicalEntry() {
+        const patient = activeRecordPatient();
+        const draft = activeDraftForPatient(patient);
+        if (!draft) return;
+        activeRecordView = "draft";
+        activeRecordId = draft.id;
+        activeRecordDate = draft.date;
+        activeRecordCreatedAt = draft.createdAt;
+        activeRecordSource = draft.source || "typed";
+        activeRecordType = "visit";
+        activeRecordDocs = { visit: draft.docs?.visit || draft.noteHtml || (draft.note ? plainTextToHtml(draft.note) : "") };
+        $("#recordPatientName").textContent = draft.name || patient.name;
+        $("#recordPatientId").textContent = `ID: ${draft.patientId || patientDisplayId(patient)}`;
+        $("#recordPatientMobile").textContent = `Mobile: ${draft.mobile || patient.mobile || "-"}`;
+        $("#recordVisitDate").textContent = `${dateTimeLabel(draft.createdAt)} - draft`;
+        $("#recordDeleteBtn").hidden = true;
+        $("#recordStatus").textContent = activeRecordSource === "ambient" ? "Ambient draft. Save when ready." : "Draft note. Save when ready.";
+        if (activeRecordSource === "ambient") {
+          renderAmbientPanel(draft.note || htmlToPlainText(activeRecordDocs.visit), false);
+        } else {
+          $("#medicalNoteText").setAttribute("contenteditable", "true");
+          $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+          $("#medicalNoteText").focus();
+        }
+        renderPreviousRecords();
+      }
       function renderPreviousRecords() {
         const patient = activeRecordPatient();
         const list = $("#previousRecordsList");
@@ -1456,12 +1536,21 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           return;
         }
         const rows = patientMedicalRecords(patient);
+        const draft = activeDraftForPatient(patient);
         list.innerHTML = `
           <div class="previous-actions">
             <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
             <button class="primary previous-record" type="button" data-new-record="true">+ Add note</button>
             <button class="primary previous-record" type="button" data-ambient-record="true">+ Ambient note</button>
           </div>
+          ${draft ? `
+          <div class="record-entry-row">
+            <button class="secondary previous-record ${activeRecordView === "draft" && draft.id === activeRecordId ? "active" : ""}" type="button" data-open-draft-record="true">
+              <strong>${draft.source === "ambient" ? "Ambient draft" : "Draft note"}</strong>
+              <span>${dateTimeLabel(draft.createdAt)}</span>
+            </button>
+          </div>
+          ` : ""}
           ${rows.length ? rows.map((record) => `
           <div class="record-entry-row">
             <button class="secondary previous-record ${activeRecordView === "single" && record.id === activeRecordId ? "active" : ""}" type="button" data-open-record="${record.id}">
@@ -1499,10 +1588,37 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
       function createNewMedicalEntry(source = "typed") {
         const patient = activeRecordPatient();
         if (!patient) return;
-        stopAmbientTracks();
+        captureActiveDraft();
+        const existingDraft = activeDraftForPatient(patient);
+        if (existingDraft) {
+          openDraftMedicalEntry();
+          return;
+        }
         const createdAt = new Date().toISOString();
-        activeRecordView = "single";
-        activeRecordId = `${patient.id}_${todayKey}_${makeId().slice(0, 8)}`;
+        draftMedicalRecord = {
+          id: `draft_${patient.id}_${makeId().slice(0, 8)}`,
+          patientAppointmentId: patient.id,
+          patientId: patientDisplayId(patient),
+          patientKey: recordPatientKey(patient),
+          name: patient.name,
+          mobile: patient.mobile || "",
+          date: localDateKey(),
+          note: "",
+          noteHtml: "",
+          docs: { visit: "" },
+          source,
+          createdAt,
+          updatedAt: createdAt
+        };
+        if (source === "ambient") {
+          stopAmbientTracks();
+          ambientChunks = [];
+          ambientAudioBlob = null;
+          ambientRemainingMs = 5 * 60 * 1000;
+          ambientState = "idle";
+        }
+        activeRecordView = "draft";
+        activeRecordId = draftMedicalRecord.id;
         activeRecordDate = localDateKey();
         activeRecordCreatedAt = createdAt;
         activeRecordType = "visit";
@@ -1522,12 +1638,14 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         (source === "ambient" ? ambientTextarea() : $("#medicalNoteText"))?.focus();
       }
       function persistCurrentRecordTab() {
-        if (!activeRecordId || activeRecordView !== "single") return;
+        if (!activeRecordId || !["single", "draft"].includes(activeRecordView)) return;
         if (activeRecordSource === "ambient") {
           persistAmbientNote();
+          if (activeRecordView === "draft") captureActiveDraft();
           return;
         }
         activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
+        if (activeRecordView === "draft") captureActiveDraft();
       }
       function plainTextToHtml(value) {
         return escapeHtml(value).replace(/\n/g, "<br>");
@@ -1559,7 +1677,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
         if (!patient) return;
-        stopAmbientTracks();
+        captureActiveDraft();
         const rows = patientMedicalRecords(patient);
         activeRecordView = "all";
         activeRecordId = "";
@@ -1583,11 +1701,11 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
       function printActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
-        if (activeRecordView === "single") persistCurrentRecordTab();
+        if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
         $("#medicalPrintContent").innerHTML = `
           <h1>${patient.name}</h1>
           <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `Note: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
-          <div>${activeRecordView === "single" ? (activeRecordDocs.visit || "No notes entered.") : ($("#medicalNoteText").innerHTML || "No notes entered.")}</div>
+          <div>${["single", "draft"].includes(activeRecordView) ? (activeRecordDocs.visit || "No notes entered.") : ($("#medicalNoteText").innerHTML || "No notes entered.")}</div>
           ${medicalPrintDisclaimer()}
         `;
         document.body.classList.add("print-medical");
@@ -1608,8 +1726,11 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           allergy: details.allergy,
           currentMedications: details.currentMedications
         });
+        const savingDraft = draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft";
+        const recordId = savingDraft ? `${patient.id}_${localDateKey()}_${makeId().slice(0, 8)}` : activeRecordId;
+        const createdAt = savingDraft ? draftMedicalRecord.createdAt : (activeRecordCreatedAt || new Date().toISOString());
         const record = {
-          id: activeRecordId,
+          id: recordId,
           patientAppointmentId: patient.id,
           patientId: patientDisplayId(patient),
           patientKey: recordPatientKey(patient),
@@ -1621,13 +1742,21 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           docs: activeRecordDocs,
           details,
           source: activeRecordSource,
-          createdAt: activeRecordCreatedAt || new Date().toISOString(),
+          createdAt,
           updatedAt: new Date().toISOString()
         };
-        medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== activeRecordId)];
+        medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== recordId)];
         await saveMedicalRecordToCloud(record);
         savePatientToCloud(patient);
         save();
+        if (savingDraft) {
+          draftMedicalRecord = null;
+          activeRecordId = record.id;
+          activeRecordView = "single";
+          activeRecordCreatedAt = record.createdAt;
+          activeRecordDate = record.date;
+          if (activeRecordSource === "ambient") showAmbientResult(record.note || htmlToPlainText(record.noteHtml), false);
+        }
         activeRecordDirty = false;
         $("#recordDeleteBtn").hidden = false;
         $("#recordStatus").textContent = "Saved";
@@ -1638,6 +1767,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
       function openMedicalRecord(patientId, recordId = "") {
         const patient = patients.find((item) => item.id === patientId);
         if (!patient) return;
+        captureActiveDraft();
         activeRecordPatientId = patient.id;
         const patientRecords = patientMedicalRecords(patient);
         if (!recordId) {
@@ -1652,10 +1782,12 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         }
         activeRecordId = recordId || patientRecords[0].id;
         const record = medicalRecords.find((item) => item.id === activeRecordId);
+        if (!record) return;
         activeRecordView = "single";
         activeRecordCreatedAt = record ? recordTimestamp(record) : new Date().toISOString();
         activeRecordDate = record?.date || activeRecordCreatedAt.slice(0, 10);
-        activeRecordSource = record?.source || "typed";
+        const keepAmbientDraftRunning = draftMedicalRecord?.source === "ambient" && ["recording", "paused", "stopped", "processing"].includes(ambientState);
+        activeRecordSource = keepAmbientDraftRunning ? "typed" : (record?.source || "typed");
         $("#recordPatientName").textContent = record?.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${record?.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${record?.mobile || patient.mobile || "-"}`;
@@ -1665,7 +1797,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         };
         activeRecordType = "visit";
         if (activeRecordSource === "ambient") {
-          renderAmbientPanel(record?.note || htmlToPlainText(activeRecordDocs.visit));
+          renderAmbientPanel(record?.note || htmlToPlainText(activeRecordDocs.visit), true);
         } else {
           $("#medicalNoteText").setAttribute("contenteditable", "true");
           $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
@@ -1679,7 +1811,9 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         (activeRecordSource === "ambient" ? ambientTextarea() : $("#medicalNoteText"))?.focus();
       }
       function closeMedicalRecordScreen() {
+        captureActiveDraft();
         stopAmbientTracks();
+        draftMedicalRecord = null;
         $("#medicalRecordScreen").classList.remove("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "true");
         activeRecordPatientId = "";
@@ -2656,6 +2790,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         if (button.dataset.allRecords) renderAllMedicalEntries();
         if (button.dataset.newRecord) createNewMedicalEntry();
         if (button.dataset.ambientRecord) createNewMedicalEntry("ambient");
+        if (button.dataset.openDraftRecord) openDraftMedicalEntry();
         if (button.dataset.openRecord) {
           openMedicalRecord(activeRecordPatientId, button.dataset.openRecord);
         }
@@ -2726,7 +2861,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
       });
       document.addEventListener("keydown", async (event) => {
         const recordOpen = $("#medicalRecordScreen").classList.contains("open");
-        if (!recordOpen || activeRecordSource !== "ambient" || activeRecordView !== "single") return;
+        if (!recordOpen || activeRecordSource !== "ambient" || activeRecordView !== "draft") return;
         if (ambientState === "ready") return;
         if (event.code === "Space") {
           event.preventDefault();
