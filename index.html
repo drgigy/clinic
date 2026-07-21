@@ -96,7 +96,7 @@
       label { display: grid; gap: 6px; color: #334454; font-size: 13px; font-weight: 750; }
       input, select { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 10px; color: var(--ink); background: #fff; }
       .two, .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
-      .date-control { display: grid; grid-template-columns: 160px auto; align-items: end; gap: 10px; }
+      .date-control { display: grid; grid-template-columns: auto 160px auto; align-items: end; gap: 10px; }
       .patient-list { display: grid; gap: 10px; }
       .patient { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; }
       .patient.simple { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
@@ -175,11 +175,39 @@
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b { font-weight: 900; }
+      .ambient-panel { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 18px; height: 100%; min-height: 0; }
+      .ambient-panel.result { grid-template-columns: 1fr; }
+      .ambient-panel.result .ambient-side { display: none; }
+      .ambient-stage { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; display: grid; place-items: center; min-height: 0; padding: 26px; text-align: center; }
+      .ambient-stage.processing { align-content: center; gap: 12px; color: var(--muted); font-size: 18px; font-weight: 850; }
+      .ambient-toolbar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; margin-bottom: 18px; }
+      .ambient-reference { display: none; max-width: 760px; margin: 0 auto 18px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: #f7fafb; text-align: left; }
+      .ambient-reference.visible { display: block; }
+      .ambient-reference strong { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+      .ambient-reference div { display: flex; flex-wrap: wrap; gap: 8px; }
+      .ambient-reference span { padding: 6px 9px; border-radius: 8px; background: #eaf0f3; color: var(--ink); font-size: 13px; font-weight: 850; }
+      .ambient-status { color: var(--muted); font-size: 18px; font-weight: 750; }
+      .ambient-dot { width: 10px; height: 10px; border-radius: 999px; background: #ccd6dc; display: inline-block; margin-right: 4px; }
+      .ambient-dot.recording { background: #d1495b; box-shadow: 0 0 0 5px rgba(209, 73, 91, .16); }
+      .ambient-mic { width: 118px; height: 118px; border-radius: 999px; min-height: 118px; display: inline-grid; place-items: center; font-size: 46px; background: #2563eb; color: #fff; box-shadow: 0 16px 34px rgba(37, 99, 235, .22); }
+      .ambient-round { width: 92px; height: 92px; border-radius: 999px; min-height: 92px; display: inline-grid; place-items: center; font-size: 34px; color: #fff; border: 0; }
+      .ambient-pause { background: #f59e0b; }
+      .ambient-stop { background: #f04b08; }
+      .ambient-instruction { color: var(--muted); font-size: 18px; font-weight: 750; line-height: 1.45; }
+      .ambient-side { border-left: 1px solid var(--line); padding: 24px 0 24px 18px; display: grid; align-content: center; justify-items: center; gap: 18px; }
+      .ambient-side span { color: var(--muted); font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+      .ambient-countdown { color: #10182b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 38px; font-weight: 900; letter-spacing: .04em; }
+      .ambient-note { width: 100%; height: 100%; min-height: 360px; resize: none; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
+      .settings-grid { display: grid; grid-template-columns: minmax(260px, 1fr) auto; gap: 10px; align-items: end; }
+      .settings-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 8px; }
       .previous-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
       .previous-panel { align-self: start; display: grid; gap: 10px; max-height: calc(100vh - 130px); overflow: auto; }
       .previous-panel h2 { font-weight: 900; }
       .previous-panel h2 { font-size: 16px; }
       .previous-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .previous-actions [data-new-record] { order: 1; }
+      .previous-actions [data-ambient-record] { order: 2; }
+      .previous-actions [data-all-records] { order: 3; grid-column: 1 / -1; }
       .previous-record { justify-content: flex-start; width: 100%; text-align: left; min-height: auto; padding: 10px; }
       .previous-record.active { background: var(--primary); color: #fff; }
       .previous-record.active span { color: #d7fffa; }
@@ -196,6 +224,9 @@
       .dialog-box { width: min(520px, 100%); background: #fff; border-radius: var(--radius); padding: 18px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
       .dialog-box p { margin: 8px 0 16px; color: var(--muted); }
       .dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+      .add-patient-modal { position: fixed; inset: 0; z-index: 45; display: none; place-items: center; background: rgba(9, 22, 31, .55); padding: 18px; overflow: auto; }
+      .add-patient-modal.open { display: grid; }
+      .add-patient-card { width: min(760px, 100%); max-height: calc(100vh - 36px); overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
       .message-box { background: #e8fff1; border: 1px solid #b9efce; border-radius: var(--radius); padding: 12px; color: #174d2c; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
       .message-box h3 { font-size: 15px; margin-bottom: 8px; }
       .message-box .primary, .message-box .secondary { width: 100%; margin-top: 12px; }
@@ -289,11 +320,12 @@
         <div class="brand">Clinic Daily<br />Appointments</div>
         <nav class="nav" aria-label="Main">
           <button class="active" data-scroll="today">Today</button>
-          <button data-scroll="add">Add Patient</button>
+          <button type="button" id="openAddPatientNavBtn">Add Patient</button>
           <button data-scroll="after">After Consultation</button>
           <button data-scroll="followup">Follow-up List</button>
           <button data-scroll="report">Monthly Report</button>
           <button type="button" id="openNeuroBtn">Neurodiagnostics</button>
+          <button type="button" id="openSettingsBtn">Settings</button>
         </nav>
         <div class="doctor-card">
           <b>Doctor WhatsApp</b>
@@ -312,6 +344,7 @@
           </div>
           <div class="actions">
             <div class="date-control">
+              <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
               <label>
                 Clinic date
                 <input id="clinicDate" type="date" />
@@ -331,21 +364,11 @@
         </section>
 
         <div class="content-grid">
-          <section class="section">
-            <div class="section-head">
-              <h2>Patient List</h2>
-              <div class="filters">
-                <button class="chip active" data-filter="all">All</button>
-                <button class="chip" data-filter="In clinic">In Clinic</button>
-                <button class="chip" data-filter="Teleconsultation">Tele</button>
-              </div>
-            </div>
-            <div class="patient-list" id="patientList"></div>
-          </section>
-
-          <section class="section" id="add">
+          <section class="add-patient-modal" id="addPatientModal" aria-hidden="true">
+            <div class="add-patient-card">
             <div class="section-head">
               <h2>Add Patient</h2>
+              <button class="secondary" type="button" id="closeAddPatientBtn">Close</button>
             </div>
             <form id="patientForm">
               <div class="patient-search">
@@ -387,6 +410,7 @@
               </label>
               <button class="primary" type="submit">Save Patient</button>
             </form>
+            </div>
           </section>
 
           <section class="section wide" id="after">
@@ -495,6 +519,24 @@
               <button class="secondary" type="button" id="toggleFollowup">Show list</button>
             </div>
             <div class="patient-list" id="followupList"></div>
+          </section>
+
+          <section class="add-patient-modal" id="settingsModal" aria-hidden="true">
+            <div class="add-patient-card">
+            <div class="section-head">
+              <h2>Settings</h2>
+              <button class="secondary" type="button" id="closeSettingsBtn">Close</button>
+            </div>
+            <div class="settings-grid">
+              <label>
+                Gemini API key for ambient notes
+                <input id="geminiApiKey" type="password" autocomplete="off" placeholder="Paste Gemini API key for local testing" />
+              </label>
+              <button class="primary" type="button" id="saveGeminiKeyBtn">Save key</button>
+            </div>
+            <p class="settings-note">Prototype only: this key is saved in this browser. Before final GitHub use, a safer server-side proxy is better because frontend keys can be viewed by anyone who can open the site.</p>
+            <div class="record-status" id="settingsStatus"></div>
+            </div>
           </section>
         </div>
       </main>
@@ -666,6 +708,7 @@
       const phoneKey = "clinicDoctorPhone.v1";
       const selectedDateKey = "clinicSelectedDate.v1";
       const neuroCentersKey = "clinicNeuroCenters.v1";
+      const geminiApiKeyStore = "clinicGeminiApiKey.v1";
       const firebaseConfig = {
         apiKey: "AIzaSyAp2LZSC3Pr08YhkwtECnafi3rMD372LBY",
         authDomain: "clinic-app-cccc0.firebaseapp.com",
@@ -702,6 +745,17 @@
       let activeRecordDirty = false;
       let activeRecordType = "visit";
       let activeRecordDocs = {};
+      let activeRecordSource = "typed";
+      let ambientRecorder = null;
+      let ambientStream = null;
+      let ambientChunks = [];
+      let ambientAudioBlob = null;
+      let ambientStartedAt = 0;
+      let ambientTimer = null;
+      let ambientRemainingMs = 5 * 60 * 1000;
+      let ambientLastTickAt = 0;
+      let ambientStopShouldProcess = false;
+      let ambientState = "idle";
       let firebaseSyncStarted = false;
       let firebaseUnsubscribers = [];
       let reusedPatientUhid = "";
@@ -949,6 +1003,7 @@
       }
       function patientDisplayId(patient) { return patient.patientId || nextPatientSequenceId(patient.date || selectedDate); }
       function patientLine(patient) { return `${patient.name}, ${patient.age}/${patient.sex[0]} · ID: ${patientDisplayId(patient)}`; }
+      function afterPatientLine(patient) { return `${patientLine(patient)} · Mobile: ${patient.mobile || "-"}`; }
       function uniquePatients() {
         const byKey = new Map();
         [...patients].sort((a, b) => b.date.localeCompare(a.date)).forEach((patient) => {
@@ -1066,6 +1121,332 @@
         activeRecordDirty = true;
         $("#recordStatus").textContent = "Unsaved changes";
       }
+      function stopAmbientTracks() {
+        if (ambientTimer) clearInterval(ambientTimer);
+        ambientTimer = null;
+        if (ambientStream) ambientStream.getTracks().forEach((track) => track.stop());
+        ambientStream = null;
+      }
+      function formatDuration(ms) {
+        const seconds = Math.max(0, Math.floor(ms / 1000));
+        return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+      }
+      function ambientPrompt(patient) {
+        return `You are a clinical note assistant helping a doctor create a concise OPD medical note from ambient audio.
+
+Correct spelling and grammar. Keep the original meaning exactly.
+Do not add, infer, assume, or hallucinate clinical information.
+If something is unclear, write it as unclear instead of guessing.
+Return a single plain text medical note only. Do not return JSON. Do not use markdown fences.
+
+Use these headings, in this order, but OMIT a heading completely if no information was dictated for that section:
+
+Chief Complaints:
+
+History of Present Illness:
+
+Past Medical or Surgical History:
+
+Allergies:
+
+Examination Findings:
+
+Review of Investigations:
+
+Current Medications:
+
+Diagnosis:
+
+Orders:
+
+Place the dictated information under the correct heading.
+Do not write "Not dictated".
+Do not create extra headings.
+
+Formatting rules:
+- Chief Complaints: each complaint on a separate line.
+- History of Present Illness: one or two concise paragraphs.
+- Past Medical or Surgical History: line by line.
+- Allergies: line by line.
+- Examination Findings: bullet points or separate lines.
+- Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units.
+- Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
+- Diagnosis: line by line.
+- Orders: line by line.
+
+Investigation units:
+Use standard units when values are dictated:
+Haemoglobin g/dL; RBC millions/cumm; WBC cells/cumm; Total count cells/cumm; Platelets lakhs/cumm; PCV %; Blood sugar mg/dL; HbA1c %; Creatinine mg/dL; Urea mg/dL; Sodium mEq/L; Potassium mEq/L; Chloride mEq/L; Bilirubin mg/dL; ALT U/L; AST U/L; ALP U/L; Albumin g/dL; Cholesterol mg/dL; Triglycerides mg/dL; HDL mg/dL; LDL mg/dL; TSH mIU/L; INR no unit; PT seconds; APTT seconds; ESR mm/hr; CRP mg/L; Troponin ng/mL; Uric Acid mg/dL; Calcium mg/dL; BNP pg/mL.
+
+Example style for Review of Investigations:
+1. MRI Brain with MR Angiogram - 25 April 2026
+   - Acute infarct in the right periventricular white matter.
+   - MR angiography of the circle of Willis is unremarkable.
+2. Blood Report - 23 March 2026
+   - Haemoglobin: 13.6 g/dL
+   - Total count: 13,620 cells/cumm
+   - Platelet count: 2.51 lakhs/cumm
+3. CT Brain - date if dictated
+   - Findings line by line.
+
+Never add clinical information that was not spoken.
+
+Patient context:
+Name: ${patient?.name || ""}
+ID: ${patient ? patientDisplayId(patient) : ""}
+Mobile: ${patient?.mobile || ""}
+Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
+      }
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result || "").split(",")[1] || "");
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      function ambientTextarea() {
+        return document.querySelector("#ambientNoteText");
+      }
+      function setAmbientStatus(message, isRecording = false) {
+        const status = $("#ambientStatus");
+        if (!status) return;
+        status.innerHTML = `<span class="ambient-dot ${isRecording ? "recording" : ""}"></span>${message}`;
+      }
+      function updateAmbientCountdown() {
+        const timer = $("#ambientCountdown");
+        if (timer) timer.textContent = formatDuration(ambientRemainingMs);
+      }
+      function setAmbientButtons() {
+        const start = document.querySelector("[data-ambient-start]");
+        const pause = document.querySelector("[data-ambient-pause]");
+        const stop = document.querySelector("[data-ambient-stop]");
+        const extend = document.querySelector("[data-ambient-extend]");
+        document.querySelector("#ambientReference")?.classList.toggle("visible", ["recording", "paused", "stopped"].includes(ambientState));
+        if (!start || !pause || !stop || !extend) return;
+        const initial = ambientState === "idle";
+        start.hidden = !initial;
+        pause.hidden = initial || ambientState === "processing" || ambientState === "ready" || ambientState === "stopped";
+        stop.hidden = initial || ambientState === "processing" || ambientState === "ready";
+        pause.disabled = ambientState !== "recording" && ambientState !== "paused";
+        stop.disabled = ambientState === "recording" || ambientState === "paused" ? false : !ambientAudioBlob;
+        extend.disabled = ambientState === "processing" || ambientState === "ready";
+        pause.textContent = ambientState === "paused" ? "▶" : "Ⅱ";
+        pause.title = ambientState === "paused" ? "Resume" : "Pause";
+        pause.setAttribute("aria-label", ambientState === "paused" ? "Resume recording" : "Pause recording");
+      }
+      function renderAmbientPanel(initialText = "") {
+        ambientRemainingMs = 5 * 60 * 1000;
+        ambientState = initialText ? "ready" : "idle";
+        $("#medicalNoteText").setAttribute("contenteditable", "false");
+        $("#medicalNoteText").innerHTML = `
+          <div class="ambient-panel">
+            <div class="ambient-stage" id="ambientStage">
+              <div>
+                <div class="ambient-reference" id="ambientReference">
+                  <strong>Ask / cover</strong>
+                  <div>
+                    <span>Chief Complaints</span>
+                    <span>History of Present Illness</span>
+                    <span>Past Medical or Surgical History</span>
+                    <span>Allergies</span>
+                    <span>Examination Findings</span>
+                    <span>Review of Investigations</span>
+                    <span>Current Medications</span>
+                    <span>Diagnosis</span>
+                    <span>Orders</span>
+                  </div>
+                </div>
+                <div class="ambient-toolbar">
+                  <button class="ambient-mic" type="button" data-ambient-start="true" title="Start ambient note" aria-label="Start ambient note">🎙</button>
+                  <button class="ambient-round ambient-pause" type="button" data-ambient-pause="true" title="Pause recording" aria-label="Pause recording" hidden>Ⅱ</button>
+                  <button class="ambient-round ambient-stop" type="button" data-ambient-stop="true" title="Stop and process" aria-label="Stop and process" hidden>■</button>
+                </div>
+                <div class="ambient-status" id="ambientStatus"><span class="ambient-dot"></span>Tap microphone or press Space to start dictation</div>
+              </div>
+            </div>
+            <div class="ambient-side">
+              <span>Remaining</span>
+              <strong class="ambient-countdown" id="ambientCountdown">05:00</strong>
+              <button class="secondary" type="button" data-ambient-extend="true">+ Extend 5 min</button>
+              <div class="ambient-instruction">Space: start / pause / resume<br />Enter: stop & process</div>
+            </div>
+          </div>
+        `;
+        if (initialText) showAmbientResult(initialText, false);
+        updateAmbientCountdown();
+        setAmbientButtons();
+      }
+      function showAmbientResult(text = "", dirty = true) {
+        ambientState = "ready";
+        document.querySelector(".ambient-panel")?.classList.add("result");
+        const stage = $("#ambientStage");
+        if (!stage) return;
+        stage.classList.remove("processing");
+        stage.innerHTML = `<textarea class="ambient-note" id="ambientNoteText" placeholder="AI note will appear here. You can also type or edit here.">${escapeHtml(text)}</textarea>`;
+        persistAmbientNote();
+        if (dirty) setRecordDirty();
+        setAmbientButtons();
+        ambientTextarea()?.focus();
+      }
+      function persistAmbientNote() {
+        const text = ambientTextarea()?.value || "";
+        activeRecordDocs.visit = plainTextToHtml(text);
+        return text;
+      }
+      function tickAmbientTimer() {
+        const now = Date.now();
+        ambientRemainingMs = Math.max(0, ambientRemainingMs - (now - ambientLastTickAt));
+        ambientLastTickAt = now;
+        updateAmbientCountdown();
+        if (ambientRemainingMs <= 0) stopAmbientRecording(false);
+      }
+      async function startAmbientRecording(append = false) {
+        if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+          alert("Microphone recording is not available in this browser.");
+          return;
+        }
+        if (ambientState === "paused") {
+          pauseResumeAmbientRecording();
+          return;
+        }
+        if (ambientState === "recording" || ambientState === "processing") return;
+        if (ambientRemainingMs <= 0) ambientRemainingMs = 5 * 60 * 1000;
+        try {
+          if (!append) {
+            ambientChunks = [];
+            ambientAudioBlob = null;
+          }
+          ambientStopShouldProcess = false;
+          ambientStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          ambientRecorder = new MediaRecorder(ambientStream);
+          ambientRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size) ambientChunks.push(event.data);
+          };
+          ambientRecorder.onstop = async () => {
+            stopAmbientTracks();
+            ambientAudioBlob = new Blob(ambientChunks, { type: ambientRecorder?.mimeType || "audio/webm" });
+            ambientRecorder = null;
+            if (ambientStopShouldProcess) {
+              await processAmbientAudio();
+              return;
+            }
+            ambientState = "stopped";
+            setAmbientStatus("Recording stopped. Press Enter or click Stop & process to process audio.");
+            setAmbientButtons();
+          };
+          ambientRecorder.start();
+          ambientState = "recording";
+          ambientStartedAt = Date.now();
+          ambientLastTickAt = Date.now();
+          ambientTimer = setInterval(tickAmbientTimer, 500);
+          setAmbientStatus("Recording in progress...", true);
+          updateAmbientCountdown();
+          setAmbientButtons();
+        } catch (error) {
+          console.error("Ambient recording failed", error);
+          stopAmbientTracks();
+          ambientState = ambientAudioBlob ? "stopped" : "idle";
+          setAmbientButtons();
+          alert("Could not start microphone. Please allow microphone permission and try again.");
+        }
+      }
+      function pauseResumeAmbientRecording() {
+        if (!ambientRecorder) return;
+        if (ambientRecorder.state === "recording") {
+          ambientRecorder.pause();
+          tickAmbientTimer();
+          if (ambientTimer) clearInterval(ambientTimer);
+          ambientTimer = null;
+          ambientState = "paused";
+          setAmbientStatus("Paused");
+          setAmbientButtons();
+          return;
+        }
+        if (ambientRecorder.state === "paused") {
+          ambientRecorder.resume();
+          ambientState = "recording";
+          ambientLastTickAt = Date.now();
+          ambientTimer = setInterval(tickAmbientTimer, 500);
+          setAmbientStatus("Recording in progress...", true);
+          setAmbientButtons();
+        }
+      }
+      function stopAmbientRecording(shouldProcess = true) {
+        ambientStopShouldProcess = shouldProcess;
+        if (!ambientRecorder || ambientRecorder.state === "inactive") {
+          if (shouldProcess && ambientAudioBlob) processAmbientAudio();
+          return;
+        }
+        tickAmbientTimer();
+        if (ambientTimer) clearInterval(ambientTimer);
+        ambientTimer = null;
+        if (shouldProcess) {
+          ambientState = "processing";
+          setAmbientStatus("Processing audio...");
+        } else {
+          ambientState = "stopped";
+          setAmbientStatus("Time finished. Recording stopped. Press Enter or click Stop & process to process audio.");
+        }
+        setAmbientButtons();
+        ambientRecorder.stop();
+      }
+      async function extendAmbientTime() {
+        ambientRemainingMs += 5 * 60 * 1000;
+        updateAmbientCountdown();
+        if (ambientState === "stopped") {
+          setAmbientStatus("Time extended. Recording can continue.", true);
+          await startAmbientRecording(true);
+          return;
+        }
+        setAmbientStatus(ambientState === "recording" ? "Recording in progress..." : "Five minutes added.", ambientState === "recording");
+      }
+      async function processAmbientAudio() {
+        const apiKey = readStore(geminiApiKeyStore, "").trim();
+        if (!apiKey) {
+          setAmbientStatus("API key missing. Add it in Settings, then record again.");
+          alert("Please add the Gemini API key in Settings first.");
+          return;
+        }
+        if (!ambientAudioBlob) return;
+        try {
+          ambientState = "processing";
+          setAmbientStatus("Sending audio to Gemini...");
+          $("#ambientStage")?.classList.add("processing");
+          const stage = $("#ambientStage");
+          if (stage) stage.innerHTML = `<div>Processing ambient audio...</div><div class="ambient-status" id="ambientStatus"><span class="ambient-dot"></span>Sending audio to Gemini...</div>`;
+          setAmbientButtons();
+          const patient = activeRecordPatient();
+          const audioBase64 = await blobToBase64(ambientAudioBlob);
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: ambientPrompt(patient) },
+                  { inline_data: { mime_type: ambientAudioBlob.type || "audio/webm", data: audioBase64 } }
+                ]
+              }]
+            })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result?.error?.message || "Gemini request failed.");
+          const note = (result?.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("\n").trim();
+          if (!note) throw new Error("Gemini did not return note text.");
+          showAmbientResult(note);
+          $("#recordStatus").textContent = "AI note ready. Review and save.";
+        } catch (error) {
+          console.error("Ambient processing failed", error);
+          ambientState = "stopped";
+          setAmbientStatus("Could not process audio. You can type the note manually.");
+          alert(`Ambient note failed: ${error.message || "Please try again."}`);
+          renderAmbientPanel("");
+          ambientState = ambientAudioBlob ? "stopped" : "idle";
+          setAmbientStatus(ambientAudioBlob ? "Could not process audio. Press Enter to try again, or type manually after processing succeeds." : "Ready");
+          setAmbientButtons();
+        }
+      }
       function renderPreviousRecords() {
         const patient = activeRecordPatient();
         const list = $("#previousRecordsList");
@@ -1079,6 +1460,7 @@
           <div class="previous-actions">
             <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
             <button class="primary previous-record" type="button" data-new-record="true">+ Add note</button>
+            <button class="primary previous-record" type="button" data-ambient-record="true">+ Ambient note</button>
           </div>
           ${rows.length ? rows.map((record) => `
           <div class="record-entry-row">
@@ -1114,40 +1496,76 @@
       function escapeHtml(value) {
         return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
       }
-      function createNewMedicalEntry() {
+      function createNewMedicalEntry(source = "typed") {
         const patient = activeRecordPatient();
         if (!patient) return;
+        stopAmbientTracks();
         const createdAt = new Date().toISOString();
         activeRecordView = "single";
         activeRecordId = `${patient.id}_${todayKey}_${makeId().slice(0, 8)}`;
         activeRecordDate = localDateKey();
         activeRecordCreatedAt = createdAt;
         activeRecordType = "visit";
+        activeRecordSource = source;
         activeRecordDocs = { visit: "" };
-        $("#medicalNoteText").setAttribute("contenteditable", "true");
-        $("#medicalNoteText").innerHTML = "";
+        if (source === "ambient") {
+          renderAmbientPanel("");
+        } else {
+          $("#medicalNoteText").setAttribute("contenteditable", "true");
+          $("#medicalNoteText").innerHTML = "";
+        }
         $("#recordDeleteBtn").hidden = true;
         $("#recordVisitDate").textContent = dateTimeLabel(createdAt);
-        $("#recordStatus").textContent = "New note";
+        $("#recordStatus").textContent = source === "ambient" ? "New ambient note" : "New note";
         activeRecordDirty = true;
         renderPreviousRecords();
-        $("#medicalNoteText").focus();
+        (source === "ambient" ? ambientTextarea() : $("#medicalNoteText"))?.focus();
       }
       function persistCurrentRecordTab() {
         if (!activeRecordId || activeRecordView !== "single") return;
+        if (activeRecordSource === "ambient") {
+          persistAmbientNote();
+          return;
+        }
         activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
       }
       function plainTextToHtml(value) {
         return escapeHtml(value).replace(/\n/g, "<br>");
       }
+      function htmlToPlainText(value) {
+        const container = document.createElement("div");
+        container.innerHTML = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
+        return container.innerText || container.textContent || "";
+      }
+      function openAddPatientModal() {
+        $("#addPatientModal").classList.add("open");
+        $("#addPatientModal").setAttribute("aria-hidden", "false");
+        $("#patientSearch").focus();
+      }
+      function closeAddPatientModal() {
+        $("#addPatientModal").classList.remove("open");
+        $("#addPatientModal").setAttribute("aria-hidden", "true");
+      }
+      function openSettingsModal() {
+        $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
+        $("#settingsModal").classList.add("open");
+        $("#settingsModal").setAttribute("aria-hidden", "false");
+        $("#geminiApiKey").focus();
+      }
+      function closeSettingsModal() {
+        $("#settingsModal").classList.remove("open");
+        $("#settingsModal").setAttribute("aria-hidden", "true");
+      }
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
         if (!patient) return;
+        stopAmbientTracks();
         const rows = patientMedicalRecords(patient);
         activeRecordView = "all";
         activeRecordId = "";
         activeRecordDate = "";
         activeRecordCreatedAt = "";
+        activeRecordSource = "typed";
         activeRecordDocs = {};
         activeRecordDirty = false;
         $("#medicalNoteText").setAttribute("contenteditable", "false");
@@ -1165,10 +1583,11 @@
       function printActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
+        if (activeRecordView === "single") persistCurrentRecordTab();
         $("#medicalPrintContent").innerHTML = `
           <h1>${patient.name}</h1>
           <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `Note: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
-          <div>${$("#medicalNoteText").innerHTML || "No notes entered."}</div>
+          <div>${activeRecordView === "single" ? (activeRecordDocs.visit || "No notes entered.") : ($("#medicalNoteText").innerHTML || "No notes entered.")}</div>
           ${medicalPrintDisclaimer()}
         `;
         document.body.classList.add("print-medical");
@@ -1197,10 +1616,11 @@
           name: patient.name,
           mobile: patient.mobile || "",
           date: activeRecordDate || patient.date,
-          note: activeRecordDocs.visit ? activeRecordDocs.visit.replace(/<[^>]+>/g, "\n") : $("#medicalNoteText").innerText,
+          note: activeRecordDocs.visit ? htmlToPlainText(activeRecordDocs.visit) : $("#medicalNoteText").innerText,
           noteHtml: activeRecordDocs.visit || $("#medicalNoteText").innerHTML,
           docs: activeRecordDocs,
           details,
+          source: activeRecordSource,
           createdAt: activeRecordCreatedAt || new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -1235,6 +1655,7 @@
         activeRecordView = "single";
         activeRecordCreatedAt = record ? recordTimestamp(record) : new Date().toISOString();
         activeRecordDate = record?.date || activeRecordCreatedAt.slice(0, 10);
+        activeRecordSource = record?.source || "typed";
         $("#recordPatientName").textContent = record?.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${record?.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${record?.mobile || patient.mobile || "-"}`;
@@ -1243,17 +1664,22 @@
           visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
         activeRecordType = "visit";
-        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        if (activeRecordSource === "ambient") {
+          renderAmbientPanel(record?.note || htmlToPlainText(activeRecordDocs.visit));
+        } else {
+          $("#medicalNoteText").setAttribute("contenteditable", "true");
+          $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        }
         $("#recordDeleteBtn").hidden = !record;
         $("#recordStatus").textContent = record ? "Saved note" : "New note";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
-        $("#medicalNoteText").setAttribute("contenteditable", "true");
         renderPreviousRecords();
-        $("#medicalNoteText").focus();
+        (activeRecordSource === "ambient" ? ambientTextarea() : $("#medicalNoteText"))?.focus();
       }
       function closeMedicalRecordScreen() {
+        stopAmbientTracks();
         $("#medicalRecordScreen").classList.remove("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "true");
         activeRecordPatientId = "";
@@ -1262,6 +1688,7 @@
         activeRecordCreatedAt = "";
         activeRecordView = "single";
         activeRecordDirty = false;
+        activeRecordSource = "typed";
         activeRecordDocs = {};
         activeRecordType = "visit";
       }
@@ -1330,8 +1757,10 @@
         return result;
       }
       function renderPatientList() {
+        const patientList = $("#patientList");
+        if (!patientList) return;
         const rows = filteredPatients();
-        $("#patientList").innerHTML = rows.length ? rows.map((p) => `
+        patientList.innerHTML = rows.length ? rows.map((p) => `
           <article class="patient simple"><div><b>${patientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div><div class="mobile">Mobile: ${p.mobile || "-"}</div></div><button class="secondary" data-delete="${p.id}" type="button">Delete</button></article>
         `).join("") : `<div class="empty">No patients added for this date.</div>`;
       }
@@ -1339,7 +1768,7 @@
         const rows = selectedDayPatients();
         $("#afterList").innerHTML = rows.length ? rows.map((p) => `
           <article class="patient">
-            <div class="consult-head"><div><b>${patientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div><div class="attendance-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button></div></div>
+            <div class="consult-head"><div><b>${afterPatientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div><div class="attendance-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button></div></div>
             <div class="post-consult-block">
               <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
               <div class="payment-group">
@@ -2118,6 +2547,7 @@
         reusedPatientUhid = "";
         $("#patientSearchResults").innerHTML = "";
         $$("[data-group]").forEach((group) => group.querySelectorAll(".choice").forEach((button) => button.classList.remove("active")));
+        closeAddPatientModal();
         save(); render();
       });
       $("#accountForm").addEventListener("submit", (event) => {
@@ -2180,6 +2610,10 @@
         const button = event.target.closest("button, a");
         if (!button) return;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
+        if (button.id === "openAddPatientBtn" || button.id === "openAddPatientNavBtn") openAddPatientModal();
+        if (button.id === "closeAddPatientBtn") closeAddPatientModal();
+        if (button.id === "openSettingsBtn") openSettingsModal();
+        if (button.id === "closeSettingsBtn") closeSettingsModal();
         if (button.id === "openNeuroBtn") openNeuroScreen();
         if (button.id === "closeNeuroBtn") closeNeuroScreen();
         if (button.id === "lockNeuroBtn") lockNeuro();
@@ -2221,9 +2655,14 @@
         if (button.dataset.medicalRecord) openMedicalRecord(button.dataset.medicalRecord);
         if (button.dataset.allRecords) renderAllMedicalEntries();
         if (button.dataset.newRecord) createNewMedicalEntry();
+        if (button.dataset.ambientRecord) createNewMedicalEntry("ambient");
         if (button.dataset.openRecord) {
           openMedicalRecord(activeRecordPatientId, button.dataset.openRecord);
         }
+        if (button.dataset.ambientStart) await startAmbientRecording();
+        if (button.dataset.ambientPause) pauseResumeAmbientRecording();
+        if (button.dataset.ambientStop) stopAmbientRecording();
+        if (button.dataset.ambientExtend) await extendAmbientTime();
         if (button.dataset.copy) copyReport(button.dataset.copy);
         if (button.id === "toggleFollowup") { followupExpanded = !followupExpanded; renderFollowupList(); }
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
@@ -2236,6 +2675,11 @@
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
         if (button.id === "recordDeleteBtn" && activeRecordId) deleteMedicalEntry(activeRecordId);
         if (button.id === "recordCloseBtn") closeMedicalRecordScreen();
+        if (button.id === "saveGeminiKeyBtn") {
+          writeStore(geminiApiKeyStore, $("#geminiApiKey").value.trim());
+          $("#settingsStatus").textContent = "Gemini API key saved in this browser.";
+          closeSettingsModal();
+        }
         if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
         if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
       });
@@ -2275,9 +2719,24 @@
         if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
       });
       $("#medicalNoteText").addEventListener("paste", (event) => {
+        if (event.target.id === "ambientNoteText") return;
         event.preventDefault();
         document.execCommand("insertText", false, event.clipboardData.getData("text/plain"));
         setRecordDirty();
+      });
+      document.addEventListener("keydown", async (event) => {
+        const recordOpen = $("#medicalRecordScreen").classList.contains("open");
+        if (!recordOpen || activeRecordSource !== "ambient" || activeRecordView !== "single") return;
+        if (ambientState === "ready") return;
+        if (event.code === "Space") {
+          event.preventDefault();
+          if (ambientState === "idle" || ambientState === "stopped") await startAmbientRecording(ambientState === "stopped");
+          else pauseResumeAmbientRecording();
+        }
+        if (event.key === "Enter") {
+          event.preventDefault();
+          stopAmbientRecording(true);
+        }
       });
       $("#logoutBtn").addEventListener("click", async () => {
         await signOut(auth);
@@ -2298,6 +2757,7 @@
         $("#loginPassword").value = "";
       });
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
+      $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
       render();
     </script>
   </body>
