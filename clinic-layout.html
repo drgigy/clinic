@@ -1128,6 +1128,15 @@
         if (ambientStream) ambientStream.getTracks().forEach((track) => track.stop());
         ambientStream = null;
       }
+      function resetAmbientState() {
+        stopAmbientTracks();
+        ambientRecorder = null;
+        ambientChunks = [];
+        ambientAudioBlob = null;
+        ambientRemainingMs = 5 * 60 * 1000;
+        ambientState = "idle";
+        ambientStopShouldProcess = false;
+      }
       function formatDuration(ms) {
         const seconds = Math.max(0, Math.floor(ms / 1000));
         return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
@@ -1516,7 +1525,9 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         $("#recordPatientId").textContent = `ID: ${draft.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${draft.mobile || patient.mobile || "-"}`;
         $("#recordVisitDate").textContent = `${dateTimeLabel(draft.createdAt)} - draft`;
-        $("#recordDeleteBtn").hidden = true;
+        $("#recordDeleteBtn").hidden = false;
+        $("#recordDeleteBtn").title = "Discard draft";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
         $("#recordStatus").textContent = activeRecordSource === "ambient" ? "Ambient draft. Save when ready." : "Draft note. Save when ready.";
         if (activeRecordSource === "ambient") {
           renderAmbientPanel(draft.note || htmlToPlainText(activeRecordDocs.visit), false);
@@ -1582,6 +1593,30 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         if (remainingRecords.length) openMedicalRecord(activeRecordPatientId, remainingRecords[0].id);
         else createNewMedicalEntry();
       }
+      function deleteDraftMedicalEntry() {
+        const patient = activeRecordPatient();
+        if (!draftMedicalRecord || activeRecordView !== "draft" || activeRecordId !== draftMedicalRecord.id) return;
+        if (!confirm("Discard this unsaved draft note?")) return;
+        if (draftMedicalRecord.source === "ambient") resetAmbientState();
+        draftMedicalRecord = null;
+        activeRecordDirty = false;
+        renderPreviousRecords();
+        if (patientMedicalRecords(patient).length) renderAllMedicalEntries();
+        else {
+          activeRecordView = "all";
+          activeRecordId = "";
+          activeRecordDate = "";
+          activeRecordCreatedAt = "";
+          activeRecordSource = "typed";
+          activeRecordDocs = {};
+          $("#medicalNoteText").setAttribute("contenteditable", "false");
+          $("#medicalNoteText").innerHTML = `<div class="empty">No notes yet. Click Add note.</div>`;
+          $("#recordVisitDate").textContent = "All entries";
+          $("#recordStatus").textContent = "Draft discarded";
+          $("#recordDeleteBtn").hidden = true;
+          renderPreviousRecords();
+        }
+      }
       function escapeHtml(value) {
         return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
       }
@@ -1611,11 +1646,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           updatedAt: createdAt
         };
         if (source === "ambient") {
-          stopAmbientTracks();
-          ambientChunks = [];
-          ambientAudioBlob = null;
-          ambientRemainingMs = 5 * 60 * 1000;
-          ambientState = "idle";
+          resetAmbientState();
         }
         activeRecordView = "draft";
         activeRecordId = draftMedicalRecord.id;
@@ -1630,7 +1661,9 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           $("#medicalNoteText").setAttribute("contenteditable", "true");
           $("#medicalNoteText").innerHTML = "";
         }
-        $("#recordDeleteBtn").hidden = true;
+        $("#recordDeleteBtn").hidden = false;
+        $("#recordDeleteBtn").title = "Discard draft";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
         $("#recordVisitDate").textContent = dateTimeLabel(createdAt);
         $("#recordStatus").textContent = source === "ambient" ? "New ambient note" : "New note";
         activeRecordDirty = true;
@@ -1688,6 +1721,8 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         activeRecordDirty = false;
         $("#medicalNoteText").setAttribute("contenteditable", "false");
         $("#recordDeleteBtn").hidden = true;
+        $("#recordDeleteBtn").title = "Delete note";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
         $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => `
           <section class="timeline-entry" id="entry-${record.id}">
             <h2>${dateTimeLabel(recordTimestamp(record))}</h2>
@@ -1759,6 +1794,8 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         }
         activeRecordDirty = false;
         $("#recordDeleteBtn").hidden = false;
+        $("#recordDeleteBtn").title = "Delete note";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
         $("#recordStatus").textContent = "Saved";
         renderPatientList();
         renderAfterList();
@@ -1803,6 +1840,8 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
           $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         }
         $("#recordDeleteBtn").hidden = !record;
+        $("#recordDeleteBtn").title = "Delete note";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
         $("#recordStatus").textContent = record ? "Saved note" : "New note";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
@@ -2808,7 +2847,10 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
-        if (button.id === "recordDeleteBtn" && activeRecordId) deleteMedicalEntry(activeRecordId);
+        if (button.id === "recordDeleteBtn" && activeRecordId) {
+          if (activeRecordView === "draft") deleteDraftMedicalEntry();
+          else deleteMedicalEntry(activeRecordId);
+        }
         if (button.id === "recordCloseBtn") closeMedicalRecordScreen();
         if (button.id === "saveGeminiKeyBtn") {
           writeStore(geminiApiKeyStore, $("#geminiApiKey").value.trim());
