@@ -223,7 +223,7 @@
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
       .medical-print-content { display: none; }
       .medical-disclaimer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #bbb; color: #555; font-size: 11px; line-height: 1.45; }
-      .medical-signature { margin-top: 42px; padding-top: 12px; border-top: 1px solid #bbb; color: #111; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+      .medical-signature { margin-top: 42px; color: #111; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
       .unsaved-dialog { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(9, 22, 31, .55); padding: 18px; }
       .unsaved-dialog.open { display: grid; }
       .dialog-box { width: min(520px, 100%); background: #fff; border-radius: var(--radius); padding: 18px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
@@ -270,7 +270,7 @@
         body.print-accounts .report-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
         body.print-accounts .report-toolbar { display: none; }
         body.print-medical .app, body.print-medical .record-screen, body.print-medical .neuro-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog { display: none; }
-        body.print-medical .medical-print-content { display: block; font-family: Arial, sans-serif; color: #111; padding: 18px; }
+        body.print-medical .medical-print-content { display: block; font-family: Arial, sans-serif; color: #111; padding: 96px 18px 18px; }
         body.print-medical .medical-print-content h1 { font-size: 22px; margin: 0 0 8px; }
         body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
         body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
@@ -1174,6 +1174,7 @@ Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
 Correct spelling and grammar. Correct obvious medical spelling errors.
 Do not add, infer, assume, or hallucinate medicines or instructions.
 Do not remove any dictated medicine or instruction.
+Preserve dictated drug names exactly as brand names when brand names are spoken. Do not convert brand names to generic names.
 Return a single plain text prescription only. Do not return JSON. Do not use markdown fences.
 
 Format every prescribed medicine as a numbered list, one medicine per line:
