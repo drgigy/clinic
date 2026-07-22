@@ -196,11 +196,10 @@
       .ambient-dot { width: 10px; height: 10px; border-radius: 999px; background: #ccd6dc; display: inline-block; margin-right: 4px; }
       .ambient-dot.recording { background: #d1495b; box-shadow: 0 0 0 5px rgba(209, 73, 91, .16); }
       .ambient-progress { width: min(520px, 100%); height: 16px; border: 1px solid var(--line); border-radius: 999px; background: #eaf0f3; overflow: hidden; }
-      .ambient-progress-fill { height: 100%; width: 45%; border-radius: inherit; background: var(--primary); animation: ambientProgress 2s ease-in-out infinite; }
+      .ambient-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: var(--primary); animation: ambientProgress 18s linear forwards; }
       @keyframes ambientProgress {
-        0% { transform: translateX(-110%); }
-        55% { transform: translateX(80%); }
-        100% { transform: translateX(240%); }
+        0% { width: 0%; }
+        100% { width: 100%; }
       }
       .ambient-mic { width: 118px; height: 118px; border-radius: 999px; min-height: 118px; display: inline-grid; place-items: center; font-size: 46px; background: #2563eb; color: #fff; box-shadow: 0 16px 34px rgba(37, 99, 235, .22); }
       .ambient-round { width: 92px; height: 92px; border-radius: 999px; min-height: 92px; display: inline-grid; place-items: center; font-size: 34px; color: #fff; border: 0; }
@@ -223,6 +222,9 @@
       .previous-actions [data-new-record] { order: 1; }
       .previous-actions [data-ambient-record] { order: 2; }
       .previous-actions [data-all-records] { order: 3; grid-column: 1 / -1; }
+      .note-action { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: 8px; min-height: 58px; font-size: 26px; }
+      .note-action span { font-size: 28px; line-height: 1; }
+      .note-action small { font-size: 18px; line-height: 1; font-weight: 900; }
       .previous-record { justify-content: flex-start; width: 100%; text-align: left; min-height: auto; padding: 10px; }
       .previous-record.active { background: var(--primary); color: #fff; }
       .previous-record.active span { color: #d7fffa; }
@@ -235,6 +237,8 @@
       .medical-print-content { display: none; }
       .medical-disclaimer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #bbb; color: #555; font-size: 11px; line-height: 1.45; }
       .medical-signature { margin-top: 42px; color: #111; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+      .medical-signature b, .medical-signature strong { font-weight: 800; }
+      .medical-signature div:first-child, .medical-signature p:first-child { font-weight: 800; }
       .unsaved-dialog { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(9, 22, 31, .55); padding: 18px; }
       .unsaved-dialog.open { display: grid; }
       .dialog-box { width: min(520px, 100%); background: #fff; border-radius: var(--radius); padding: 18px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
@@ -1691,8 +1695,8 @@ ${context}`;
         list.innerHTML = `
           <div class="previous-actions">
             <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
-            <button class="primary previous-record" type="button" data-new-record="true">+ Add note</button>
-            <button class="primary previous-record" type="button" data-ambient-record="true">+ Ambient note</button>
+            <button class="primary previous-record note-action" type="button" data-new-record="true" title="Add typed note" aria-label="Add typed note"><small>+</small><span>📝</span></button>
+            <button class="primary previous-record note-action" type="button" data-ambient-record="true" title="Add ambient note" aria-label="Add ambient note"><small>+</small><span>🎙</span></button>
           </div>
           ${draft ? `
           <div class="record-entry-row">
@@ -1715,7 +1719,7 @@ ${context}`;
         return `<div class="medical-disclaimer"><strong>Disclaimer:</strong> This medical note is generated with AI assistance and may contain errors. Please inform us if you notice any errors.</div>`;
       }
       function medicalPrintSignature() {
-        const credentials = doctorCredentialsHtml();
+        const credentials = doctorCredentialsPrintHtml();
         return credentials ? `<div class="medical-signature">${credentials}</div>` : "";
       }
       function medicalPrintFooter() {
@@ -1852,6 +1856,47 @@ ${context}`;
       function doctorCredentialsHtml() {
         return cleanCredentialsHtml(clinicSettings.doctorCredentials || readStore(doctorCredentialsStore, ""));
       }
+      function doctorCredentialsPrintHtml() {
+        const html = doctorCredentialsHtml();
+        if (!html || /<(b|strong)\b|font-weight\s*:/i.test(html)) return html;
+        const container = document.createElement("div");
+        container.innerHTML = html;
+        const firstNode = [...container.childNodes].find((node) => node.textContent.trim());
+        if (!firstNode) return html;
+        if (firstNode.nodeType === Node.TEXT_NODE) {
+          const strong = document.createElement("strong");
+          strong.textContent = firstNode.textContent;
+          firstNode.replaceWith(strong);
+        } else if (firstNode.nodeType === Node.ELEMENT_NODE) {
+          firstNode.innerHTML = `<strong>${firstNode.innerHTML}</strong>`;
+        }
+        return container.innerHTML.trim();
+      }
+      function stripDuplicateDocumentTitle(html, label) {
+        if (!html || !label) return html || "";
+        const container = document.createElement("div");
+        container.innerHTML = html;
+        const normalizedLabel = label.trim().toLowerCase();
+        const firstElement = [...container.children].find((node) => node.textContent.trim());
+        if (firstElement && firstElement.textContent.trim().toLowerCase() === normalizedLabel) {
+          firstElement.remove();
+          return container.innerHTML.trim();
+        }
+        const text = htmlToPlainText(container.innerHTML).trimStart();
+        const firstLine = text.split("\n").find((line) => line.trim()) || "";
+        if (firstLine.trim().toLowerCase() !== normalizedLabel) return html;
+        const remaining = text.split("\n").slice(1).join("\n").trimStart();
+        return plainTextToHtml(remaining);
+      }
+      function activeMedicalPrintBody() {
+        const rawHtml = ["single", "draft"].includes(activeRecordView)
+          ? (activeRecordDocs.visit || "No notes entered.")
+          : ($("#medicalNoteText").innerHTML || "No notes entered.");
+        if (activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode)) {
+          return stripDuplicateDocumentTitle(rawHtml, ambientModeLabel(activeAmbientMode));
+        }
+        return rawHtml;
+      }
       function openAddPatientModal() {
         $("#addPatientModal").classList.add("open");
         $("#addPatientModal").setAttribute("aria-hidden", "false");
@@ -1905,7 +1950,7 @@ ${context}`;
         $("#medicalPrintContent").innerHTML = `
           <h1>${patient.name}</h1>
           <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
-          <div>${["single", "draft"].includes(activeRecordView) ? (activeRecordDocs.visit || "No notes entered.") : ($("#medicalNoteText").innerHTML || "No notes entered.")}</div>
+          <div>${activeMedicalPrintBody()}</div>
           ${medicalPrintFooter()}
         `;
         document.body.classList.add("print-medical");
