@@ -222,9 +222,7 @@
       .previous-actions [data-new-record] { order: 1; }
       .previous-actions [data-ambient-record] { order: 2; }
       .previous-actions [data-all-records] { order: 3; grid-column: 1 / -1; }
-      .note-action { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: 8px; min-height: 58px; font-size: 26px; }
-      .note-action span { font-size: 28px; line-height: 1; }
-      .note-action small { font-size: 18px; line-height: 1; font-weight: 900; }
+      .note-action { justify-content: center; min-height: 54px; font-size: 16px; font-weight: 900; text-align: center; }
       .previous-record { justify-content: flex-start; width: 100%; text-align: left; min-height: auto; padding: 10px; }
       .previous-record.active { background: var(--primary); color: #fff; }
       .previous-record.active span { color: #d7fffa; }
@@ -236,9 +234,9 @@
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
       .medical-print-content { display: none; }
       .medical-disclaimer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #bbb; color: #555; font-size: 11px; line-height: 1.45; }
-      .medical-signature { margin-top: 42px; color: #111; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
-      .medical-signature b, .medical-signature strong { font-weight: 800; }
-      .medical-signature div:first-child, .medical-signature p:first-child { font-weight: 800; }
+      .medical-signature { margin-top: 42px; color: #111; font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+      .medical-signature b, .medical-signature strong { font-weight: 900 !important; }
+      .medical-signature div:first-child, .medical-signature p:first-child { font-weight: 900 !important; }
       .unsaved-dialog { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(9, 22, 31, .55); padding: 18px; }
       .unsaved-dialog.open { display: grid; }
       .dialog-box { width: min(520px, 100%); background: #fff; border-radius: var(--radius); padding: 18px; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(0, 0, 0, .25); }
@@ -280,12 +278,13 @@
       .bar-value { text-align: right; font-weight: 800; }
       .chart-note { color: var(--muted); font-size: 13px; }
       @media print {
+        @page { margin: 1in; }
         body.print-accounts .app { display: none; }
         body.print-accounts .report-overlay { position: static; display: block; padding: 0; background: #fff; overflow: visible; }
         body.print-accounts .report-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
         body.print-accounts .report-toolbar { display: none; }
         body.print-medical .app, body.print-medical .record-screen, body.print-medical .neuro-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog { display: none; }
-        body.print-medical .medical-print-content { display: block; font-family: Arial, sans-serif; color: #111; padding: 192px 18px 18px; }
+        body.print-medical .medical-print-content { display: block; font-family: Arial, sans-serif; color: #111; padding: 1in 0 0; }
         body.print-medical .medical-print-content h1 { font-size: 22px; margin: 0 0 8px; }
         body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
         body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
@@ -1695,8 +1694,8 @@ ${context}`;
         list.innerHTML = `
           <div class="previous-actions">
             <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
-            <button class="primary previous-record note-action" type="button" data-new-record="true" title="Add typed note" aria-label="Add typed note"><small>+</small><span>📝</span></button>
-            <button class="primary previous-record note-action" type="button" data-ambient-record="true" title="Add ambient note" aria-label="Add ambient note"><small>+</small><span>🎙</span></button>
+            <button class="primary previous-record note-action" type="button" data-new-record="true" title="Add typed note" aria-label="Add typed note">+ Note</button>
+            <button class="primary previous-record note-action" type="button" data-ambient-record="true" title="Add WOYZ voice note" aria-label="Add WOYZ voice note">+ Voice</button>
           </div>
           ${draft ? `
           <div class="record-entry-row">
@@ -1888,12 +1887,23 @@ ${context}`;
         const remaining = text.split("\n").slice(1).join("\n").trimStart();
         return plainTextToHtml(remaining);
       }
+      function stripCertificateDemographics(html) {
+        const text = htmlToPlainText(html);
+        const lines = text.split("\n");
+        while (lines.length && !lines[0].trim()) lines.shift();
+        while (lines.length && /^(patient\s*name|patient\s*id|uhid|id|mobile)\s*:/i.test(lines[0].trim())) {
+          lines.shift();
+        }
+        while (lines.length && !lines[0].trim()) lines.shift();
+        return plainTextToHtml(lines.join("\n"));
+      }
       function activeMedicalPrintBody() {
         const rawHtml = ["single", "draft"].includes(activeRecordView)
           ? (activeRecordDocs.visit || "No notes entered.")
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
         if (activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode)) {
-          return stripDuplicateDocumentTitle(rawHtml, ambientModeLabel(activeAmbientMode));
+          const withoutTitle = stripDuplicateDocumentTitle(rawHtml, ambientModeLabel(activeAmbientMode));
+          return activeAmbientMode === "certificate" ? stripCertificateDemographics(withoutTitle) : withoutTitle;
         }
         return rawHtml;
       }
