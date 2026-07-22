@@ -278,14 +278,14 @@
       .bar-value { text-align: right; font-weight: 800; }
       .chart-note { color: var(--muted); font-size: 13px; }
       @media print {
-        @page { margin: 1in; }
+        @page { margin: 0; }
         body.print-accounts .app { display: none; }
-        body.print-accounts .report-overlay { position: static; display: block; padding: 0; background: #fff; overflow: visible; }
+        body.print-accounts .report-overlay { position: static; display: block; padding: 1in; background: #fff; overflow: visible; }
         body.print-accounts .report-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
         body.print-accounts .report-toolbar { display: none; }
         body.print-medical .app, body.print-medical .record-screen, body.print-medical .neuro-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog { display: none; }
-        body.print-medical .medical-print-content { display: block; font-family: Arial, sans-serif; color: #111; padding: 1in 0 0; }
-        body.print-medical .medical-print-content h1 { font-size: 22px; margin: 0 0 8px; }
+        body.print-medical .medical-print-content { display: block; box-sizing: border-box; min-height: 100vh; width: 100%; font-family: Arial, sans-serif; color: #111; padding: 2in 1in 1in; }
+        body.print-medical .medical-print-content h1 { font-size: 22px; font-weight: 900 !important; margin: 0 0 8px; }
         body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
         body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
         body.print-medical .medical-disclaimer { break-inside: avoid; }
@@ -1857,16 +1857,18 @@ ${context}`;
       }
       function doctorCredentialsPrintHtml() {
         const html = doctorCredentialsHtml();
-        if (!html || /<(b|strong)\b|font-weight\s*:/i.test(html)) return html;
+        if (!html) return html;
         const container = document.createElement("div");
         container.innerHTML = html;
         const firstNode = [...container.childNodes].find((node) => node.textContent.trim());
         if (!firstNode) return html;
         if (firstNode.nodeType === Node.TEXT_NODE) {
+          const lines = firstNode.textContent.split("\n");
           const strong = document.createElement("strong");
-          strong.textContent = firstNode.textContent;
-          firstNode.replaceWith(strong);
-        } else if (firstNode.nodeType === Node.ELEMENT_NODE) {
+          strong.textContent = lines.shift() || "";
+          const rest = lines.length ? document.createTextNode(`\n${lines.join("\n")}`) : null;
+          firstNode.replaceWith(strong, ...(rest ? [rest] : []));
+        } else if (firstNode.nodeType === Node.ELEMENT_NODE && !["B", "STRONG"].includes(firstNode.tagName)) {
           firstNode.innerHTML = `<strong>${firstNode.innerHTML}</strong>`;
         }
         return container.innerHTML.trim();
