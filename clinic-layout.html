@@ -120,7 +120,9 @@
       .priority.high { background: #fee2e2; color: #991b1b; }
       .priority.medium { background: #fff2d7; color: #7a4b00; }
       .priority.routine { background: #e8f3f1; color: #115e59; }
-      .consult-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+      .consult-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+      .consult-title { min-width: 0; }
+      .consult-details { color: var(--muted); font-size: 15px; font-weight: 850; white-space: nowrap; }
       .attendance-actions, .test-options, .payment-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .post-consult-block { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(430px, .75fr); gap: 10px; align-items: start; }
       .post-consult-left { display: grid; gap: 8px; align-content: start; }
@@ -2257,11 +2259,11 @@ ${context}`;
         const rows = selectedDayPatients();
         $("#afterList").innerHTML = rows.length ? rows.map((p) => `
           <article class="patient">
-            <div class="consult-head"><div><b>${afterPatientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div></div>
+            <div class="consult-head"><div class="consult-title"><b>${afterPatientLine(p)}</b></div><div class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div>
             <div class="post-consult-block">
               <div class="post-consult-left">
-                <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
                 <div class="attendance-actions patient-row-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button><button class="secondary" data-edit-patient="${p.id}" type="button">Edit</button></div>
+                <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
               </div>
               <div class="payment-group">
                 <div class="payment-row"><span class="payment-label">Consultation</span><input class="amount-input" data-amount="${p.id}:consultAmount" value="${p.consultAmount || ""}" placeholder="0" inputmode="numeric" maxlength="4" pattern="[0-9]{0,4}" /><button class="choice ${p.consultPayMode === "Cash" ? "cash" : ""}" data-pay="${p.id}:consultPayMode:Cash" type="button">Cash</button><button class="choice ${p.consultPayMode === "GPay" ? "gpay" : ""}" data-pay="${p.id}:consultPayMode:GPay" type="button">GPay</button><button class="choice ${p.consultPayMode === "Card" ? "gpay" : ""}" data-pay="${p.id}:consultPayMode:Card" type="button">Card</button></div>
