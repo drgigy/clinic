@@ -123,11 +123,14 @@
       .consult-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
       .attendance-actions, .test-options, .payment-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .post-consult-block { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(430px, .75fr); gap: 10px; align-items: start; }
+      .post-consult-left { display: grid; gap: 8px; align-content: start; }
+      .patient-row-actions { padding-top: 2px; }
       .test-check { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 8px; background: #fff; color: #334454; font-size: 13px; font-weight: 750; }
       .test-check input { width: 14px; min-height: 14px; accent-color: var(--primary); }
       .payment-group { display: grid; gap: 8px; }
       .payment-label { min-width: 102px; color: var(--muted); font-size: 13px; font-weight: 750; }
       .amount-input { width: 105px; min-height: 34px; padding: 6px 9px; font-weight: 750; }
+      .danger-action { background: var(--danger); color: var(--danger-ink); }
       .empty { color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); padding: 16px; background: #fbfdfe; }
       .report-grid { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; }
       .report-item { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fbfdfe; }
@@ -428,6 +431,57 @@
                 </div>
               </label>
               <button class="primary" type="submit">Save Patient</button>
+            </form>
+            </div>
+          </section>
+
+          <section class="add-patient-modal" id="editPatientModal" aria-hidden="true">
+            <div class="add-patient-card">
+            <div class="section-head">
+              <h2>Edit Patient</h2>
+              <button class="secondary" type="button" id="closeEditPatientBtn">Close</button>
+            </div>
+            <form id="editPatientForm">
+              <label>Patient name<input id="editName" required autocomplete="off" /></label>
+              <div class="two">
+                <label>Age<input id="editAge" required inputmode="numeric" /></label>
+                <label>Sex<select id="editSex"><option>Male</option><option>Female</option></select></label>
+              </div>
+              <div class="two">
+                <label>UHID / ID<input id="editPatientId" required inputmode="numeric" /></label>
+                <label>Mobile number<input id="editMobile" inputmode="tel" /></label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Visit type
+                  <div class="button-row compact" data-group="editVisitType">
+                    <button class="choice" type="button" data-value="First consultation">First consultation</button>
+                    <button class="choice" type="button" data-value="Review">Review</button>
+                  </div>
+                </label>
+                <label>
+                  Consultation mode
+                  <div class="button-row compact" data-group="editMode">
+                    <button class="choice" type="button" data-value="In clinic">In clinic</button>
+                    <button class="choice" type="button" data-value="Teleconsultation">Teleconsultation</button>
+                  </div>
+                </label>
+              </div>
+              <label>
+                Diagnosis / main symptom
+                <div class="button-row diagnosis-row" data-group="editDiagnosis">
+                  <button class="choice" type="button" data-value="Epilepsy">Epilepsy</button>
+                  <button class="choice" type="button" data-value="Headache">Headache</button>
+                  <button class="choice" type="button" data-value="Pain">Pain</button>
+                  <button class="choice" type="button" data-value="Stroke">Stroke</button>
+                  <button class="choice" type="button" data-value="Parkinsons">Parkinsons</button>
+                  <button class="choice" type="button" data-value="Others">Others</button>
+                </div>
+              </label>
+              <div class="actions">
+                <button class="primary" type="submit">Save Changes</button>
+                <button class="secondary danger-action" type="button" id="deleteEditPatientBtn">Delete from this day</button>
+              </div>
             </form>
             </div>
           </section>
@@ -797,6 +851,7 @@
       let firebaseSyncStarted = false;
       let firebaseUnsubscribers = [];
       let reusedPatientUhid = "";
+      let editingPatientId = "";
       const neuroPinCode = "2600";
       const neuroSources = {
         neurodiagnostics: ["Holy Family", "Baselious", "BMH", "Clinic Neuro"],
@@ -1918,6 +1973,33 @@ ${context}`;
         $("#addPatientModal").classList.remove("open");
         $("#addPatientModal").setAttribute("aria-hidden", "true");
       }
+      function clearChoiceGroup(groupName) {
+        document.querySelector(`[data-group="${groupName}"]`)?.querySelectorAll(".choice").forEach((button) => button.classList.remove("active"));
+      }
+      function openEditPatientModal(patientId) {
+        const patient = patients.find((item) => item.id === patientId);
+        if (!patient) return;
+        editingPatientId = patient.id;
+        $("#editName").value = patient.name || "";
+        $("#editAge").value = patient.age || "";
+        $("#editSex").value = patient.sex || "Male";
+        $("#editPatientId").value = patientDisplayId(patient);
+        $("#editMobile").value = patient.mobile || "";
+        ["editVisitType", "editMode", "editDiagnosis"].forEach(clearChoiceGroup);
+        setChoiceByValue("editVisitType", patient.visitType || "First consultation");
+        setChoiceByValue("editMode", patient.mode || "In clinic");
+        setChoiceByValue("editDiagnosis", patient.diagnosis || "Others");
+        $("#editPatientModal").classList.add("open");
+        $("#editPatientModal").setAttribute("aria-hidden", "false");
+        $("#editName").focus();
+      }
+      function closeEditPatientModal() {
+        editingPatientId = "";
+        $("#editPatientModal").classList.remove("open");
+        $("#editPatientModal").setAttribute("aria-hidden", "true");
+        $("#editPatientForm").reset();
+        ["editVisitType", "editMode", "editDiagnosis"].forEach(clearChoiceGroup);
+      }
       function openSettingsModal() {
         $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
         $("#doctorCredentials").innerHTML = doctorCredentialsHtml();
@@ -2105,7 +2187,7 @@ ${context}`;
           if (p.mode === "Teleconsultation") result.tele++;
           if (p.attendance === "Came") result.came++;
           if (p.attendance === "No show") result.noShow++;
-          if (hasAfterVisitDetails(p)) result.markedAfterVisit++;
+          if (p.attendance === "Came") result.markedAfterVisit++;
           if (p.visitType === "First consultation") result.first++;
           if (p.visitType === "Review") result.review++;
           result.diagnosis[p.diagnosis] = (result.diagnosis[p.diagnosis] || 0) + 1;
@@ -2175,9 +2257,12 @@ ${context}`;
         const rows = selectedDayPatients();
         $("#afterList").innerHTML = rows.length ? rows.map((p) => `
           <article class="patient">
-            <div class="consult-head"><div><b>${afterPatientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div><div class="attendance-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button></div></div>
+            <div class="consult-head"><div><b>${afterPatientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div></div>
             <div class="post-consult-block">
-              <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
+              <div class="post-consult-left">
+                <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
+                <div class="attendance-actions patient-row-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button><button class="secondary" data-edit-patient="${p.id}" type="button">Edit</button></div>
+              </div>
               <div class="payment-group">
                 <div class="payment-row"><span class="payment-label">Consultation</span><input class="amount-input" data-amount="${p.id}:consultAmount" value="${p.consultAmount || ""}" placeholder="0" inputmode="numeric" maxlength="4" pattern="[0-9]{0,4}" /><button class="choice ${p.consultPayMode === "Cash" ? "cash" : ""}" data-pay="${p.id}:consultPayMode:Cash" type="button">Cash</button><button class="choice ${p.consultPayMode === "GPay" ? "gpay" : ""}" data-pay="${p.id}:consultPayMode:GPay" type="button">GPay</button><button class="choice ${p.consultPayMode === "Card" ? "gpay" : ""}" data-pay="${p.id}:consultPayMode:Card" type="button">Card</button></div>
                 <div class="payment-row"><span class="payment-label">Tests</span><input class="amount-input" data-amount="${p.id}:testAmount" value="${p.testAmount || ""}" placeholder="0" inputmode="numeric" maxlength="4" pattern="[0-9]{0,4}" /><button class="choice ${p.testPayMode === "Cash" ? "cash" : ""}" data-pay="${p.id}:testPayMode:Cash" type="button">Cash</button><button class="choice ${p.testPayMode === "GPay" ? "gpay" : ""}" data-pay="${p.id}:testPayMode:GPay" type="button">GPay</button><button class="choice ${p.testPayMode === "Card" ? "gpay" : ""}" data-pay="${p.id}:testPayMode:Card" type="button">Card</button></div>
@@ -2957,6 +3042,23 @@ ${context}`;
         closeAddPatientModal();
         save(); render();
       });
+      $("#editPatientForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const visitType = selected("editVisitType"), mode = selected("editMode"), diagnosis = selected("editDiagnosis");
+        if (!editingPatientId) return;
+        if (!visitType || !mode || !diagnosis) { alert("Please select visit type, consultation mode, and diagnosis."); return; }
+        updatePatient(editingPatientId, {
+          patientId: $("#editPatientId").value.trim(),
+          name: $("#editName").value.trim(),
+          age: $("#editAge").value.trim(),
+          sex: $("#editSex").value,
+          mobile: $("#editMobile").value.trim(),
+          visitType,
+          mode,
+          diagnosis
+        });
+        closeEditPatientModal();
+      });
       $("#accountForm").addEventListener("submit", (event) => {
         event.preventDefault();
         const mode = selected("accountMode");
@@ -3019,6 +3121,18 @@ ${context}`;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
         if (button.id === "openAddPatientBtn" || button.id === "openAddPatientNavBtn") openAddPatientModal();
         if (button.id === "closeAddPatientBtn") closeAddPatientModal();
+        if (button.id === "closeEditPatientBtn") closeEditPatientModal();
+        if (button.id === "deleteEditPatientBtn") {
+          if (!editingPatientId) return;
+          const patient = patients.find((item) => item.id === editingPatientId);
+          if (patient && confirm(`Delete ${patient.name || "this patient"} from ${dateLabel(patient.date)}?`)) {
+            patients = patients.filter((item) => item.id !== editingPatientId);
+            deletePatientFromCloud(editingPatientId);
+            closeEditPatientModal();
+            save();
+            render();
+          }
+        }
         if (button.id === "openSettingsBtn") openSettingsModal();
         if (button.id === "closeSettingsBtn") closeSettingsModal();
         if (button.id === "openNeuroBtn") openNeuroScreen();
@@ -3053,6 +3167,7 @@ ${context}`;
         if (button.dataset.filter) { activeFilter = button.dataset.filter; $$("[data-filter]").forEach((item) => item.classList.toggle("active", item === button)); renderPatientList(); }
         if (button.dataset.followup) { followupFilter = button.dataset.followup; $$("[data-followup]").forEach((item) => item.classList.toggle("active", item === button)); renderFollowupList(); }
         if (button.dataset.delete) { const id = button.dataset.delete; patients = patients.filter((p) => p.id !== id); deletePatientFromCloud(id); save(); render(); }
+        if (button.dataset.editPatient) openEditPatientModal(button.dataset.editPatient);
         if (button.dataset.followupDelete) updatePatient(button.dataset.followupDelete, { followupRemoved: true });
         if (button.dataset.attendance) { const [id, attendance] = button.dataset.attendance.split(":"); updatePatient(id, { attendance }); }
         if (button.dataset.callbackOpen) { openCallbackId = openCallbackId === button.dataset.callbackOpen ? "" : button.dataset.callbackOpen; renderFollowupList(); }
