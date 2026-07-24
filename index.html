@@ -44,17 +44,18 @@
       .login-error { min-height: 20px; color: var(--danger-ink); font-size: 13px; font-weight: 750; }
       .login-status { min-height: 20px; color: var(--muted); font-size: 13px; }
       .signed-in-user { overflow-wrap: anywhere; }
-      .app { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
-      .sidebar { min-height: 100vh; background: #10202b; color: #f8fbfc; padding: 22px 18px; }
-      .brand { font-size: 22px; font-weight: 800; line-height: 1.15; margin-bottom: 28px; }
-      .nav { display: grid; gap: 8px; }
-      .nav button { border: 0; border-radius: var(--radius); background: transparent; color: #d8e3e8; padding: 12px; text-align: left; }
-      .nav button.active { background: #1d3543; color: #fff; }
-      .doctor-card { margin-top: 26px; padding: 14px; border-radius: var(--radius); background: #1d3543; }
-      .doctor-card b { display: block; margin-bottom: 8px; }
-      .doctor-card input { width: 100%; min-height: 36px; border: 1px solid #365365; border-radius: var(--radius); padding: 7px 9px; background: #132938; color: #fff; }
-      .doctor-card span { display: block; margin-top: 8px; color: #bed0d9; font-size: 12px; line-height: 1.35; }
-      .sign-out { width: 100%; margin-top: 12px; background: #dce7ec; color: #17222b; }
+      .app { min-height: 100vh; display: block; }
+      .compact-nav { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 12px 24px 0; background: linear-gradient(#f4f7f8 72%, rgba(244, 247, 248, 0)); }
+      .home-menu { position: relative; }
+      .home-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 25; width: 230px; display: none; gap: 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 34px rgba(16, 32, 43, .15); }
+      .home-menu.open .home-dropdown { display: grid; }
+      .home-dropdown button { justify-content: flex-start; width: 100%; background: transparent; color: #22313f; }
+      .home-dropdown button:hover, .home-dropdown button.active { background: #e8eef3; }
+      .compact-nav > .secondary, .home-menu > .secondary { width: auto; }
+      .home-chevron { margin-left: 6px; font-size: 12px; }
+      .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+      .signed-in-user { display: none; }
+      .sign-out { background: #e8eef3; color: #17222b; }
       main { padding: 24px; overflow: auto; }
       .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
       h1, h2, h3, p { margin: 0; }
@@ -302,8 +303,8 @@
         .report-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
       }
       @media (max-width: 760px) {
-        .app { grid-template-columns: 1fr; }
-        .sidebar { min-height: auto; }
+        .compact-nav { padding: 10px 16px 0; }
+        .home-dropdown { width: min(230px, calc(100vw - 32px)); }
         main { padding: 16px; }
         .topbar, .section-head, .consult-head { align-items: flex-start; flex-direction: column; }
         .actions, .primary, .secondary { width: 100%; }
@@ -340,25 +341,23 @@
     </section>
 
     <div class="app" id="clinicApp">
-      <aside class="sidebar">
-        <div class="brand">Clinic Daily<br />Appointments</div>
-        <nav class="nav" aria-label="Main">
-          <button class="active" data-scroll="today">Today</button>
-          <button type="button" id="openAddPatientNavBtn">Add Patient</button>
-          <button data-scroll="after">After Consultation</button>
-          <button data-scroll="followup">Follow-up List</button>
-          <button data-scroll="report">Monthly Report</button>
-          <button type="button" id="openNeuroBtn">Neurodiagnostics</button>
-          <button type="button" id="openSettingsBtn">Settings</button>
-        </nav>
-        <div class="doctor-card">
-          <b>Doctor WhatsApp</b>
-          <input id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
-          <span>Use country code. If WhatsApp does not open, copy the report and paste into WhatsApp.</span>
-          <span class="signed-in-user" id="signedInUser"></span>
-          <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
+      <div class="compact-nav">
+        <div class="home-menu" id="homeMenu">
+          <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
+          <nav class="home-dropdown" aria-label="Main">
+            <button class="secondary active" data-scroll="today" type="button">Today</button>
+            <button class="secondary" type="button" id="openAddPatientNavBtn">Add Patient</button>
+            <button class="secondary" data-scroll="after" type="button">After Consultation</button>
+            <button class="secondary" data-scroll="followup" type="button">Follow-up List</button>
+            <button class="secondary" data-scroll="report" type="button">Monthly Report</button>
+            <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
+            <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
+          </nav>
         </div>
-      </aside>
+        <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
+        <input class="doctor-phone-hidden" id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
+        <span class="signed-in-user" id="signedInUser"></span>
+      </div>
 
       <main>
         <div class="topbar" id="today">
@@ -1975,6 +1974,12 @@ ${context}`;
         $("#addPatientModal").classList.remove("open");
         $("#addPatientModal").setAttribute("aria-hidden", "true");
       }
+      function toggleHomeMenu(forceOpen = null) {
+        const menu = $("#homeMenu");
+        const open = forceOpen === null ? !menu.classList.contains("open") : forceOpen;
+        menu.classList.toggle("open", open);
+        $("#homeMenuBtn")?.setAttribute("aria-expanded", String(open));
+      }
       function clearChoiceGroup(groupName) {
         document.querySelector(`[data-group="${groupName}"]`)?.querySelectorAll(".choice").forEach((button) => button.classList.remove("active"));
       }
@@ -3121,6 +3126,7 @@ ${context}`;
         const button = event.target.closest("button, a");
         if (!button) return;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
+        if (button.id === "homeMenuBtn") { toggleHomeMenu(); return; }
         if (button.id === "openAddPatientBtn" || button.id === "openAddPatientNavBtn") openAddPatientModal();
         if (button.id === "closeAddPatientBtn") closeAddPatientModal();
         if (button.id === "closeEditPatientBtn") closeEditPatientModal();
@@ -3164,6 +3170,7 @@ ${context}`;
           $("#accountsReportOverlay").classList.add("open");
           $("#accountsReportOverlay").setAttribute("aria-hidden", "false");
         }
+        if (button.closest(".home-dropdown")) toggleHomeMenu(false);
         if (button.matches("[data-scroll]")) { event.preventDefault(); document.getElementById(button.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }); }
         if (button.matches("[data-group] .choice")) setChoice(button);
         if (button.dataset.filter) { activeFilter = button.dataset.filter; $$("[data-filter]").forEach((item) => item.classList.toggle("active", item === button)); renderPatientList(); }
@@ -3254,6 +3261,9 @@ ${context}`;
         }
         if (event.target.id === "patientSearch") { reusedPatientUhid = ""; renderPatientSearch(); }
         if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
+      });
+      document.addEventListener("pointerdown", (event) => {
+        if (!event.target.closest("#homeMenu")) toggleHomeMenu(false);
       });
       $("#medicalNoteText").addEventListener("paste", (event) => {
         if (event.target.id === "ambientNoteText") return;
