@@ -1133,6 +1133,7 @@
       function patientDisplayId(patient) { return patient.patientId || nextPatientSequenceId(patient.date || selectedDate); }
       function patientLine(patient) { return `${patient.name}, ${patient.age}/${patient.sex[0]} · ID: ${patientDisplayId(patient)}`; }
       function afterPatientLine(patient) { return `${patientLine(patient)} · Mobile: ${patient.mobile || "-"}`; }
+      function doctorPatientLine(patient) { return `${patient.name}, ${patient.age}/${(patient.sex || "").charAt(0) || "-"}`; }
       function uniquePatients() {
         const byKey = new Map();
         [...patients].sort((a, b) => b.date.localeCompare(a.date)).forEach((patient) => {
@@ -2021,6 +2022,8 @@ ${context}`;
         if (preview) preview.hidden = tab !== "followup";
         const dailyTotalCard = $("#statDailyTotalCard");
         if (dailyTotalCard) dailyTotalCard.hidden = tab === "doctor";
+        const topAddPatient = $("#openAddPatientBtn");
+        if (topAddPatient) topAddPatient.hidden = tab !== "staff";
         if (refresh) {
           renderAfterList();
           renderStats();
@@ -2323,7 +2326,7 @@ ${context}`;
           return `
           <article class="patient">
             <div class="consult-head doctor-consult-head">
-              <div class="consult-title"><b>${afterPatientLine(p)}</b></div>
+              <div class="consult-title"><b>${doctorPatientLine(p)}</b></div>
               <div class="doctor-consult-meta">
                 <span class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</span>
                 ${status}
