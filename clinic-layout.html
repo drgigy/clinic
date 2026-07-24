@@ -129,7 +129,14 @@
       .priority.routine { background: #e8f3f1; color: #115e59; }
       .consult-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
       .consult-title { min-width: 0; }
+      .doctor-consult-head { align-items: center; margin-bottom: 0; }
+      .doctor-consult-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
       .consult-details { color: var(--muted); font-size: 15px; font-weight: 850; white-space: nowrap; }
+      .status-pill { min-height: 34px; padding: 0 12px; border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 850; white-space: nowrap; }
+      .status-pill.came { background: var(--green); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
+      .status-pill.noshow { background: var(--danger); color: var(--danger-ink); }
+      .selected-tests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .selected-test-pill { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: #f7fafb; color: #334454; font-size: 13px; font-weight: 800; }
       .attendance-actions, .test-options, .payment-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .post-consult-block { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(430px, .75fr); gap: 10px; align-items: start; }
       .post-consult-left { display: grid; gap: 8px; align-content: start; }
@@ -397,7 +404,7 @@
           <div class="stat"><span>Teleconsultation</span><strong id="statTele">0</strong></div>
           <div class="stat"><span>Missed</span><strong id="statMissed">0</strong></div>
           <div class="stat"><span>Marked after visit</span><strong id="statMarked">0</strong></div>
-          <div class="stat"><span>Daily total</span><strong id="statDailyTotal">0</strong></div>
+          <div class="stat" id="statDailyTotalCard"><span>Daily total</span><strong id="statDailyTotal">0</strong></div>
         </section>
 
         <div class="content-grid">
@@ -1995,7 +2002,7 @@ ${context}`;
         menu.classList.toggle("open", open);
         $("#homeMenuBtn")?.setAttribute("aria-expanded", String(open));
       }
-      function setMainTab(tab = "doctor") {
+      function setMainTab(tab = "doctor", refresh = true) {
         activeMainTab = tab;
         $$("[data-main-tab]").forEach((button) => button.classList.toggle("active", button.dataset.mainTab === tab));
         const showClinical = tab === "doctor" || tab === "staff";
@@ -2012,6 +2019,12 @@ ${context}`;
         });
         const preview = document.querySelector(".preview-area");
         if (preview) preview.hidden = tab !== "followup";
+        const dailyTotalCard = $("#statDailyTotalCard");
+        if (dailyTotalCard) dailyTotalCard.hidden = tab === "doctor";
+        if (refresh) {
+          renderAfterList();
+          renderStats();
+        }
       }
       function tabForAnchor(anchor) {
         if (anchor === "report" || anchor === "accounts") return "finance";
@@ -2300,7 +2313,27 @@ ${context}`;
       }
       function renderAfterList() {
         const rows = selectedDayPatients();
-        $("#afterList").innerHTML = rows.length ? rows.map((p) => `
+        const doctorRow = (p) => {
+          const status = p.attendance === "Came"
+            ? `<span class="status-pill came">Came</span>`
+            : p.attendance === "No show"
+              ? `<span class="status-pill noshow">No show</span>`
+              : "";
+          const selectedTests = (p.tests || []).filter((test) => tests.includes(test));
+          return `
+          <article class="patient">
+            <div class="consult-head doctor-consult-head">
+              <div class="consult-title"><b>${afterPatientLine(p)}</b></div>
+              <div class="doctor-consult-meta">
+                <span class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</span>
+                ${status}
+                <button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button>
+              </div>
+            </div>
+            ${selectedTests.length ? `<div class="selected-tests">${selectedTests.map((test) => `<span class="selected-test-pill">${test}</span>`).join("")}</div>` : ""}
+          </article>`;
+        };
+        const staffRow = (p) => `
           <article class="patient">
             <div class="consult-head"><div class="consult-title"><b>${afterPatientLine(p)}</b></div><div class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div>
             <div class="post-consult-block">
@@ -2314,7 +2347,8 @@ ${context}`;
               </div>
             </div>
           </article>
-        `).join("") : `<div class="empty">Select a date with patients, then enter attendance, investigations, and payment details here.</div>`;
+        `;
+        $("#afterList").innerHTML = rows.length ? rows.map((p) => activeMainTab === "doctor" ? doctorRow(p) : staffRow(p)).join("") : `<div class="empty">Select a date with patients, then enter attendance, investigations, and payment details here.</div>`;
       }
       function renderFollowupList() {
         const needsRows = patients.filter(needsFollowup);
