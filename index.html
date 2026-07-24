@@ -85,12 +85,14 @@
       }
       .choice.noshow { background: var(--danger); color: var(--danger-ink); }
       .stats { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
+      .stats.doctor-stats { grid-template-columns: repeat(5, minmax(130px, 1fr)); }
       .stat, .section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
       .stat { padding: 14px; }
       .stat span, .report-item span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
       .stat strong { font-size: 25px; }
       .content-grid { display: grid; grid-template-columns: minmax(520px, 1.1fr) minmax(420px, .9fr); gap: 18px; align-items: start; }
       .section { padding: 16px; }
+      .section.doctor-after-section { padding-top: 10px; }
       .section.wide { grid-column: 1 / -1; }
       .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
       .analysis-head { align-items: center; }
@@ -131,12 +133,16 @@
       .consult-title { min-width: 0; }
       .doctor-consult-head { align-items: center; margin-bottom: 0; }
       .doctor-consult-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+      .doctor-patient-row { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; align-items: center; }
+      .row-number { width: 34px; height: 34px; border-radius: 8px; display: inline-grid; place-items: center; background: #edf2f5; color: #334454; font-size: 14px; font-weight: 900; }
+      .patient-seen-note { background: #ecfdf5; border-color: #b6ead0; }
       .consult-details { color: var(--muted); font-size: 15px; font-weight: 850; white-space: nowrap; }
       .status-pill { min-height: 34px; padding: 0 12px; border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 850; white-space: nowrap; }
       .status-pill.came { background: var(--green); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
       .status-pill.noshow { background: var(--danger); color: var(--danger-ink); }
       .selected-tests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
       .selected-test-pill { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: #f7fafb; color: #334454; font-size: 13px; font-weight: 800; }
+      .comment-pill { display: inline-flex; align-items: center; min-height: 28px; border-radius: 999px; padding: 0 9px; background: #fff7ed; color: #9a3412; font-size: 12px; font-weight: 900; white-space: nowrap; }
       .attendance-actions, .test-options, .payment-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .post-consult-block { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(430px, .75fr); gap: 10px; align-items: start; }
       .post-consult-left { display: grid; gap: 8px; align-content: start; }
@@ -232,6 +238,10 @@
       .credentials-editor { min-height: 120px; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; outline: none; line-height: 1.45; }
       .credentials-editor:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22, 131, 113, .12); }
       .credentials-editor:empty::before { content: attr(data-placeholder); color: var(--muted); white-space: pre-wrap; }
+      .comment-select { min-height: 82px; }
+      .settings-comment-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+      .settings-comment-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; border-radius: 999px; padding: 0 10px 0 12px; background: #edf2f5; color: #334454; font-size: 13px; font-weight: 850; }
+      .settings-comment-pill button { width: 24px; min-height: 24px; border: 0; border-radius: 999px; background: #d9e4ea; color: #334454; font-weight: 900; padding: 0; }
       .settings-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 8px; }
       .previous-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
       .previous-panel { align-self: start; display: grid; gap: 10px; max-height: calc(100vh - 130px); overflow: auto; }
@@ -425,6 +435,10 @@
                 <label>Sex<select id="sex"><option>Male</option><option>Female</option></select></label>
               </div>
               <label>Mobile number<input id="mobile" inputmode="tel" /></label>
+              <label>
+                Comments
+                <select id="patientComments" class="comment-select" multiple size="4" aria-label="Patient comments"></select>
+              </label>
               <div class="form-row">
                 <label>
                   Visit type
@@ -473,6 +487,10 @@
                 <label>UHID / ID<input id="editPatientId" required inputmode="numeric" /></label>
                 <label>Mobile number<input id="editMobile" inputmode="tel" /></label>
               </div>
+              <label>
+                Comments
+                <select id="editPatientComments" class="comment-select" multiple size="4" aria-label="Patient comments"></select>
+              </label>
               <div class="form-row">
                 <label>
                   Visit type
@@ -509,7 +527,7 @@
           </section>
 
           <section class="section wide" id="after">
-            <div class="section-head"><h2>After Consultation</h2><div class="filters"><button class="chip active" type="button" id="afterDateLabel"></button></div></div>
+            <div class="section-head" id="afterSectionHead"><h2>After Consultation</h2><div class="filters"><button class="chip active" type="button" id="afterDateLabel"></button></div></div>
             <div class="patient-list" id="afterList"></div>
           </section>
 
@@ -637,7 +655,15 @@
               </div>
               <div id="doctorCredentials" class="credentials-editor" contenteditable="true" role="textbox" aria-label="Doctor credentials" data-placeholder="Dr Gigy Kuruttukulam&#10;Consultant Neurologist&#10;MBBS, MD, DM Neurology"></div>
             </label>
-            <p class="settings-note">Prototype only: the Gemini key is saved in this browser. Doctor credentials are synced across signed-in clinic devices.</p>
+            <label class="settings-block">
+              Reusable patient comments
+              <div class="settings-grid">
+                <input id="newPatientComment" autocomplete="off" placeholder="Example: relative, VIP, doctor referral" />
+                <button class="primary" type="button" id="addPatientCommentBtn">+</button>
+              </div>
+              <div class="settings-comment-list" id="settingsCommentsList"></div>
+            </label>
+            <p class="settings-note">Prototype only: the Gemini key is saved in this browser. Doctor credentials and patient comments are synced across signed-in clinic devices.</p>
             <div class="record-status" id="settingsStatus"></div>
             </div>
           </section>
@@ -813,6 +839,7 @@
       const neuroCentersKey = "clinicNeuroCenters.v1";
       const geminiApiKeyStore = "clinicGeminiApiKey.v1";
       const doctorCredentialsStore = "clinicDoctorCredentials.v1";
+      const patientCommentsStore = "clinicPatientComments.v1";
       const ambientModes = {
         visit: "Visit Note",
         prescription: "Prescription",
@@ -849,7 +876,7 @@
       let neuroAnalysisExpanded = false;
       let medicalRecords = [];
       let neuroStats = [];
-      let clinicSettings = { doctorCredentials: readStore(doctorCredentialsStore, "") };
+      let clinicSettings = { doctorCredentials: readStore(doctorCredentialsStore, ""), patientComments: parseStoredArray(patientCommentsStore) };
       let activeRecordPatientId = "";
       let activeRecordId = "";
       let activeRecordDate = "";
@@ -887,6 +914,14 @@
 
       function readStore(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } }
       function writeStore(key, value) { try { localStorage.setItem(key, value); } catch {} }
+      function parseStoredArray(key) {
+        try {
+          const value = JSON.parse(readStore(key, "[]"));
+          return Array.isArray(value) ? value : [];
+        } catch {
+          return [];
+        }
+      }
       function makeId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
       function yearPrefix(dateKey = selectedDate) { return String(new Date(`${dateKey}T00:00:00`).getFullYear()).slice(-2); }
       function isSequencePatientId(value, prefix = "") { return new RegExp(`^${prefix || "\\d{2}"}\\d{4}$`).test(String(value || "")); }
@@ -1047,6 +1082,7 @@
         firebaseUnsubscribers.push(onSnapshot(medicalRecordsQuery, (snapshot) => {
           medicalRecords = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
           renderPreviousRecords();
+          renderAfterList();
         }, (error) => {
           console.error("Firebase medical records sync failed", error);
         }));
@@ -1060,13 +1096,17 @@
         firebaseUnsubscribers.push(onSnapshot(settingsDocRef, (snapshot) => {
           clinicSettings = {
             doctorCredentials: readStore(doctorCredentialsStore, ""),
+            patientComments: parseStoredArray(patientCommentsStore),
             ...(snapshot.exists() ? snapshot.data() : {})
           };
           writeStore(doctorCredentialsStore, clinicSettings.doctorCredentials || "");
+          writeStore(patientCommentsStore, JSON.stringify(patientComments()));
           const credentialsEditor = $("#doctorCredentials");
           if (credentialsEditor && !$("#settingsModal").classList.contains("open")) {
             credentialsEditor.innerHTML = clinicSettings.doctorCredentials || "";
           }
+          renderCommentSelects();
+          renderSettingsComments();
         }, (error) => {
           console.error("Firebase settings sync failed", error);
         }));
@@ -1077,6 +1117,54 @@
         firebaseSyncStarted = false;
       }
       function selected(group) { return document.querySelector(`[data-group="${group}"] .active`)?.dataset.value || ""; }
+      function patientComments() {
+        return Array.isArray(clinicSettings.patientComments)
+          ? clinicSettings.patientComments.map((item) => String(item || "").trim()).filter(Boolean)
+          : [];
+      }
+      function selectedPatientComments(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return [];
+        return [...select.selectedOptions].map((option) => option.value).filter(Boolean);
+      }
+      function setSelectedPatientComments(selectId, comments = []) {
+        const selectedSet = new Set(Array.isArray(comments) ? comments : []);
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        [...select.options].forEach((option) => {
+          option.selected = selectedSet.has(option.value);
+        });
+      }
+      function renderCommentSelects() {
+        const options = patientComments().map((comment) => `<option value="${escapeHtml(comment)}">${escapeHtml(comment)}</option>`).join("");
+        ["patientComments", "editPatientComments"].forEach((id) => {
+          const select = document.getElementById(id);
+          if (!select) return;
+          const selectedValues = selectedPatientComments(id);
+          select.innerHTML = options;
+          setSelectedPatientComments(id, selectedValues);
+        });
+      }
+      function renderSettingsComments() {
+        const box = $("#settingsCommentsList");
+        if (!box) return;
+        const comments = patientComments();
+        box.innerHTML = comments.length ? comments.map((comment) => `
+          <span class="settings-comment-pill">${escapeHtml(comment)} <button type="button" data-remove-patient-comment="${escapeHtml(comment)}" aria-label="Remove ${escapeHtml(comment)}">&times;</button></span>
+        `).join("") : `<span class="meta">No comments added.</span>`;
+      }
+      async function saveClinicSettingsPatch(patch) {
+        clinicSettings = { ...clinicSettings, ...patch };
+        if (patch.doctorCredentials !== undefined) writeStore(doctorCredentialsStore, patch.doctorCredentials || "");
+        if (patch.patientComments !== undefined) writeStore(patientCommentsStore, JSON.stringify(patientComments()));
+        await setDoc(settingsDocRef, { ...patch, updatedAt: new Date().toISOString() }, { merge: true });
+        renderCommentSelects();
+        renderSettingsComments();
+      }
+      function patientCommentsHtml(patient) {
+        const comments = Array.isArray(patient.comments) ? patient.comments.filter(Boolean) : [];
+        return comments.map((comment) => `<span class="comment-pill">${escapeHtml(comment)}</span>`).join("");
+      }
       function setChoice(button) {
         const group = button.closest("[data-group]");
         group.querySelectorAll(".choice").forEach((item) => item.classList.remove("active"));
@@ -1172,6 +1260,7 @@
         setChoiceByValue("diagnosis", patient.diagnosis);
         setChoiceByValue("visitType", "Review");
         setChoiceByValue("mode", patient.mode || "In clinic");
+        setSelectedPatientComments("patientComments", patient.comments || []);
         reusedPatientUhid = patientDisplayId(patient);
         $("#patientSearch").value = `${patient.name} (${patientDisplayId(patient)})`;
         $("#patientSearchResults").innerHTML = `<div class="empty">Previous patient selected. Save Patient will add a new appointment for ${dateLabel(selectedDate)}.</div>`;
@@ -1190,6 +1279,14 @@
         return medicalRecords
           .filter((record) => recordMatchesPatient(record, patient))
           .sort((a, b) => recordTimestamp(b).localeCompare(recordTimestamp(a)));
+      }
+      function hasMedicalNoteForPatientDate(patient) {
+        const day = patient.date;
+        return medicalRecords.some((record) => {
+          const recordDay = record.date || recordTimestamp(record).slice(0, 10);
+          const hasContent = Boolean(record.note || record.noteHtml || record.docs?.visit);
+          return hasContent && recordDay === day && recordMatchesPatient(record, patient);
+        });
       }
       function needsFollowup(patient) {
         if (patient.followupRemoved) return false;
@@ -1989,6 +2086,8 @@ ${context}`;
         return rawHtml;
       }
       function openAddPatientModal() {
+        renderCommentSelects();
+        setSelectedPatientComments("patientComments", []);
         $("#addPatientModal").classList.add("open");
         $("#addPatientModal").setAttribute("aria-hidden", "false");
         $("#patientSearch").focus();
@@ -2020,6 +2119,9 @@ ${context}`;
         });
         const preview = document.querySelector(".preview-area");
         if (preview) preview.hidden = tab !== "followup";
+        $("#statsPanel")?.classList.toggle("doctor-stats", tab === "doctor");
+        $("#after")?.classList.toggle("doctor-after-section", tab === "doctor");
+        $("#afterSectionHead")?.toggleAttribute("hidden", tab === "doctor");
         const dailyTotalCard = $("#statDailyTotalCard");
         if (dailyTotalCard) dailyTotalCard.hidden = tab === "doctor";
         const topAddPatient = $("#openAddPatientBtn");
@@ -2046,6 +2148,8 @@ ${context}`;
         $("#editSex").value = patient.sex || "Male";
         $("#editPatientId").value = patientDisplayId(patient);
         $("#editMobile").value = patient.mobile || "";
+        renderCommentSelects();
+        setSelectedPatientComments("editPatientComments", patient.comments || []);
         ["editVisitType", "editMode", "editDiagnosis"].forEach(clearChoiceGroup);
         setChoiceByValue("editVisitType", patient.visitType || "First consultation");
         setChoiceByValue("editMode", patient.mode || "In clinic");
@@ -2064,6 +2168,7 @@ ${context}`;
       function openSettingsModal() {
         $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
         $("#doctorCredentials").innerHTML = doctorCredentialsHtml();
+        renderSettingsComments();
         $("#settingsModal").classList.add("open");
         $("#settingsModal").setAttribute("aria-hidden", "false");
         $("#geminiApiKey").focus();
@@ -2316,7 +2421,7 @@ ${context}`;
       }
       function renderAfterList() {
         const rows = selectedDayPatients();
-        const doctorRow = (p) => {
+        const doctorRow = ({ patient: p, hasNote }, index) => {
           const status = p.attendance === "Came"
             ? `<span class="status-pill came">Came</span>`
             : p.attendance === "No show"
@@ -2324,16 +2429,20 @@ ${context}`;
               : "";
           const selectedTests = (p.tests || []).filter((test) => tests.includes(test));
           return `
-          <article class="patient">
-            <div class="consult-head doctor-consult-head">
-              <div class="consult-title"><b>${doctorPatientLine(p)}</b></div>
-              <div class="doctor-consult-meta">
-                <span class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</span>
-                ${status}
-                <button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button>
+          <article class="patient ${hasNote ? "patient-seen-note" : ""}">
+            <div class="doctor-patient-row">
+              <span class="row-number">${index + 1}</span>
+              <div class="consult-head doctor-consult-head">
+                <div class="consult-title"><b>${doctorPatientLine(p)}</b></div>
+                <div class="doctor-consult-meta">
+                  ${patientCommentsHtml(p)}
+                  <span class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</span>
+                  ${selectedTests.map((test) => `<span class="selected-test-pill">${test}</span>`).join("")}
+                  ${status}
+                  <button class="secondary" data-medical-record="${p.id}" type="button">Medical Record</button>
+                </div>
               </div>
             </div>
-            ${selectedTests.length ? `<div class="selected-tests">${selectedTests.map((test) => `<span class="selected-test-pill">${test}</span>`).join("")}</div>` : ""}
           </article>`;
         };
         const staffRow = (p) => `
@@ -2351,7 +2460,21 @@ ${context}`;
             </div>
           </article>
         `;
-        $("#afterList").innerHTML = rows.length ? rows.map((p) => activeMainTab === "doctor" ? doctorRow(p) : staffRow(p)).join("") : `<div class="empty">Select a date with patients, then enter attendance, investigations, and payment details here.</div>`;
+        if (!rows.length) {
+          $("#afterList").innerHTML = `<div class="empty">Select a date with patients, then enter attendance, investigations, and payment details here.</div>`;
+          return;
+        }
+        if (activeMainTab === "doctor") {
+          const doctorRows = rows
+            .map((patient, originalIndex) => ({ patient, originalIndex, hasNote: hasMedicalNoteForPatientDate(patient) }))
+            .sort((a, b) => {
+              const rank = (item) => item.patient.attendance === "No show" ? 2 : item.hasNote ? 1 : 0;
+              return rank(a) - rank(b) || a.originalIndex - b.originalIndex;
+            });
+          $("#afterList").innerHTML = doctorRows.map(doctorRow).join("");
+          return;
+        }
+        $("#afterList").innerHTML = rows.map((p) => staffRow(p)).join("");
       }
       function renderFollowupList() {
         const needsRows = patients.filter(needsFollowup);
@@ -3114,10 +3237,11 @@ ${context}`;
         const visitType = selected("visitType"), mode = selected("mode"), diagnosis = selected("diagnosis");
         if (!visitType || !mode || !diagnosis) { alert("Please select visit type, consultation mode, and diagnosis."); return; }
         const id = makeId();
-        const patient = { id, patientId: reusedPatientUhid || nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
+        const patient = { id, patientId: reusedPatientUhid || nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), comments: selectedPatientComments("patientComments"), visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
         patients.push(patient);
         savePatientToCloud(patient);
         event.target.reset();
+        setSelectedPatientComments("patientComments", []);
         reusedPatientUhid = "";
         $("#patientSearchResults").innerHTML = "";
         $$("[data-group]").forEach((group) => group.querySelectorAll(".choice").forEach((button) => button.classList.remove("active")));
@@ -3135,6 +3259,7 @@ ${context}`;
           age: $("#editAge").value.trim(),
           sex: $("#editSex").value,
           mobile: $("#editMobile").value.trim(),
+          comments: selectedPatientComments("editPatientComments"),
           visitType,
           mode,
           diagnosis
@@ -3280,6 +3405,20 @@ ${context}`;
           $("#doctorCredentials").focus();
           document.execCommand(button.dataset.credentialsFormat, false, null);
         }
+        if (button.id === "addPatientCommentBtn") {
+          const comment = $("#newPatientComment").value.trim();
+          if (!comment) { alert("Enter a comment."); return; }
+          const comments = [...new Set([...patientComments(), comment])].sort((a, b) => a.localeCompare(b));
+          $("#newPatientComment").value = "";
+          await saveClinicSettingsPatch({ patientComments: comments });
+          $("#settingsStatus").textContent = "Comment saved.";
+        }
+        if (button.dataset.removePatientComment) {
+          const comment = button.dataset.removePatientComment;
+          const comments = patientComments().filter((item) => item !== comment);
+          await saveClinicSettingsPatch({ patientComments: comments });
+          $("#settingsStatus").textContent = "Comment removed.";
+        }
         if (button.dataset.copy) copyReport(button.dataset.copy);
         if (button.id === "toggleFollowup") { followupExpanded = !followupExpanded; renderFollowupList(); }
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
@@ -3298,9 +3437,7 @@ ${context}`;
         if (button.id === "saveGeminiKeyBtn") {
           writeStore(geminiApiKeyStore, $("#geminiApiKey").value.trim());
           const credentials = cleanCredentialsHtml($("#doctorCredentials").innerHTML);
-          clinicSettings.doctorCredentials = credentials;
-          writeStore(doctorCredentialsStore, credentials);
-          await setDoc(settingsDocRef, { doctorCredentials: credentials, updatedAt: new Date().toISOString() }, { merge: true });
+          await saveClinicSettingsPatch({ doctorCredentials: credentials });
           $("#settingsStatus").textContent = "Settings saved.";
           closeSettingsModal();
         }
@@ -3386,6 +3523,8 @@ ${context}`;
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
       $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
       $("#doctorCredentials").innerHTML = doctorCredentialsHtml();
+      renderCommentSelects();
+      renderSettingsComments();
       setMainTab("doctor");
       render();
     </script>
