@@ -45,18 +45,24 @@
       .login-status { min-height: 20px; color: var(--muted); font-size: 13px; }
       .signed-in-user { overflow-wrap: anywhere; }
       .app { min-height: 100vh; display: block; }
-      .compact-nav { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 12px 24px 0; background: linear-gradient(#f4f7f8 72%, rgba(244, 247, 248, 0)); }
+      .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: auto minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
+      .nav-left { display: flex; align-items: end; gap: 8px; min-width: 0; }
       .home-menu { position: relative; }
       .home-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 25; width: 230px; display: none; gap: 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 34px rgba(16, 32, 43, .15); }
       .home-menu.open .home-dropdown { display: grid; }
       .home-dropdown button { justify-content: flex-start; width: 100%; background: transparent; color: #22313f; }
       .home-dropdown button:hover, .home-dropdown button.active { background: #e8eef3; }
       .compact-nav > .secondary, .home-menu > .secondary { width: auto; }
+      .main-tabs { justify-self: center; display: flex; align-items: end; justify-content: center; gap: 8px; min-width: 0; }
+      .main-tab { min-width: 104px; }
+      .main-tab.active { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
+      .nav-date-control { justify-self: end; display: grid; grid-template-columns: auto 160px auto; align-items: end; gap: 10px; }
+      .nav-date-control label { margin: 0; }
       .home-chevron { margin-left: 6px; font-size: 12px; }
       .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
       .signed-in-user { display: none; }
       .sign-out { background: #e8eef3; color: #17222b; }
-      main { padding: 24px; overflow: auto; }
+      main { padding: 18px 24px 24px; overflow: auto; }
       .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
       h1, h2, h3, p { margin: 0; }
       h1 { font-size: 28px; letter-spacing: 0; }
@@ -140,7 +146,7 @@
       .report-item strong { font-size: 21px; }
       .report-list { display: grid; gap: 8px; margin-top: 14px; }
       .report-row { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
-      .preview-area { grid-column: 2; padding: 0 24px 24px; }
+      .preview-area { padding: 0 24px 24px; }
       .preview-panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
       .preview-head { background: var(--primary); color: #fff; padding: 14px 16px; }
       .preview-head p { margin-top: 3px; color: #d7fffa; font-size: 13px; }
@@ -297,18 +303,25 @@
         body.print-medical .medical-disclaimer { break-inside: avoid; }
       }
       @media (max-width: 1200px) {
+        .compact-nav { grid-template-columns: 1fr; align-items: stretch; }
+        .nav-left, .main-tabs, .nav-date-control { justify-self: stretch; }
+        .main-tabs { justify-content: stretch; }
+        .main-tab { flex: 1; min-width: 0; }
+        .nav-date-control { grid-template-columns: auto minmax(160px, 1fr) auto; }
         .content-grid, .post-consult-block, .preview-body, .accounts-grid, .neuro-controls { grid-template-columns: 1fr; }
         .followup-row { grid-template-columns: 1fr 1fr; }
         .section.wide, .preview-area { grid-column: auto; }
         .report-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
       }
       @media (max-width: 760px) {
-        .compact-nav { padding: 10px 16px 0; }
+        .compact-nav { padding: 10px 16px; }
         .home-dropdown { width: min(230px, calc(100vw - 32px)); }
         main { padding: 16px; }
         .topbar, .section-head, .consult-head { align-items: flex-start; flex-direction: column; }
         .actions, .primary, .secondary { width: 100%; }
-        .stats, .two, .form-row, .date-control, .report-grid { grid-template-columns: 1fr; }
+        .nav-left, .main-tabs, .nav-date-control { grid-template-columns: 1fr; flex-direction: column; }
+        .main-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+        .stats, .two, .form-row, .date-control, .nav-date-control, .report-grid { grid-template-columns: 1fr; }
         .record-top, .record-body { grid-template-columns: 1fr; }
         .record-actions { justify-content: stretch; }
         .followup-row { grid-template-columns: 1fr; }
@@ -341,43 +354,44 @@
     </section>
 
     <div class="app" id="clinicApp">
-      <div class="compact-nav">
-        <div class="home-menu" id="homeMenu">
-          <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
-          <nav class="home-dropdown" aria-label="Main">
-            <button class="secondary active" data-scroll="today" type="button">Today</button>
-            <button class="secondary" type="button" id="openAddPatientNavBtn">Add Patient</button>
-            <button class="secondary" data-scroll="after" type="button">After Consultation</button>
-            <button class="secondary" data-scroll="followup" type="button">Follow-up List</button>
-            <button class="secondary" data-scroll="report" type="button">Monthly Report</button>
-            <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
-            <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
-          </nav>
+      <div class="compact-nav" id="today">
+        <div class="nav-left">
+          <div class="home-menu" id="homeMenu">
+            <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
+            <nav class="home-dropdown" aria-label="Main">
+              <button class="secondary active" data-scroll="today" type="button">Today</button>
+              <button class="secondary" type="button" id="openAddPatientNavBtn">Add Patient</button>
+              <button class="secondary" data-scroll="after" type="button">After Consultation</button>
+              <button class="secondary" data-scroll="followup" type="button">Follow-up List</button>
+              <button class="secondary" data-scroll="report" type="button">Monthly Report</button>
+              <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
+              <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
+            </nav>
+          </div>
+          <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
+          <input class="doctor-phone-hidden" id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
+          <span class="signed-in-user" id="signedInUser"></span>
         </div>
-        <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
-        <input class="doctor-phone-hidden" id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
-        <span class="signed-in-user" id="signedInUser"></span>
+        <div class="main-tabs" aria-label="Clinic workspace">
+          <button class="secondary main-tab active" type="button" data-main-tab="doctor">Doctor</button>
+          <button class="secondary main-tab" type="button" data-main-tab="staff">Staff</button>
+          <button class="secondary main-tab" type="button" data-main-tab="finance">Finance</button>
+          <button class="secondary main-tab" type="button" data-main-tab="followup">Follow-up</button>
+        </div>
+        <div class="nav-date-control">
+          <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
+          <label>
+            Clinic date
+            <input id="clinicDate" type="date" />
+          </label>
+          <button class="secondary" id="todayBtn" type="button">Today</button>
+        </div>
       </div>
 
       <main>
-        <div class="topbar" id="today">
-          <div>
-            <h1>Clinic List</h1>
-            <p class="date" id="todayLabel"></p>
-          </div>
-          <div class="actions">
-            <div class="date-control">
-              <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
-              <label>
-                Clinic date
-                <input id="clinicDate" type="date" />
-              </label>
-              <button class="secondary" id="todayBtn" type="button">Today</button>
-            </div>
-          </div>
-        </div>
+        <p class="date" id="todayLabel" hidden></p>
 
-        <section class="stats" aria-label="Daily summary">
+        <section class="stats" id="statsPanel" aria-label="Daily summary">
           <div class="stat"><span>Total patients</span><strong id="statTotal">0</strong></div>
           <div class="stat"><span>In clinic</span><strong id="statClinic">0</strong></div>
           <div class="stat"><span>Teleconsultation</span><strong id="statTele">0</strong></div>
@@ -818,6 +832,7 @@
       let selectedDate = readStore(selectedDateKey, todayKey);
       let activeFilter = "all";
       let followupFilter = "needs";
+      let activeMainTab = "doctor";
       let openCallbackId = "";
       let followupExpanded = false;
       let whatsappExpanded = false;
@@ -1980,6 +1995,29 @@ ${context}`;
         menu.classList.toggle("open", open);
         $("#homeMenuBtn")?.setAttribute("aria-expanded", String(open));
       }
+      function setMainTab(tab = "doctor") {
+        activeMainTab = tab;
+        $$("[data-main-tab]").forEach((button) => button.classList.toggle("active", button.dataset.mainTab === tab));
+        const showClinical = tab === "doctor" || tab === "staff";
+        const visibility = {
+          statsPanel: showClinical,
+          after: showClinical,
+          report: tab === "finance",
+          accounts: tab === "finance",
+          followup: tab === "followup"
+        };
+        Object.entries(visibility).forEach(([id, show]) => {
+          const element = document.getElementById(id);
+          if (element) element.hidden = !show;
+        });
+        const preview = document.querySelector(".preview-area");
+        if (preview) preview.hidden = tab !== "followup";
+      }
+      function tabForAnchor(anchor) {
+        if (anchor === "report" || anchor === "accounts") return "finance";
+        if (anchor === "followup") return "followup";
+        return "doctor";
+      }
       function clearChoiceGroup(groupName) {
         document.querySelector(`[data-group="${groupName}"]`)?.querySelectorAll(".choice").forEach((button) => button.classList.remove("active"));
       }
@@ -3127,6 +3165,7 @@ ${context}`;
         if (!button) return;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
         if (button.id === "homeMenuBtn") { toggleHomeMenu(); return; }
+        if (button.dataset.mainTab) { setMainTab(button.dataset.mainTab); return; }
         if (button.id === "openAddPatientBtn" || button.id === "openAddPatientNavBtn") openAddPatientModal();
         if (button.id === "closeAddPatientBtn") closeAddPatientModal();
         if (button.id === "closeEditPatientBtn") closeEditPatientModal();
@@ -3171,7 +3210,11 @@ ${context}`;
           $("#accountsReportOverlay").setAttribute("aria-hidden", "false");
         }
         if (button.closest(".home-dropdown")) toggleHomeMenu(false);
-        if (button.matches("[data-scroll]")) { event.preventDefault(); document.getElementById(button.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        if (button.matches("[data-scroll]")) {
+          event.preventDefault();
+          setMainTab(tabForAnchor(button.dataset.scroll));
+          requestAnimationFrame(() => document.getElementById(button.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        }
         if (button.matches("[data-group] .choice")) setChoice(button);
         if (button.dataset.filter) { activeFilter = button.dataset.filter; $$("[data-filter]").forEach((item) => item.classList.toggle("active", item === button)); renderPatientList(); }
         if (button.dataset.followup) { followupFilter = button.dataset.followup; $$("[data-followup]").forEach((item) => item.classList.toggle("active", item === button)); renderFollowupList(); }
@@ -3306,6 +3349,7 @@ ${context}`;
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
       $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
       $("#doctorCredentials").innerHTML = doctorCredentialsHtml();
+      setMainTab("doctor");
       render();
     </script>
   </body>
