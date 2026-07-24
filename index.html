@@ -45,10 +45,11 @@
       .login-status { min-height: 20px; color: var(--muted); font-size: 13px; }
       .signed-in-user { overflow-wrap: anywhere; }
       .app { min-height: 100vh; display: block; }
-      .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: auto minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
+      .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(180px, auto) minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
       .nav-left { display: flex; align-items: end; gap: 8px; min-width: 0; }
+      .clinic-name-display { min-width: 0; max-width: 300px; color: var(--ink); font-size: 20px; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
       .home-menu { position: relative; }
-      .home-dropdown { position: absolute; top: calc(100% + 6px); left: 0; z-index: 25; width: 230px; display: none; gap: 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 34px rgba(16, 32, 43, .15); }
+      .home-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 25; width: 230px; display: none; gap: 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 34px rgba(16, 32, 43, .15); }
       .home-menu.open .home-dropdown { display: grid; }
       .home-dropdown button { justify-content: flex-start; width: 100%; background: transparent; color: #22313f; }
       .home-dropdown button:hover, .home-dropdown button.active { background: #e8eef3; }
@@ -56,8 +57,9 @@
       .main-tabs { justify-self: center; display: flex; align-items: end; justify-content: center; gap: 8px; min-width: 0; }
       .main-tab { min-width: 104px; }
       .main-tab.active { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
-      .nav-date-control { justify-self: end; display: grid; grid-template-columns: auto 160px auto; align-items: end; gap: 10px; }
+      .nav-date-control { justify-self: end; display: grid; grid-template-columns: auto 160px auto auto; align-items: end; gap: 10px; }
       .nav-date-control label { margin: 0; }
+      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .home-chevron { margin-left: 6px; font-size: 12px; }
       .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
       .signed-in-user { display: none; }
@@ -143,6 +145,9 @@
       .selected-tests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
       .selected-test-pill { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: #f7fafb; color: #334454; font-size: 13px; font-weight: 800; }
       .comment-pill { display: inline-flex; align-items: center; min-height: 28px; border-radius: 999px; padding: 0 9px; background: #fff7ed; color: #9a3412; font-size: 12px; font-weight: 900; white-space: nowrap; }
+      .comment-choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .comment-choice-row .choice { min-width: 118px; }
+      .comment-other-input { margin-top: 8px; }
       .attendance-actions, .test-options, .payment-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .post-consult-block { display: grid; grid-template-columns: minmax(560px, 1fr) minmax(430px, .75fr); gap: 10px; align-items: start; }
       .post-consult-left { display: grid; gap: 8px; align-content: start; }
@@ -324,7 +329,7 @@
         .nav-left, .main-tabs, .nav-date-control { justify-self: stretch; }
         .main-tabs { justify-content: stretch; }
         .main-tab { flex: 1; min-width: 0; }
-        .nav-date-control { grid-template-columns: auto minmax(160px, 1fr) auto; }
+        .nav-date-control { grid-template-columns: auto minmax(160px, 1fr) auto auto; }
         .content-grid, .post-consult-block, .preview-body, .accounts-grid, .neuro-controls { grid-template-columns: 1fr; }
         .followup-row { grid-template-columns: 1fr 1fr; }
         .section.wide, .preview-area { grid-column: auto; }
@@ -373,19 +378,7 @@
     <div class="app" id="clinicApp">
       <div class="compact-nav" id="today">
         <div class="nav-left">
-          <div class="home-menu" id="homeMenu">
-            <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
-            <nav class="home-dropdown" aria-label="Main">
-              <button class="secondary active" data-scroll="today" type="button">Today</button>
-              <button class="secondary" type="button" id="openAddPatientNavBtn">Add Patient</button>
-              <button class="secondary" data-scroll="after" type="button">After Consultation</button>
-              <button class="secondary" data-scroll="followup" type="button">Follow-up List</button>
-              <button class="secondary" data-scroll="report" type="button">Monthly Report</button>
-              <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
-              <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
-            </nav>
-          </div>
-          <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
+          <div class="clinic-name-display" id="clinicNameDisplay"></div>
           <input class="doctor-phone-hidden" id="doctorPhone" value="919846066990" aria-label="Doctor WhatsApp number" />
           <span class="signed-in-user" id="signedInUser"></span>
         </div>
@@ -398,10 +391,23 @@
         <div class="nav-date-control">
           <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
           <label>
-            Clinic date
+            <span class="sr-only">Clinic date</span>
             <input id="clinicDate" type="date" />
           </label>
           <button class="secondary" id="todayBtn" type="button">Today</button>
+          <div class="home-menu" id="homeMenu">
+            <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
+            <nav class="home-dropdown" aria-label="Main">
+              <button class="secondary active" data-scroll="today" type="button">Today</button>
+              <button class="secondary" type="button" id="openAddPatientNavBtn">Add Patient</button>
+              <button class="secondary" data-scroll="after" type="button">After Consultation</button>
+              <button class="secondary" data-scroll="followup" type="button">Follow-up List</button>
+              <button class="secondary" data-scroll="report" type="button">Monthly Report</button>
+              <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
+              <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
+              <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -437,7 +443,8 @@
               <label>Mobile number<input id="mobile" inputmode="tel" /></label>
               <label>
                 Comments
-                <select id="patientComments" class="comment-select" multiple size="4" aria-label="Patient comments"></select>
+                <div id="patientComments" class="comment-choice-row" aria-label="Patient comments"></div>
+                <input id="patientCommentsOther" class="comment-other-input" autocomplete="off" placeholder="Other comment for this patient only" hidden />
               </label>
               <div class="form-row">
                 <label>
@@ -489,7 +496,8 @@
               </div>
               <label>
                 Comments
-                <select id="editPatientComments" class="comment-select" multiple size="4" aria-label="Patient comments"></select>
+                <div id="editPatientComments" class="comment-choice-row" aria-label="Patient comments"></div>
+                <input id="editPatientCommentsOther" class="comment-other-input" autocomplete="off" placeholder="Other comment for this patient only" hidden />
               </label>
               <div class="form-row">
                 <label>
@@ -645,8 +653,16 @@
                 Gemini API key for ambient notes
                 <input id="geminiApiKey" type="password" autocomplete="off" placeholder="Paste Gemini API key for local testing" />
               </label>
-              <button class="primary" type="button" id="saveGeminiKeyBtn">Save key</button>
+              <button class="primary" type="button" id="saveGeminiKeyBtn">Save settings</button>
             </div>
+            <label class="settings-block">
+              Clinic name shown on home page
+              <div class="settings-toolbar" aria-label="Clinic name formatting">
+                <button class="secondary" type="button" data-clinic-name-format="bold"><b>B</b></button>
+                <button class="secondary" type="button" data-clinic-name-format="italic"><i>I</i></button>
+              </div>
+              <div id="clinicName" class="credentials-editor" contenteditable="true" role="textbox" aria-label="Clinic name" data-placeholder="Clinic name"></div>
+            </label>
             <label class="settings-block">
               Doctor credentials for prescription / certificate / reply letter print
               <div class="settings-toolbar" aria-label="Credential formatting">
@@ -663,7 +679,6 @@
               </div>
               <div class="settings-comment-list" id="settingsCommentsList"></div>
             </label>
-            <p class="settings-note">Prototype only: the Gemini key is saved in this browser. Doctor credentials and patient comments are synced across signed-in clinic devices.</p>
             <div class="record-status" id="settingsStatus"></div>
             </div>
           </section>
@@ -786,6 +801,7 @@
           </div>
         </div>
         <div class="record-actions">
+          <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
           <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
           <button class="secondary" type="button" id="recordPrintBtn">Print</button>
@@ -808,6 +824,22 @@
         <div class="record-main">
           <div class="record-status" id="recordStatus"></div>
           <div class="medical-textarea" id="medicalNoteText" contenteditable="true" role="textbox" aria-label="Medical notes"></div>
+        </div>
+      </div>
+    </section>
+    <section class="add-patient-modal" id="recordCommentsModal" aria-hidden="true">
+      <div class="add-patient-card">
+        <div class="section-head">
+          <h2>Patient Comments</h2>
+          <button class="secondary" type="button" id="closeRecordCommentsBtn">Close</button>
+        </div>
+        <label>
+          Comments
+          <div id="recordComments" class="comment-choice-row" aria-label="Record patient comments"></div>
+          <input id="recordCommentsOther" class="comment-other-input" autocomplete="off" placeholder="Other comment for this patient only" hidden />
+        </label>
+        <div class="actions">
+          <button class="primary" type="button" id="saveRecordCommentsBtn">Save comments</button>
         </div>
       </div>
     </section>
@@ -840,6 +872,7 @@
       const geminiApiKeyStore = "clinicGeminiApiKey.v1";
       const doctorCredentialsStore = "clinicDoctorCredentials.v1";
       const patientCommentsStore = "clinicPatientComments.v1";
+      const clinicNameStore = "clinicNameHtml.v1";
       const ambientModes = {
         visit: "Visit Note",
         prescription: "Prescription",
@@ -876,7 +909,7 @@
       let neuroAnalysisExpanded = false;
       let medicalRecords = [];
       let neuroStats = [];
-      let clinicSettings = { doctorCredentials: readStore(doctorCredentialsStore, ""), patientComments: parseStoredArray(patientCommentsStore) };
+      let clinicSettings = { doctorCredentials: readStore(doctorCredentialsStore, ""), patientComments: parseStoredArray(patientCommentsStore), clinicName: readStore(clinicNameStore, "") };
       let activeRecordPatientId = "";
       let activeRecordId = "";
       let activeRecordDate = "";
@@ -1097,16 +1130,23 @@
           clinicSettings = {
             doctorCredentials: readStore(doctorCredentialsStore, ""),
             patientComments: parseStoredArray(patientCommentsStore),
+            clinicName: readStore(clinicNameStore, ""),
             ...(snapshot.exists() ? snapshot.data() : {})
           };
           writeStore(doctorCredentialsStore, clinicSettings.doctorCredentials || "");
           writeStore(patientCommentsStore, JSON.stringify(patientComments()));
+          writeStore(clinicNameStore, clinicSettings.clinicName || "");
           const credentialsEditor = $("#doctorCredentials");
+          const clinicNameEditor = $("#clinicName");
           if (credentialsEditor && !$("#settingsModal").classList.contains("open")) {
             credentialsEditor.innerHTML = clinicSettings.doctorCredentials || "";
           }
+          if (clinicNameEditor && !$("#settingsModal").classList.contains("open")) {
+            clinicNameEditor.innerHTML = clinicSettings.clinicName || "";
+          }
           renderCommentSelects();
           renderSettingsComments();
+          renderClinicName();
         }, (error) => {
           console.error("Firebase settings sync failed", error);
         }));
@@ -1122,27 +1162,46 @@
           ? clinicSettings.patientComments.map((item) => String(item || "").trim()).filter(Boolean)
           : [];
       }
-      function selectedPatientComments(selectId) {
-        const select = document.getElementById(selectId);
-        if (!select) return [];
-        return [...select.selectedOptions].map((option) => option.value).filter(Boolean);
+      function normaliseComments(comments = []) {
+        return [...new Set((Array.isArray(comments) ? comments : [])
+          .flatMap((item) => String(item || "").split(","))
+          .map((item) => item.trim())
+          .filter(Boolean))];
       }
-      function setSelectedPatientComments(selectId, comments = []) {
-        const selectedSet = new Set(Array.isArray(comments) ? comments : []);
-        const select = document.getElementById(selectId);
-        if (!select) return;
-        [...select.options].forEach((option) => {
-          option.selected = selectedSet.has(option.value);
-        });
+      function selectedPatientComments(selectorId) {
+        const box = document.getElementById(selectorId);
+        if (!box) return [];
+        const selected = [...box.querySelectorAll("[data-comment-value].active")].map((button) => button.dataset.commentValue).filter(Boolean);
+        const otherInput = document.getElementById(`${selectorId}Other`);
+        const other = otherInput && !otherInput.hidden ? otherInput.value.trim() : "";
+        return normaliseComments([...selected, ...(other ? [other] : [])]);
+      }
+      function renderCommentSelector(selectorId, selectedValues = []) {
+        const box = document.getElementById(selectorId);
+        if (!box) return;
+        const shared = patientComments();
+        const selected = new Set(normaliseComments(selectedValues));
+        const hasCustom = [...selected].some((comment) => !shared.includes(comment));
+        box.innerHTML = [
+          ...shared.map((comment) => `<button class="choice ${selected.has(comment) ? "active" : ""}" type="button" data-comment-value="${escapeHtml(comment)}">${escapeHtml(comment)}</button>`),
+          `<button class="choice ${hasCustom ? "active" : ""}" type="button" data-comment-other="${selectorId}">Other</button>`
+        ].join("");
+      }
+      function setSelectedPatientComments(selectorId, comments = []) {
+        const values = normaliseComments(comments);
+        renderCommentSelector(selectorId, values);
+        const shared = patientComments();
+        const custom = values.filter((comment) => !shared.includes(comment));
+        const otherInput = document.getElementById(`${selectorId}Other`);
+        if (otherInput) {
+          otherInput.value = custom.join(", ");
+          otherInput.hidden = !custom.length;
+        }
       }
       function renderCommentSelects() {
-        const options = patientComments().map((comment) => `<option value="${escapeHtml(comment)}">${escapeHtml(comment)}</option>`).join("");
-        ["patientComments", "editPatientComments"].forEach((id) => {
-          const select = document.getElementById(id);
-          if (!select) return;
-          const selectedValues = selectedPatientComments(id);
-          select.innerHTML = options;
-          setSelectedPatientComments(id, selectedValues);
+        ["patientComments", "editPatientComments", "recordComments"].forEach((id) => {
+          if (!document.getElementById(id)) return;
+          setSelectedPatientComments(id, selectedPatientComments(id));
         });
       }
       function renderSettingsComments() {
@@ -1157,13 +1216,38 @@
         clinicSettings = { ...clinicSettings, ...patch };
         if (patch.doctorCredentials !== undefined) writeStore(doctorCredentialsStore, patch.doctorCredentials || "");
         if (patch.patientComments !== undefined) writeStore(patientCommentsStore, JSON.stringify(patientComments()));
+        if (patch.clinicName !== undefined) writeStore(clinicNameStore, patch.clinicName || "");
         await setDoc(settingsDocRef, { ...patch, updatedAt: new Date().toISOString() }, { merge: true });
         renderCommentSelects();
         renderSettingsComments();
+        renderClinicName();
       }
       function patientCommentsHtml(patient) {
         const comments = Array.isArray(patient.comments) ? patient.comments.filter(Boolean) : [];
         return comments.map((comment) => `<span class="comment-pill">${escapeHtml(comment)}</span>`).join("");
+      }
+      function clinicNameHtml() {
+        return cleanCredentialsHtml(clinicSettings.clinicName || readStore(clinicNameStore, ""));
+      }
+      function renderClinicName() {
+        const box = $("#clinicNameDisplay");
+        if (!box) return;
+        box.innerHTML = clinicNameHtml() || "Clinic";
+      }
+      function samePatientUhid(patient, uhid) {
+        return String(patientDisplayId(patient) || "").trim() === String(uhid || "").trim();
+      }
+      async function updatePatientCommentsByUhid(sourcePatient, comments) {
+        const uhid = patientDisplayId(sourcePatient);
+        if (!uhid) return;
+        const cleanComments = normaliseComments(comments);
+        const matched = patients.filter((patient) => samePatientUhid(patient, uhid));
+        matched.forEach((patient) => {
+          patient.comments = cleanComments;
+          savePatientToCloud(patient);
+        });
+        save();
+        render();
       }
       function setChoice(button) {
         const group = button.closest("[data-group]");
@@ -2167,6 +2251,7 @@ ${context}`;
       }
       function openSettingsModal() {
         $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
+        $("#clinicName").innerHTML = clinicNameHtml();
         $("#doctorCredentials").innerHTML = doctorCredentialsHtml();
         renderSettingsComments();
         $("#settingsModal").classList.add("open");
@@ -2176,6 +2261,17 @@ ${context}`;
       function closeSettingsModal() {
         $("#settingsModal").classList.remove("open");
         $("#settingsModal").setAttribute("aria-hidden", "true");
+      }
+      function openRecordCommentsModal() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        setSelectedPatientComments("recordComments", patient.comments || []);
+        $("#recordCommentsModal").classList.add("open");
+        $("#recordCommentsModal").setAttribute("aria-hidden", "false");
+      }
+      function closeRecordCommentsModal() {
+        $("#recordCommentsModal").classList.remove("open");
+        $("#recordCommentsModal").setAttribute("aria-hidden", "true");
       }
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
@@ -3253,17 +3349,20 @@ ${context}`;
         const visitType = selected("editVisitType"), mode = selected("editMode"), diagnosis = selected("editDiagnosis");
         if (!editingPatientId) return;
         if (!visitType || !mode || !diagnosis) { alert("Please select visit type, consultation mode, and diagnosis."); return; }
+        const comments = selectedPatientComments("editPatientComments");
         updatePatient(editingPatientId, {
           patientId: $("#editPatientId").value.trim(),
           name: $("#editName").value.trim(),
           age: $("#editAge").value.trim(),
           sex: $("#editSex").value,
           mobile: $("#editMobile").value.trim(),
-          comments: selectedPatientComments("editPatientComments"),
+          comments,
           visitType,
           mode,
           diagnosis
         });
+        const updatedPatient = patients.find((item) => item.id === editingPatientId);
+        if (updatedPatient) updatePatientCommentsByUhid(updatedPatient, comments);
         closeEditPatientModal();
       });
       $("#accountForm").addEventListener("submit", (event) => {
@@ -3328,6 +3427,18 @@ ${context}`;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
         if (button.id === "homeMenuBtn") { toggleHomeMenu(); return; }
         if (button.dataset.mainTab) { setMainTab(button.dataset.mainTab); return; }
+        if (button.dataset.commentValue) { button.classList.toggle("active"); return; }
+        if (button.dataset.commentOther) {
+          const input = document.getElementById(`${button.dataset.commentOther}Other`);
+          if (input) {
+            const show = input.hidden;
+            input.hidden = !show;
+            button.classList.toggle("active", show);
+            if (show) input.focus();
+            else input.value = "";
+          }
+          return;
+        }
         if (button.id === "openAddPatientBtn" || button.id === "openAddPatientNavBtn") openAddPatientModal();
         if (button.id === "closeAddPatientBtn") closeAddPatientModal();
         if (button.id === "closeEditPatientBtn") closeEditPatientModal();
@@ -3405,6 +3516,10 @@ ${context}`;
           $("#doctorCredentials").focus();
           document.execCommand(button.dataset.credentialsFormat, false, null);
         }
+        if (button.dataset.clinicNameFormat) {
+          $("#clinicName").focus();
+          document.execCommand(button.dataset.clinicNameFormat, false, null);
+        }
         if (button.id === "addPatientCommentBtn") {
           const comment = $("#newPatientComment").value.trim();
           if (!comment) { alert("Enter a comment."); return; }
@@ -3429,6 +3544,16 @@ ${context}`;
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
+        if (button.id === "recordCommentsBtn") openRecordCommentsModal();
+        if (button.id === "closeRecordCommentsBtn") closeRecordCommentsModal();
+        if (button.id === "saveRecordCommentsBtn") {
+          const patient = activeRecordPatient();
+          if (patient) {
+            await updatePatientCommentsByUhid(patient, selectedPatientComments("recordComments"));
+            $("#recordStatus").textContent = "Comments saved.";
+          }
+          closeRecordCommentsModal();
+        }
         if (button.id === "recordDeleteBtn" && activeRecordId) {
           if (activeRecordView === "draft") deleteDraftMedicalEntry();
           else deleteMedicalEntry(activeRecordId);
@@ -3436,8 +3561,9 @@ ${context}`;
         if (button.id === "recordCloseBtn") closeMedicalRecordScreen();
         if (button.id === "saveGeminiKeyBtn") {
           writeStore(geminiApiKeyStore, $("#geminiApiKey").value.trim());
+          const clinicName = cleanCredentialsHtml($("#clinicName").innerHTML);
           const credentials = cleanCredentialsHtml($("#doctorCredentials").innerHTML);
-          await saveClinicSettingsPatch({ doctorCredentials: credentials });
+          await saveClinicSettingsPatch({ clinicName, doctorCredentials: credentials });
           $("#settingsStatus").textContent = "Settings saved.";
           closeSettingsModal();
         }
@@ -3522,9 +3648,11 @@ ${context}`;
       });
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
       $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
+      $("#clinicName").innerHTML = clinicNameHtml();
       $("#doctorCredentials").innerHTML = doctorCredentialsHtml();
       renderCommentSelects();
       renderSettingsComments();
+      renderClinicName();
       setMainTab("doctor");
       render();
     </script>
