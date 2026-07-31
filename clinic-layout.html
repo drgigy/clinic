@@ -1758,10 +1758,14 @@ Format every prescribed medicine as a numbered list, one medicine per line:
 2. ...
 
 Include dose, frequency, route, timing, and duration only if dictated.
+When a tablet count is dictated, write it with the timing as "morning 1 tablet", "evening 1 tablet", "bedtime 1 tablet". Never write bare timing counts like "morning 1" or "evening 1".
 For tapering or step-down medicines, create one numbered line for each step of the same medicine. Keep the duration simple in each line, and place the sequence in the instruction:
 1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
 2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
 3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
+If the medicine strength is fixed and the doctor dictates tablet counts, use:
+1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - evening 1 tablet - after food - First 5 days
+2. Tablet Predmet 4 mg - 5 days - morning 1 tablet - after food - Next 5 days, then stop
 Do not merge tapering steps into one long paragraph.
 If general advice or non-medicine instructions are dictated, place them after the prescription under:
 Advice:
@@ -1857,11 +1861,16 @@ Formatting rules:
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
+- When a tablet count is dictated, write it as "morning 1 tablet", "evening 1 tablet", "bedtime 1 tablet". Never write bare timing counts like "morning 1" or "evening 1", because the prescription chart needs the full count.
 - For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Keep the Duration as only the step duration, for example "20 days", "20 days", "20 days". Put the sequence in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop".
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
   1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
   2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
   3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
+- If the medicine strength is fixed and the taper changes tablet counts, write one line per step, for example:
+  1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - evening 1 tablet - after food - First 5 days
+  2. Tablet Predmet 4 mg - 5 days - morning 1 tablet - after food - Next 5 days, then stop
+- If a lab appointment, investigation schedule, or paper/lab schedule is dictated, include it under Advice or Orders line by line. Do not omit lab appointments or investigations from the embedded prescription.
 - Do not merge tapering steps into one paragraph. Do not duplicate the same step.
 - Do not include patient demographics inside the Prescription section.
 - Preserve dictated brand names exactly and do not convert them to generic names.
@@ -2640,6 +2649,12 @@ ${context}`;
           needed: /\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/.test(text)
         };
       }
+      function normalizePrescriptionTimingValue(value) {
+        const cleaned = String(value || "").replace(/\s+/g, " ").trim();
+        if (!cleaned) return "";
+        if (/^\d+(?:\.\d+)?$/.test(cleaned)) return `${cleaned} tab`;
+        return cleaned;
+      }
       function prescriptionTimingValue(line, slot) {
         const slotMap = {
           morning: "(?:morning|breakfast|am)",
@@ -2651,10 +2666,11 @@ ${context}`;
         const timing = slotMap[slot];
         if (!timing) return "";
         const unit = "(?:mg|mcg|g|ml|iu|units?|drops?)";
-        const after = line.match(new RegExp(`\\b${timing}\\b\\s*[:\\-]?\\s*((?:\\d+(?:\\.\\d+)?\\s*)?${unit}|\\d+(?:\\.\\d+)?\\s*(?:tablet|tab|capsule|cap)s?)`, "i"));
-        if (after?.[1]) return after[1].trim();
-        const before = line.match(new RegExp(`\\b((?:\\d+(?:\\.\\d+)?\\s*)?${unit}|\\d+(?:\\.\\d+)?\\s*(?:tablet|tab|capsule|cap)s?)\\s+(?:in\\s+the\\s+)?${timing}\\b`, "i"));
-        return before?.[1]?.trim() || "";
+        const doseOrCount = `(?:\\d+(?:\\.\\d+)?\\s*)?${unit}|\\d+(?:\\.\\d+)?\\s*(?:tablet|tab|capsule|cap)s?|\\d+(?:\\.\\d+)?`;
+        const after = line.match(new RegExp(`\\b${timing}\\b\\s*[:\\-]?\\s*(${doseOrCount})(?=\\b|\\s|,|;|\\.|-|–|—)`, "i"));
+        if (after?.[1]) return normalizePrescriptionTimingValue(after[1]);
+        const before = line.match(new RegExp(`\\b(${doseOrCount})\\s+(?:in\\s+the\\s+)?${timing}\\b`, "i"));
+        return normalizePrescriptionTimingValue(before?.[1] || "");
       }
       function prescriptionDuration(line) {
         const match = line.match(/\b(?:for|x)\s+(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
