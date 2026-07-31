@@ -2690,12 +2690,16 @@ ${context}`;
           .map((part) => part.trim())
           .filter(Boolean);
       }
+      function isPrescriptionSequenceInstruction(part) {
+        return /^(first|next|then|after|last|final)\b/i.test(String(part || "").trim())
+          || /\bthen\s+stop\b/i.test(String(part || ""));
+      }
       function prescriptionLineInstructions(line) {
         const instructions = [];
         const parts = splitPrescriptionParts(line);
         if (parts.length > 1) {
           const stepParts = parts.slice(1).filter((part) => {
-            if (prescriptionDuration(part)) return false;
+            if (prescriptionDuration(part) && !isPrescriptionSequenceInstruction(part)) return false;
             if (/^(morning|breakfast|am|noon|afternoon|lunch|evening|dinner|bedtime|night|hs|as needed|when needed|sos|prn|if pain|when there is pain)\b/i.test(part)) return false;
             return true;
           });
