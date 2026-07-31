@@ -345,6 +345,19 @@
         body.print-medical .prescription-print ol, body.print-medical .prescription-print ul { margin: 6px 0 0 22px; padding: 0; }
         body.print-medical .prescription-print li { margin: 3px 0; }
         body.print-medical .prescription-signature { margin-top: 4cm; }
+        body.print-medical.print-prescription .medical-print-content { padding: 2in 1in 1in !important; font-size: 14px; line-height: 1.5; }
+        body.print-medical.print-prescription .medical-print-content h1 { font-size: 22px; font-weight: 900 !important; margin-bottom: 8px; }
+        body.print-medical.print-prescription .medical-print-content .meta { font-size: 12px; color: #333; margin-bottom: 24px; }
+        body.print-medical.print-prescription .prescription-print { font-size: 15px; line-height: 1.55; }
+        body.print-medical.print-prescription .prescription-print h2 { font-size: 15px; font-weight: 900; margin: 0 0 10px; }
+        body.print-medical.print-prescription .prescription-print h2 + h2 { margin-top: 22px; }
+        body.print-medical.print-prescription .prescription-print ol,
+        body.print-medical.print-prescription .prescription-print ul { margin: 0 0 22px 24px; padding: 0; }
+        body.print-medical.print-prescription .prescription-print li { margin: 4px 0; padding-left: 2px; }
+        body.print-medical.print-prescription .prescription-signature { margin-top: 4cm; font-size: 13px; line-height: 1.35; }
+        body.print-medical.print-prescription .medical-signature strong,
+        body.print-medical.print-prescription .medical-signature b,
+        body.print-medical.print-prescription h1 { font-weight: 900 !important; }
         body.print-medical .medical-disclaimer { break-inside: avoid; }
       }
       @media (max-width: 1200px) {
@@ -2328,10 +2341,15 @@ ${context}`;
       }
       function formatPrescriptionPrintHtml(html) {
         const text = htmlToPlainText(stripDuplicateDocumentTitle(html, "Prescription"));
-        const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+        const isDemographicLine = (line) => /^(patient\s*name|patient\s*id|uhid|id|mobile)\s*:/i.test(line);
+        const isStandaloneHeading = (line) => /^(date|prescription|medications?|medicines?|drugs?|medications?\s*\/\s*advice)\s*:?$/i.test(line);
+        const lines = text.split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .filter((line) => !isDemographicLine(line) && !isStandaloneHeading(line));
         const adviceIndex = lines.findIndex((line) => /^(advice|instruction|instructions|follow[-\s]*up)\s*:?/i.test(line));
         const medicineLines = (adviceIndex >= 0 ? lines.slice(0, adviceIndex) : lines)
-          .filter((line) => !/^date\s*:?$/i.test(line));
+          .filter((line) => !/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(line));
         const firstAdvice = adviceIndex >= 0 ? lines[adviceIndex].replace(/^(advice|instruction|instructions|follow[-\s]*up)\s*:?\s*/i, "").trim() : "";
         const adviceLines = adviceIndex >= 0 ? [...(firstAdvice ? [firstAdvice] : []), ...lines.slice(adviceIndex + 1)] : [];
         const listItems = (items) => items
@@ -2515,6 +2533,7 @@ ${context}`;
           <div class="${isPrescriptionPrint ? "prescription-sheet-body" : ""}">${activeMedicalPrintBody()}</div>
           ${medicalPrintFooter()}
         `;
+        document.body.classList.toggle("print-prescription", isPrescriptionPrint);
         document.body.classList.add("print-medical");
         window.print();
       }
@@ -3805,7 +3824,7 @@ ${context}`;
         if (button.id === "prevDateBtn") shiftSelectedDate(-1);
         if (button.id === "nextDateBtn") shiftSelectedDate(1);
       });
-      window.addEventListener("afterprint", () => document.body.classList.remove("print-accounts", "print-medical"));
+      window.addEventListener("afterprint", () => document.body.classList.remove("print-accounts", "print-medical", "print-prescription"));
       document.addEventListener("change", (event) => {
         if (event.target.id === "clinicDate") {
           selectedDate = event.target.value || todayKey;
