@@ -2189,7 +2189,7 @@ ${context}`;
         if (!ambientAudioBlob) return;
         try {
           ambientState = "processing";
-          $("#recordStatus").innerHTML = `<div class="ambient-progress" aria-label="Processing audio"><div class="ambient-progress-fill"></div></div>`;
+          $("#recordStatus").textContent = "";
           setAmbientButtons();
           const patient = activeRecordPatient();
           const processingMode = activeAmbientMode;
@@ -2218,12 +2218,14 @@ ${context}`;
             draftMedicalRecord.recordKind = processingMode;
             draftMedicalRecord.updatedAt = new Date().toISOString();
           }
-          if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
+          activeRecordDirty = true;
+          if (draftMedicalRecord) {
+            ambientState = "ready";
+            openDraftMedicalEntry();
             showAmbientResult(note);
             $("#recordStatus").textContent = `${ambientModeLabel(processingMode)} ready. Review and save.`;
           } else {
             ambientState = "ready";
-            activeRecordDirty = true;
             $("#recordStatus").textContent = "AI note ready in draft.";
             renderPreviousRecords();
             setAmbientButtons();
