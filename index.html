@@ -367,16 +367,30 @@
         body.print-medical .prescription-print ol, body.print-medical .prescription-print ul { margin: 6px 0 0 22px; padding: 0; }
         body.print-medical .prescription-print li { margin: 3px 0; }
         body.print-medical .prescription-signature { margin-top: 4cm; }
-        body.print-medical.print-prescription .medical-print-content { padding: 2in 1in 1in !important; font-size: 14px; line-height: 1.5; }
-        body.print-medical.print-prescription .medical-print-content h1 { font-size: 22px; font-weight: 900 !important; margin-bottom: 8px; }
-        body.print-medical.print-prescription .medical-print-content .meta { font-size: 12px; color: #333; margin-bottom: 24px; }
-        body.print-medical.print-prescription .prescription-print { font-size: 15px; line-height: 1.55; }
-        body.print-medical.print-prescription .prescription-print h2 { font-size: 15px; font-weight: 900; margin: 0 0 10px; }
-        body.print-medical.print-prescription .prescription-print h2 + h2 { margin-top: 22px; }
-        body.print-medical.print-prescription .prescription-print ol,
-        body.print-medical.print-prescription .prescription-print ul { margin: 0 0 22px 24px; padding: 0; }
-        body.print-medical.print-prescription .prescription-print li { margin: 4px 0; padding-left: 2px; }
-        body.print-medical.print-prescription .prescription-signature { margin-top: 4cm; font-size: 13px; line-height: 1.35; }
+        body.print-medical.print-prescription .medical-print-content { padding: 0 !important; font-size: 13px; line-height: 1.35; }
+        body.print-medical.print-prescription .prescription-sheet { min-height: 297mm; background: #fff; color: #111; }
+        body.print-medical.print-prescription .prescription-banner { height: 38mm; background: #174d73; margin-bottom: 6mm; }
+        body.print-medical.print-prescription .prescription-content { margin: 0 10mm 10mm; }
+        body.print-medical.print-prescription .prescription-patient-box { background: #eaf3f8; border-radius: 7px; padding: 8px 10px 9px; margin-bottom: 0; }
+        body.print-medical.print-prescription .prescription-patient-title { color: #15496f; font-weight: 900; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; }
+        body.print-medical.print-prescription .prescription-patient-grid { display: grid; grid-template-columns: 54px 1.65fr 38px .75fr 34px .7fr 42px .8fr 34px .55fr; gap: 8px; align-items: center; }
+        body.print-medical.print-prescription .prescription-patient-grid span { color: #4f6475; font-size: 10px; }
+        body.print-medical.print-prescription .prescription-field { min-height: 22px; padding: 4px 5px; border: 1px solid #9eb2bf; background: #fff; font-size: 13px; }
+        body.print-medical.print-prescription .prescription-rx-title { color: #15496f; font-size: 15px; font-weight: 900; margin: 0 0 5mm; }
+        body.print-medical.print-prescription .prescription-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 8mm; }
+        body.print-medical.print-prescription .prescription-table th { background: #eaf3f8; color: #15496f; font-size: 10px; text-align: center; border: 1px solid #9eb2bf; padding: 8px 6px; }
+        body.print-medical.print-prescription .prescription-table th:first-child { text-align: left; }
+        body.print-medical.print-prescription .prescription-table td { border: 1px solid #9eb2bf; padding: 8px 6px; vertical-align: top; min-height: 18mm; }
+        body.print-medical.print-prescription .prescription-table .number-cell { width: 24px; color: #15496f; font-weight: 900; text-align: center; }
+        body.print-medical.print-prescription .prescription-table .medicine-cell strong { display: block; font-size: 13px; font-weight: 800; text-transform: uppercase; margin-bottom: 9px; }
+        body.print-medical.print-prescription .prescription-table .medicine-cell small { display: block; font-size: 10px; line-height: 1.35; }
+        body.print-medical.print-prescription .prescription-table .duration-cell { width: 72px; font-size: 11px; vertical-align: middle; }
+        body.print-medical.print-prescription .prescription-table .time-cell { width: 52px; text-align: center; vertical-align: middle; }
+        body.print-medical.print-prescription .prescription-check { display: inline-grid; place-items: center; width: 13px; height: 13px; border: 1px solid #9eb2bf; font-size: 14px; line-height: 1; font-weight: 900; }
+        body.print-medical.print-prescription .prescription-instructions h2 { color: #15496f; font-size: 15px; font-weight: 900; margin: 0 0 12px; text-transform: uppercase; }
+        body.print-medical.print-prescription .prescription-instruction-row { display: grid; grid-template-columns: 24px 1fr; gap: 12px; margin: 0 0 18px; font-size: 14px; }
+        body.print-medical.print-prescription .prescription-instruction-row strong { color: #15496f; }
+        body.print-medical.print-prescription .prescription-signature { margin: 4cm 0 0 0; font-size: 11px; line-height: 1.35; }
         body.print-medical.print-prescription .medical-signature strong,
         body.print-medical.print-prescription .medical-signature b,
         body.print-medical.print-prescription h1 { font-weight: 900 !important; }
@@ -2432,7 +2446,36 @@ ${context}`;
         while (lines.length && !lines[0].trim()) lines.shift();
         return plainTextToHtml(lines.join("\n"));
       }
-      function formatPrescriptionPrintHtml(html) {
+      function prescriptionTiming(line) {
+        const text = line.toLowerCase();
+        return {
+          morning: /\b(morning|breakfast|am)\b/.test(text),
+          noon: /\b(noon|afternoon|lunch)\b/.test(text),
+          evening: /\b(evening|dinner)\b/.test(text),
+          bedtime: /\b(night|bedtime|hs)\b/.test(text),
+          needed: /\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/.test(text)
+        };
+      }
+      function prescriptionDuration(line) {
+        const match = line.match(/\b(?:for|x)\s+(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
+          || line.match(/\b(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
+          || line.match(/\b(continue|long term|until review)\b/i);
+        return match ? match[1] : "";
+      }
+      function cleanPrescriptionMedicine(line) {
+        return line
+          .replace(/^\d+[\).\s-]+/, "")
+          .replace(/^[*•-]\s*/, "")
+          .replace(/\s*[—-]\s*(?:continue|for\s+\d+\s*(?:days?|weeks?|months?|years?)|x\s+\d+\s*(?:days?|weeks?|months?|years?)).*$/i, "")
+          .trim();
+      }
+      function prescriptionInstructionText(line) {
+        return line
+          .replace(/^\d+[\).\s-]+/, "")
+          .replace(/^[*•-]\s*/, "")
+          .trim();
+      }
+      function formatPrescriptionPrintHtml(html, patient) {
         const text = htmlToPlainText(stripDuplicateDocumentTitle(html, "Prescription"));
         const isDemographicLine = (line) => /^(patient\s*name|patient\s*id|uhid|id|mobile)\s*:/i.test(line);
         const isStandaloneHeading = (line) => /^(date|prescription|medications?|medicines?|drugs?|medications?\s*\/\s*advice)\s*:?$/i.test(line);
@@ -2445,16 +2488,78 @@ ${context}`;
           .filter((line) => !/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(line));
         const firstAdvice = adviceIndex >= 0 ? lines[adviceIndex].replace(/^(advice|instruction|instructions|follow[-\s]*up)\s*:?\s*/i, "").trim() : "";
         const adviceLines = adviceIndex >= 0 ? [...(firstAdvice ? [firstAdvice] : []), ...lines.slice(adviceIndex + 1)] : [];
-        const listItems = (items) => items
-          .map((line) => line.replace(/^\d+[\).\s-]+/, "").replace(/^[*•-]\s*/, "").trim())
+        const dateText = activeRecordCreatedAt ? dateLabel(activeRecordCreatedAt.slice(0, 10)) : dateLabel(localDateKey());
+        const timingCell = (checked) => `<td class="time-cell">${checked ? `<span class="prescription-check">✓</span>` : `<span class="prescription-check"></span>`}</td>`;
+        const medicineRows = medicineLines.map((line, index) => {
+          const timing = prescriptionTiming(line);
+          const duration = prescriptionDuration(line);
+          const medicine = cleanPrescriptionMedicine(line);
+          return `
+            <tr>
+              <td class="number-cell">${index + 1}.</td>
+              <td class="medicine-cell"><strong>${escapeHtml(medicine)}</strong><small>${escapeHtml(line.replace(/^\d+[\).\s-]+/, ""))}</small></td>
+              <td class="duration-cell">${escapeHtml(duration)}</td>
+              ${timingCell(timing.morning)}
+              ${timingCell(timing.noon)}
+              ${timingCell(timing.evening)}
+              ${timingCell(timing.bedtime)}
+              ${timingCell(timing.needed)}
+            </tr>
+          `;
+        }).join("");
+        const instructionRows = adviceLines
+          .map(prescriptionInstructionText)
           .filter(Boolean)
-          .map((line) => `<li>${escapeHtml(line)}</li>`)
-          .join("");
+          .map((line, index) => `
+            <div class="prescription-instruction-row">
+              <strong>${index + 1}.</strong>
+              <div>${escapeHtml(line)}</div>
+            </div>
+          `).join("");
         return `
-          <div class="prescription-print">
-            ${medicineLines.length ? `<h2>Medications</h2><ol>${listItems(medicineLines)}</ol>` : ""}
-            ${adviceLines.length ? `<h2>Instructions</h2><ul>${listItems(adviceLines)}</ul>` : ""}
-            ${!medicineLines.length && !adviceLines.length ? `<div>${html}</div>` : ""}
+          <div class="prescription-sheet">
+            <div class="prescription-banner"></div>
+            <div class="prescription-content">
+              <div class="prescription-patient-box">
+                <div class="prescription-patient-title">Patient</div>
+                <div class="prescription-patient-grid">
+                  <span>Name</span><div class="prescription-field">${escapeHtml(patient?.name || "-")}</div>
+                  <span>Age</span><div class="prescription-field">${escapeHtml(patient?.age ? `${patient.age} years` : "-")}</div>
+                  <span>Sex</span><div class="prescription-field">${escapeHtml(patient?.sex || "-")}</div>
+                  <span>UHID</span><div class="prescription-field">${escapeHtml(patient ? patientDisplayId(patient) : "-")}</div>
+                  <span>Date</span><div class="prescription-field">${escapeHtml(dateText)}</div>
+                </div>
+              </div>
+              <div class="prescription-rx-title">Rx / ADVICE</div>
+              ${medicineRows ? `
+                <table class="prescription-table">
+                  <colgroup>
+                    <col style="width:28px">
+                    <col>
+                    <col style="width:74px">
+                    <col style="width:54px">
+                    <col style="width:54px">
+                    <col style="width:54px">
+                    <col style="width:54px">
+                    <col style="width:56px">
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th colspan="2">Medicine and instructions</th>
+                      <th>Duration</th>
+                      <th>Morning</th>
+                      <th>Noon</th>
+                      <th>Evening</th>
+                      <th>Bedtime</th>
+                      <th>As Needed</th>
+                    </tr>
+                  </thead>
+                  <tbody>${medicineRows}</tbody>
+                </table>
+              ` : `<div>${html}</div>`}
+              ${instructionRows ? `<div class="prescription-instructions"><h2>Instructions</h2>${instructionRows}</div>` : ""}
+              ${medicalPrintSignature("prescription-signature")}
+            </div>
           </div>
         `;
       }
@@ -2464,7 +2569,7 @@ ${context}`;
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
         if (activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode)) {
           const withoutTitle = stripDuplicateDocumentTitle(rawHtml, ambientModeLabel(activeAmbientMode));
-          if (activeAmbientMode === "prescription") return formatPrescriptionPrintHtml(withoutTitle);
+          if (activeAmbientMode === "prescription") return formatPrescriptionPrintHtml(withoutTitle, activeRecordPatient());
           return activeAmbientMode === "certificate" ? stripCertificateDemographics(withoutTitle) : withoutTitle;
         }
         return rawHtml;
@@ -2624,12 +2729,14 @@ ${context}`;
         if (!patient) return;
         if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
         const isPrescriptionPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && activeAmbientMode === "prescription";
-        $("#medicalPrintContent").innerHTML = `
-          <h1>${patient.name}</h1>
-          <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
-          <div class="${isPrescriptionPrint ? "prescription-sheet-body" : ""}">${activeMedicalPrintBody()}</div>
-          ${medicalPrintFooter()}
-        `;
+        $("#medicalPrintContent").innerHTML = isPrescriptionPrint
+          ? activeMedicalPrintBody()
+          : `
+            <h1>${patient.name}</h1>
+            <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
+            <div>${activeMedicalPrintBody()}</div>
+            ${medicalPrintFooter()}
+          `;
         document.body.classList.toggle("print-prescription", isPrescriptionPrint);
         document.body.classList.add("print-medical");
         window.print();
