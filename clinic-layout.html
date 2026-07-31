@@ -389,6 +389,7 @@
         body.print-medical.print-prescription .prescription-table .medicine-cell strong { display: block; font-size: 13px; font-weight: 800; text-transform: none; margin-bottom: 0; }
         body.print-medical.print-prescription .prescription-table .duration-cell { width: 72px; font-size: 11px; vertical-align: middle; }
         body.print-medical.print-prescription .prescription-table .time-cell { width: 52px; text-align: center; vertical-align: middle; }
+        body.print-medical.print-prescription .prescription-table .timing-dose { font-size: 11px; font-weight: 800; line-height: 1.2; word-break: keep-all; }
         body.print-medical.print-prescription .prescription-table .instruction-cell { font-size: 11px; line-height: 1.35; }
         body.print-medical.print-prescription .prescription-check { display: inline-grid; place-items: center; width: 13px; height: 13px; border: 1px solid #9aa7af; font-size: 14px; line-height: 1; font-weight: 900; }
         body.print-medical.print-prescription .prescription-instructions h2 { color: #111; font-size: 15px; font-weight: 900; margin: 0 0 12px; text-transform: uppercase; }
@@ -1757,6 +1758,11 @@ Format every prescribed medicine as a numbered list, one medicine per line:
 2. ...
 
 Include dose, frequency, route, timing, and duration only if dictated.
+For tapering or step-down medicines, create one numbered line for each step of the same medicine. Keep the duration simple in each line, and place the sequence in the instruction:
+1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
+2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
+3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
+Do not merge tapering steps into one long paragraph.
 If general advice or non-medicine instructions are dictated, place them after the prescription under:
 Advice:
 If investigations are advised under Advice, place each investigation on its own separate line as a simple bullet point. Do not combine multiple investigations in one sentence.
@@ -1851,6 +1857,12 @@ Formatting rules:
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
+- For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Keep the Duration as only the step duration, for example "20 days", "20 days", "20 days". Put the sequence in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop".
+- For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
+  1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
+  2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
+  3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
+- Do not merge tapering steps into one paragraph. Do not duplicate the same step.
 - Do not include patient demographics inside the Prescription section.
 - Preserve dictated brand names exactly and do not convert them to generic names.
 
@@ -2628,6 +2640,22 @@ ${context}`;
           needed: /\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/.test(text)
         };
       }
+      function prescriptionTimingValue(line, slot) {
+        const slotMap = {
+          morning: "(?:morning|breakfast|am)",
+          noon: "(?:noon|afternoon|lunch)",
+          evening: "(?:evening|dinner)",
+          bedtime: "(?:bedtime|night|hs)",
+          needed: "(?:as needed|when needed|sos|prn|if pain|when there is pain)"
+        };
+        const timing = slotMap[slot];
+        if (!timing) return "";
+        const unit = "(?:mg|mcg|g|ml|iu|units?|drops?)";
+        const after = line.match(new RegExp(`\\b${timing}\\b\\s*[:\\-]?\\s*((?:\\d+(?:\\.\\d+)?\\s*)?${unit}|\\d+(?:\\.\\d+)?\\s*(?:tablet|tab|capsule|cap)s?)`, "i"));
+        if (after?.[1]) return after[1].trim();
+        const before = line.match(new RegExp(`\\b((?:\\d+(?:\\.\\d+)?\\s*)?${unit}|\\d+(?:\\.\\d+)?\\s*(?:tablet|tab|capsule|cap)s?)\\s+(?:in\\s+the\\s+)?${timing}\\b`, "i"));
+        return before?.[1]?.trim() || "";
+      }
       function prescriptionDuration(line) {
         const match = line.match(/\b(?:for|x)\s+(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
           || line.match(/\b(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
@@ -2640,8 +2668,25 @@ ${context}`;
         if (wordMatch) return `${numberWords[wordMatch[1].toLowerCase()]} ${wordMatch[2]}`;
         return value;
       }
+      function splitPrescriptionParts(line) {
+        return prescriptionInstructionText(line)
+          .split(/\s+(?:-|–|—)\s+/)
+          .map((part) => part.trim())
+          .filter(Boolean);
+      }
       function prescriptionLineInstructions(line) {
         const instructions = [];
+        const parts = splitPrescriptionParts(line);
+        if (parts.length > 1) {
+          const stepParts = parts.slice(1).filter((part) => {
+            if (prescriptionDuration(part)) return false;
+            if (/^(morning|breakfast|am|noon|afternoon|lunch|evening|dinner|bedtime|night|hs|as needed|when needed|sos|prn|if pain|when there is pain)\b/i.test(part)) return false;
+            return true;
+          });
+          stepParts.forEach((part) => {
+            if (!instructions.some((item) => item.toLowerCase() === part.toLowerCase())) instructions.push(part);
+          });
+        }
         const patterns = [
           /\b(before food|after food|with food|without food|empty stomach|on an empty stomach|before breakfast|after breakfast|before lunch|after lunch|before dinner|after dinner)\b/ig,
           /\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig,
@@ -2661,6 +2706,10 @@ ${context}`;
           .replace(/^\d+[\).\s-]+/, "")
           .replace(/^[*•-]\s*/, "")
           .trim();
+        const parts = splitPrescriptionParts(line);
+        if (parts.length > 1 && /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\b/i.test(parts[0])) {
+          return parts[0].replace(/\s{2,}/g, " ").trim();
+        }
         const nameDoseMatch = source.match(/^((?:tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\s+.+?\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%))\b/i);
         if (nameDoseMatch) return nameDoseMatch[1].replace(/\s{2,}/g, " ").trim();
         const duration = prescriptionDuration(line);
@@ -2681,6 +2730,34 @@ ${context}`;
           .replace(/\s+([,.;:])/g, "$1")
           .replace(/[:;,.\s-]+$/g, "")
           .trim();
+      }
+      function prescriptionLineDetails(line) {
+        const timing = prescriptionTiming(line);
+        const values = {
+          morning: prescriptionTimingValue(line, "morning"),
+          noon: prescriptionTimingValue(line, "noon"),
+          evening: prescriptionTimingValue(line, "evening"),
+          bedtime: prescriptionTimingValue(line, "bedtime"),
+          needed: prescriptionTimingValue(line, "needed")
+        };
+        const parts = splitPrescriptionParts(line);
+        let duration = prescriptionDuration(line);
+        if (parts.length > 1) {
+          const durationPart = parts.slice(1).find((part) => prescriptionDuration(part));
+          if (durationPart) duration = prescriptionDuration(durationPart);
+        }
+        return {
+          medicine: cleanPrescriptionMedicine(line),
+          duration,
+          instructions: prescriptionLineInstructions(line),
+          timing: {
+            morning: values.morning || timing.morning,
+            noon: values.noon || timing.noon,
+            evening: values.evening || timing.evening,
+            bedtime: values.bedtime || timing.bedtime,
+            needed: values.needed || timing.needed
+          }
+        };
       }
       function prescriptionInstructionText(line) {
         return line
@@ -2735,23 +2812,25 @@ ${context}`;
           .filter((line) => !isDemographicLine(line) && !isPrescriptionSectionHeading(line));
         const { medicineLines, adviceLines } = splitPrescriptionLines(lines);
         const dateText = activeRecordCreatedAt ? dateLabel(activeRecordCreatedAt.slice(0, 10)) : dateLabel(localDateKey());
-        const timingCell = (checked) => `<td class="time-cell">${checked ? `<span class="prescription-check">✓</span>` : `<span class="prescription-check"></span>`}</td>`;
+        const timingCell = (value) => {
+          const label = typeof value === "string" ? value.trim() : "";
+          if (label) return `<td class="time-cell timing-dose">${escapeHtml(label)}</td>`;
+          return `<td class="time-cell">${value ? `<span class="prescription-check">✓</span>` : `<span class="prescription-check"></span>`}</td>`;
+        };
         const medicineRows = medicineLines.map((line, index) => {
-          const timing = prescriptionTiming(line);
-          const duration = prescriptionDuration(line);
-          const medicine = cleanPrescriptionMedicine(line);
-          const instructions = prescriptionLineInstructions(line);
+          const details = prescriptionLineDetails(line);
+          const timing = details.timing;
           return `
             <tr>
               <td class="number-cell">${index + 1}.</td>
-              <td class="medicine-cell"><strong>${escapeHtml(medicine)}</strong></td>
-              <td class="duration-cell">${escapeHtml(duration)}</td>
+              <td class="medicine-cell"><strong>${escapeHtml(details.medicine)}</strong></td>
+              <td class="duration-cell">${escapeHtml(details.duration)}</td>
               ${timingCell(timing.morning)}
               ${timingCell(timing.noon)}
               ${timingCell(timing.evening)}
               ${timingCell(timing.bedtime)}
               ${timingCell(timing.needed)}
-              <td class="instruction-cell">${escapeHtml(instructions)}</td>
+              <td class="instruction-cell">${escapeHtml(details.instructions)}</td>
             </tr>
           `;
         }).join("");
