@@ -215,29 +215,24 @@
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
       .ambient-dock { display: none; position: fixed; right: 22px; top: 84px; z-index: 45; width: 8cm; height: 5cm; padding: 10px; border: 1px solid #cfe2ee; border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 18px 40px rgba(16, 24, 43, .18); user-select: none; touch-action: none; cursor: move; }
-      .ambient-dock.visible { display: grid; grid-template-rows: auto 1fr; gap: 6px; }
-      .ambient-float-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: move; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
-      .ambient-float-head strong { color: var(--ink); font-size: 13px; letter-spacing: 0; text-transform: none; }
-      .ambient-float-body { display: grid; align-content: center; justify-items: center; gap: 7px; min-height: 0; }
-      .ambient-float-mode { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; align-items: center; }
-      .ambient-float-mode .ambient-mode { min-height: 30px; padding: 5px 6px; border-radius: 8px; font-size: 10px; font-weight: 900; background: #eaf0f3; color: var(--ink); box-shadow: none; }
+      .ambient-dock.visible { display: grid; grid-template-rows: 24px 1fr; gap: 4px; }
+      .ambient-float-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; cursor: move; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+      .ambient-float-head strong { color: var(--ink); font-size: 14px; letter-spacing: 0; text-transform: none; }
+      .ambient-float-body { display: grid; align-content: center; justify-items: center; gap: 5px; min-height: 0; }
+      .ambient-float-mode { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; align-items: stretch; }
+      .ambient-float-mode .ambient-mode { min-height: 31px; padding: 4px 3px; border-radius: 8px; font-size: 9px; line-height: 1.05; font-weight: 900; background: #eaf0f3; color: var(--ink); box-shadow: none; white-space: normal; overflow-wrap: anywhere; }
       .ambient-float-mode .ambient-mode.active { background: var(--primary); color: #fff; }
       .ambient-float-mode .ambient-mode:disabled { opacity: .65; cursor: not-allowed; }
       .ambient-countdown { color: #10182b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 42px; font-weight: 900; letter-spacing: .04em; }
-      .ambient-dock .ambient-countdown { font-size: 23px; line-height: 1; }
-      .ambient-float-extend { min-height: 28px; padding: 4px 8px; font-size: 11px; border-radius: 8px; }
-      .ambient-float-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
-      .ambient-wave { width: 100%; height: 30px; overflow: hidden; color: #2563eb; }
-      .ambient-wave svg { width: 200%; height: 100%; transform: translateX(0); animation: ambientSine 1.4s linear infinite; animation-play-state: paused; }
-      .ambient-wave path { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; opacity: .9; }
-      .ambient-wave.recording svg { animation-play-state: running; }
+      .ambient-dock .ambient-countdown { font-size: 22px; line-height: 1; }
+      .ambient-float-extend { min-height: 25px; padding: 3px 8px; font-size: 11px; border-radius: 8px; }
+      .ambient-float-actions { display: flex; align-items: center; justify-content: center; gap: 7px; }
+      .ambient-wave { width: 100%; height: 22px; overflow: hidden; color: #2563eb; }
+      .ambient-wave svg { width: 100%; height: 100%; display: block; }
+      .ambient-wave path { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; opacity: .9; transition: d .08s linear; }
       @keyframes ambientWave {
         0%, 100% { height: 8px; }
         50% { height: 26px; }
-      }
-      @keyframes ambientSine {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
       }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b { font-weight: 900; }
@@ -270,8 +265,8 @@
       }
       .ambient-mic { width: 118px; height: 118px; border-radius: 999px; min-height: 118px; display: inline-grid; place-items: center; font-size: 46px; background: #2563eb; color: #fff; box-shadow: 0 16px 34px rgba(37, 99, 235, .22); }
       .ambient-round { width: 92px; height: 92px; border-radius: 999px; min-height: 92px; display: inline-grid; place-items: center; font-size: 34px; color: #fff; border: 0; }
-      .ambient-dock .ambient-mic { width: 62px; height: 62px; min-height: 62px; font-size: 28px; box-shadow: 0 10px 22px rgba(37, 99, 235, .2); }
-      .ambient-dock .ambient-round { width: 52px; height: 52px; min-height: 52px; font-size: 24px; }
+      .ambient-dock .ambient-mic { width: 48px; height: 48px; min-height: 48px; font-size: 24px; box-shadow: 0 10px 22px rgba(37, 99, 235, .2); }
+      .ambient-dock .ambient-round { width: 44px; height: 44px; min-height: 44px; font-size: 22px; }
       .ambient-pause { background: #f59e0b; }
       .ambient-stop { background: #f04b08; }
       .ambient-note { width: 100%; height: 100%; min-height: 360px; resize: none; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
@@ -1033,6 +1028,10 @@
       let draftMedicalRecord = null;
       let ambientRecorder = null;
       let ambientStream = null;
+      let ambientAudioContext = null;
+      let ambientAnalyser = null;
+      let ambientWaveData = null;
+      let ambientWaveFrame = null;
       let ambientChunks = [];
       let ambientAudioBlob = null;
       let ambientStartedAt = 0;
@@ -1616,8 +1615,71 @@
       function stopAmbientTracks() {
         if (ambientTimer) clearInterval(ambientTimer);
         ambientTimer = null;
+        stopAmbientWave();
         if (ambientStream) ambientStream.getTracks().forEach((track) => track.stop());
         ambientStream = null;
+      }
+      function flatAmbientWavePath() {
+        return "M0 11 C20 11 40 11 60 11 S100 11 120 11 S160 11 180 11 S220 11 240 11";
+      }
+      function setAmbientWavePath(path = flatAmbientWavePath()) {
+        document.querySelectorAll("[data-ambient-wave-path]").forEach((wave) => {
+          wave.setAttribute("d", path);
+        });
+      }
+      function buildAmbientWavePath(level = 0) {
+        const amplitude = Math.min(10, Math.max(0, level * 95));
+        if (amplitude < 0.9) return flatAmbientWavePath();
+        const frequency = 46 - Math.min(18, level * 120);
+        let path = `M0 11`;
+        for (let x = 0; x <= 240; x += 20) {
+          const y = 11 + Math.sin((x / frequency) * Math.PI * 2) * amplitude;
+          path += ` L${x.toFixed(0)} ${y.toFixed(1)}`;
+        }
+        return path;
+      }
+      function stopAmbientWave() {
+        if (ambientWaveFrame) cancelAnimationFrame(ambientWaveFrame);
+        ambientWaveFrame = null;
+        if (ambientAudioContext) ambientAudioContext.close().catch(() => {});
+        ambientAudioContext = null;
+        ambientAnalyser = null;
+        ambientWaveData = null;
+        setAmbientWavePath();
+      }
+      function startAmbientWaveLoop() {
+        if (!ambientAnalyser || !ambientWaveData || ambientWaveFrame) return;
+        const draw = () => {
+          if (!ambientAnalyser || ambientState !== "recording") {
+            setAmbientWavePath();
+            ambientWaveFrame = null;
+            return;
+          }
+          ambientAnalyser.getByteTimeDomainData(ambientWaveData);
+          let sum = 0;
+          ambientWaveData.forEach((value) => {
+            const centered = (value - 128) / 128;
+            sum += centered * centered;
+          });
+          const level = Math.sqrt(sum / ambientWaveData.length);
+          setAmbientWavePath(buildAmbientWavePath(level));
+          ambientWaveFrame = requestAnimationFrame(draw);
+        };
+        ambientWaveFrame = requestAnimationFrame(draw);
+      }
+      function startAmbientWave(stream) {
+        stopAmbientWave();
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) {
+          setAmbientWavePath();
+          return;
+        }
+        ambientAudioContext = new AudioContext();
+        ambientAnalyser = ambientAudioContext.createAnalyser();
+        ambientAnalyser.fftSize = 256;
+        ambientWaveData = new Uint8Array(ambientAnalyser.fftSize);
+        ambientAudioContext.createMediaStreamSource(stream).connect(ambientAnalyser);
+        startAmbientWaveLoop();
       }
       function resetAmbientState() {
         stopAmbientTracks();
@@ -1826,18 +1888,16 @@ ${context}`;
         const paused = ambientState === "paused";
         const stopped = ambientState === "stopped";
         const idle = ambientState === "idle";
-        const statusLabel = recording ? "Recording" : paused ? "Paused" : stopped ? "Stopped" : ambientState === "processing" ? "Processing" : "Ready";
         dock.innerHTML = `
           <div class="ambient-float-head" data-ambient-drag-handle="true">
             <strong>WOYZ</strong>
-            <span>${statusLabel}</span>
-          </div>
-          <div class="ambient-float-body">
             <div class="ambient-wave ${recording ? "recording" : ""}" aria-hidden="true">
-              <svg viewBox="0 0 240 32" preserveAspectRatio="none">
-                <path d="M0 16 C15 4 30 4 45 16 S75 28 90 16 S120 4 135 16 S165 28 180 16 S210 4 225 16 S255 28 270 16 S300 4 315 16 S345 28 360 16 S390 4 405 16 S435 28 450 16 S480 4 495 16" />
+              <svg viewBox="0 0 240 22" preserveAspectRatio="none">
+                <path data-ambient-wave-path="true" d="${flatAmbientWavePath()}" />
               </svg>
             </div>
+          </div>
+          <div class="ambient-float-body">
             ${ambientState === "processing"
               ? `<div class="ambient-progress" aria-label="Processing audio"><div class="ambient-progress-fill"></div></div>`
               : `<div class="ambient-countdown" data-ambient-dock-countdown>${formatDuration(ambientRemainingMs)}</div>`}
@@ -1855,6 +1915,11 @@ ${context}`;
           </div>
         `;
         applyAmbientFloatPosition();
+        if (recording && ambientAnalyser) {
+          if (!ambientWaveFrame) startAmbientWaveLoop();
+        } else {
+          setAmbientWavePath();
+        }
       }
       function setAmbientButtons() {
         renderAmbientDock();
@@ -2053,6 +2118,7 @@ ${context}`;
           setAmbientStatus("Recording in progress...", true);
           updateAmbientCountdown();
           setAmbientButtons();
+          startAmbientWave(ambientStream);
           if (activeRecordView !== "all") renderAllMedicalEntries();
         } catch (error) {
           console.error("Ambient recording failed", error);
@@ -2072,6 +2138,7 @@ ${context}`;
           ambientState = "paused";
           setAmbientStatus("Paused");
           setAmbientButtons();
+          stopAmbientWave();
           return;
         }
         if (ambientRecorder.state === "paused") {
@@ -2081,6 +2148,7 @@ ${context}`;
           ambientTimer = setInterval(tickAmbientTimer, 500);
           setAmbientStatus("Recording in progress...", true);
           setAmbientButtons();
+          if (ambientStream) startAmbientWave(ambientStream);
         }
       }
       function stopAmbientRecording(shouldProcess = true) {
