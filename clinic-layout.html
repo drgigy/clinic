@@ -373,24 +373,28 @@
         body.print-medical .prescription-signature { margin-top: 4cm; }
         body.print-medical.print-prescription .medical-print-content { padding: 0 !important; font-size: 13px; line-height: 1.35; }
         body.print-medical.print-prescription .prescription-sheet { min-height: 297mm; background: #fff; color: #111; }
-        body.print-medical.print-prescription .prescription-banner { height: 38mm; background: #174d73; margin-bottom: 6mm; }
+        body.print-medical.print-prescription .prescription-banner { min-height: 30mm; background: #e9eef2; color: #111; margin-bottom: 6mm; padding: 8mm 10mm; box-sizing: border-box; display: flex; align-items: center; }
+        body.print-medical.print-prescription .prescription-banner .medical-signature { margin: 0; font-size: 13px; line-height: 1.35; }
+        body.print-medical.print-prescription .prescription-banner .medical-signature strong { font-size: 20px; font-weight: 900 !important; }
         body.print-medical.print-prescription .prescription-content { margin: 0 10mm 10mm; }
         body.print-medical.print-prescription .prescription-patient-plain { margin-bottom: 7mm; }
         body.print-medical.print-prescription .prescription-patient-plain h1 { color: #111; font-size: 20px; font-weight: 900 !important; margin: 0 0 3mm; }
         body.print-medical.print-prescription .prescription-patient-meta { color: #222; font-size: 12px; line-height: 1.4; }
         body.print-medical.print-prescription .prescription-rx-title { color: #15496f; font-size: 15px; font-weight: 900; margin: 0 0 5mm; }
-        body.print-medical.print-prescription .prescription-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 8mm; }
-        body.print-medical.print-prescription .prescription-table th { background: #eaf3f8; color: #15496f; font-size: 10px; text-align: center; border: 1px solid #9eb2bf; padding: 8px 6px; }
+        body.print-medical.print-prescription .prescription-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6mm; }
+        body.print-medical.print-prescription .prescription-table th { background: #f0f2f3; color: #111; font-size: 10px; text-align: center; border: 1px solid #9aa7af; padding: 8px 6px; }
         body.print-medical.print-prescription .prescription-table th:first-child { text-align: left; }
-        body.print-medical.print-prescription .prescription-table td { border: 1px solid #9eb2bf; padding: 8px 6px; vertical-align: top; min-height: 18mm; }
-        body.print-medical.print-prescription .prescription-table .number-cell { width: 24px; color: #15496f; font-weight: 900; text-align: center; }
+        body.print-medical.print-prescription .prescription-table td { border: 1px solid #9aa7af; padding: 8px 6px; vertical-align: top; min-height: 18mm; }
+        body.print-medical.print-prescription .prescription-table .number-cell { width: 24px; color: #111; font-weight: 900; text-align: center; }
         body.print-medical.print-prescription .prescription-table .medicine-cell strong { display: block; font-size: 13px; font-weight: 800; text-transform: none; margin-bottom: 0; }
         body.print-medical.print-prescription .prescription-table .duration-cell { width: 72px; font-size: 11px; vertical-align: middle; }
         body.print-medical.print-prescription .prescription-table .time-cell { width: 52px; text-align: center; vertical-align: middle; }
-        body.print-medical.print-prescription .prescription-check { display: inline-grid; place-items: center; width: 13px; height: 13px; border: 1px solid #9eb2bf; font-size: 14px; line-height: 1; font-weight: 900; }
-        body.print-medical.print-prescription .prescription-instructions h2 { color: #15496f; font-size: 15px; font-weight: 900; margin: 0 0 12px; text-transform: uppercase; }
+        body.print-medical.print-prescription .prescription-table .instruction-cell { font-size: 11px; line-height: 1.35; }
+        body.print-medical.print-prescription .prescription-check { display: inline-grid; place-items: center; width: 13px; height: 13px; border: 1px solid #9aa7af; font-size: 14px; line-height: 1; font-weight: 900; }
+        body.print-medical.print-prescription .prescription-instructions h2 { color: #111; font-size: 15px; font-weight: 900; margin: 0 0 12px; text-transform: uppercase; }
         body.print-medical.print-prescription .prescription-instruction-row { display: grid; grid-template-columns: 24px 1fr; gap: 12px; margin: 0 0 18px; font-size: 14px; }
-        body.print-medical.print-prescription .prescription-instruction-row strong { color: #15496f; }
+        body.print-medical.print-prescription .prescription-instruction-row strong { color: #111; }
+        body.print-medical.print-prescription .prescription-alert { margin-top: 8mm; border-top: 1px solid #bbb; padding-top: 4mm; font-size: 11px; line-height: 1.4; color: #111; }
         body.print-medical.print-prescription .prescription-signature { margin: 4cm 0 0 0; font-size: 11px; line-height: 1.35; }
         body.print-medical.print-prescription .medical-signature strong,
         body.print-medical.print-prescription .medical-signature b,
@@ -927,7 +931,18 @@
           <h2>Patient Diagnosis</h2>
           <button class="secondary" type="button" id="closeRecordDiagnosisBtn">Close</button>
         </div>
-        <label>Custom diagnosis<input id="recordDiagnosisInput" autocomplete="off" placeholder="Type diagnosis for this UHID" /></label>
+        <div class="field">
+          <span>Diagnosis</span>
+          <div id="recordDiagnosisChoices" class="comment-choice-row" aria-label="Patient diagnosis">
+            <button class="choice" type="button" data-record-diagnosis="Epilepsy">Epilepsy</button>
+            <button class="choice" type="button" data-record-diagnosis="Headache">Headache</button>
+            <button class="choice" type="button" data-record-diagnosis="Pain">Pain</button>
+            <button class="choice" type="button" data-record-diagnosis="Stroke">Stroke</button>
+            <button class="choice" type="button" data-record-diagnosis="Parkinsons">Parkinsons</button>
+            <button class="choice" type="button" data-record-diagnosis="Other">Other</button>
+          </div>
+          <input id="recordDiagnosisInput" class="comment-other-input" autocomplete="off" placeholder="Type custom diagnosis" hidden />
+        </div>
         <div class="actions">
           <button class="primary" type="button" id="saveRecordDiagnosisBtn">Save diagnosis</button>
         </div>
@@ -1294,6 +1309,7 @@
           ? clinicSettings.patientComments.map((item) => String(item || "").trim()).filter(Boolean)
           : [];
       }
+      const recordDiagnosisPresets = ["Epilepsy", "Headache", "Pain", "Stroke", "Parkinsons"];
       function normaliseComments(comments = []) {
         return [...new Set((Array.isArray(comments) ? comments : [])
           .flatMap((item) => String(item || "").split(","))
@@ -1410,6 +1426,25 @@
         });
         save();
         render();
+      }
+      function setRecordDiagnosisSelection(value = "") {
+        const cleanValue = String(value || "").trim();
+        const preset = recordDiagnosisPresets.find((item) => item.toLowerCase() === cleanValue.toLowerCase());
+        const selectedValue = preset || (cleanValue ? "Other" : "");
+        const input = $("#recordDiagnosisInput");
+        $$("#recordDiagnosisChoices [data-record-diagnosis]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.recordDiagnosis === selectedValue);
+        });
+        if (input) {
+          input.hidden = selectedValue !== "Other";
+          input.value = preset ? "" : cleanValue;
+        }
+      }
+      function selectedRecordDiagnosis() {
+        const selectedButton = document.querySelector("#recordDiagnosisChoices [data-record-diagnosis].active");
+        if (!selectedButton) return "";
+        if (selectedButton.dataset.recordDiagnosis === "Other") return $("#recordDiagnosisInput").value.trim();
+        return selectedButton.dataset.recordDiagnosis;
       }
       function setChoice(button) {
         const group = button.closest("[data-group]");
@@ -1810,10 +1845,11 @@ Formatting rules:
 - Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
 - Inside Prescription, use exactly these subheadings when relevant:
   Medications:
-  1. Tablet/Cap/Syrup/Inj brand name dose timing duration
+  1. Tablet/Cap/Syrup/Inj brand name dose - timing - duration - food/administration instruction
   Advice:
   - Review/follow-up/investigation instructions line by line
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
+- For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Do not include patient demographics inside the Prescription section.
 - Preserve dictated brand names exactly and do not convert them to generic names.
 
@@ -2591,14 +2627,50 @@ ${context}`;
       function prescriptionDuration(line) {
         const match = line.match(/\b(?:for|x)\s+(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
           || line.match(/\b(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
+          || line.match(/\b(?:for\s+)?((?:one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:more\s+)?(?:day|days|week|weeks|month|months|year|years))\b/i)
           || line.match(/\b(continue|long term|until review)\b/i);
         return match ? match[1] : "";
       }
+      function prescriptionLineInstructions(line) {
+        const instructions = [];
+        const patterns = [
+          /\b(before food|after food|with food|without food|empty stomach|on an empty stomach|before breakfast|after breakfast|before lunch|after lunch|before dinner|after dinner)\b/ig,
+          /\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig,
+          /\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/ig
+        ];
+        patterns.forEach((pattern) => {
+          const matches = line.match(pattern) || [];
+          matches.forEach((match) => {
+            const cleaned = match.trim();
+            if (cleaned && !instructions.some((item) => item.toLowerCase() === cleaned.toLowerCase())) instructions.push(cleaned);
+          });
+        });
+        return instructions.join("; ");
+      }
       function cleanPrescriptionMedicine(line) {
-        return line
+        const source = line
           .replace(/^\d+[\).\s-]+/, "")
           .replace(/^[*•-]\s*/, "")
+          .trim();
+        const nameDoseMatch = source.match(/^((?:tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\s+.+?\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%))\b/i);
+        if (nameDoseMatch) return nameDoseMatch[1].replace(/\s{2,}/g, " ").trim();
+        const duration = prescriptionDuration(line);
+        return source
+          .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:more\s+)?(?:day|days|week|weeks|month|months|year|years)\b/ig, "")
+          .replace(/\b(?:for|x)\s+\d+\s*(?:days?|weeks?|months?|years?)\b/ig, "")
+          .replace(/\b\d+\s*(?:days?|weeks?|months?|years?)\b/ig, "")
+          .replace(/\b(before food|after food|with food|without food|empty stomach|on an empty stomach|before breakfast|after breakfast|before lunch|after lunch|before dinner|after dinner)\b/ig, "")
+          .replace(/\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig, "")
+          .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:tablet|tab|capsule|cap|syrup|injection|inj)\b/ig, "")
+          .replace(/\b(?:in the )?(morning|noon|afternoon|evening|night|bedtime)\b/ig, "")
+          .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:in\s+the)?\b/ig, "")
+          .replace(/\b(orally|oral|by mouth|once daily|twice daily|thrice daily|daily)\b/ig, "")
+          .replace(/\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/ig, "")
           .replace(/\s*[—-]\s*(?:continue|for\s+\d+\s*(?:days?|weeks?|months?|years?)|x\s+\d+\s*(?:days?|weeks?|months?|years?)).*$/i, "")
+          .replace(duration, "")
+          .replace(/\s{2,}/g, " ")
+          .replace(/\s+([,.;:])/g, "$1")
+          .replace(/[:;,.\s-]+$/g, "")
           .trim();
       }
       function prescriptionInstructionText(line) {
@@ -2659,6 +2731,7 @@ ${context}`;
           const timing = prescriptionTiming(line);
           const duration = prescriptionDuration(line);
           const medicine = cleanPrescriptionMedicine(line);
+          const instructions = prescriptionLineInstructions(line);
           return `
             <tr>
               <td class="number-cell">${index + 1}.</td>
@@ -2669,6 +2742,7 @@ ${context}`;
               ${timingCell(timing.evening)}
               ${timingCell(timing.bedtime)}
               ${timingCell(timing.needed)}
+              <td class="instruction-cell">${escapeHtml(instructions)}</td>
             </tr>
           `;
         }).join("");
@@ -2682,8 +2756,8 @@ ${context}`;
             </div>
           `).join("");
         return `
-          <div class="prescription-sheet">
-            <div class="prescription-banner"></div>
+            <div class="prescription-sheet">
+            <div class="prescription-banner">${medicalPrintSignature("prescription-header-signature")}</div>
             <div class="prescription-content">
               <div class="prescription-patient-plain">
                 <h1>${escapeHtml(patient?.name || "-")}</h1>
@@ -2706,22 +2780,28 @@ ${context}`;
                     <col style="width:54px">
                     <col style="width:54px">
                     <col style="width:56px">
+                    <col style="width:96px">
                   </colgroup>
                   <thead>
                     <tr>
-                      <th colspan="2">Medicine and instructions</th>
+                      <th colspan="2">Medicine and dose</th>
                       <th>Duration</th>
                       <th>Morning</th>
                       <th>Noon</th>
                       <th>Evening</th>
                       <th>Bedtime</th>
                       <th>As Needed</th>
+                      <th>Instructions</th>
                     </tr>
                   </thead>
                   <tbody>${medicineRows}</tbody>
                 </table>
               ` : `<div>${html}</div>`}
               ${instructionRows ? `<div class="prescription-instructions"><h2>Instructions</h2>${instructionRows}</div>` : ""}
+              <div class="prescription-alert">
+                If you develop any rash, breathing difficulty, swelling, severe allergy symptoms, or any unexpected reaction, please contact us immediately or get urgent medical attention.
+                Emergency contact: +91 8330 811 911, Rajagiri Hospital, Aluva, Ernakulam.
+              </div>
               ${medicalPrintSignature("prescription-signature")}
             </div>
           </div>
@@ -2883,14 +2963,14 @@ ${context}`;
       function openRecordDiagnosisModal() {
         const patient = activeRecordPatient();
         if (!patient) return;
-        $("#recordDiagnosisInput").value = patient.customDiagnosis || "";
+        setRecordDiagnosisSelection(patient.customDiagnosis || patient.diagnosis || "");
         $("#recordDiagnosisModal").classList.add("open");
         $("#recordDiagnosisModal").setAttribute("aria-hidden", "false");
-        $("#recordDiagnosisInput").focus();
       }
       function closeRecordDiagnosisModal() {
         $("#recordDiagnosisModal").classList.remove("open");
         $("#recordDiagnosisModal").setAttribute("aria-hidden", "true");
+        setRecordDiagnosisSelection("");
       }
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
@@ -4089,6 +4169,17 @@ ${context}`;
           }
           return;
         }
+        if (button.dataset.recordDiagnosis) {
+          $$("#recordDiagnosisChoices [data-record-diagnosis]").forEach((item) => item.classList.remove("active"));
+          button.classList.add("active");
+          const input = $("#recordDiagnosisInput");
+          if (input) {
+            input.hidden = button.dataset.recordDiagnosis !== "Other";
+            if (input.hidden) input.value = "";
+            else input.focus();
+          }
+          return;
+        }
         if (button.id === "openAddPatientBtn" || button.id === "openAddPatientNavBtn") openAddPatientModal();
         if (button.id === "closeAddPatientBtn") closeAddPatientModal();
         if (button.id === "closeEditPatientBtn") closeEditPatientModal();
@@ -4200,7 +4291,9 @@ ${context}`;
         if (button.id === "saveRecordDiagnosisBtn") {
           const patient = activeRecordPatient();
           if (patient) {
-            await updatePatientDiagnosisByUhid(patient, $("#recordDiagnosisInput").value);
+            const diagnosis = selectedRecordDiagnosis();
+            if (!diagnosis) { alert("Select or enter a diagnosis."); return; }
+            await updatePatientDiagnosisByUhid(patient, diagnosis);
             $("#recordStatus").textContent = "Diagnosis saved.";
           }
           closeRecordDiagnosisModal();
