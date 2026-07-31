@@ -1865,6 +1865,7 @@ Formatting rules:
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
 - Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1", because the prescription chart needs the full count.
+- The printed prescription chart has Morning, Noon, Night, As Needed, and Instructions columns. Do not use a separate Evening column. If evening is dictated, treat it as Night.
 - For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Put the taper phase with the duration so the prescription chart can show it in the Duration column, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Keep the Instructions column only for food or administration instructions such as "after food", "before food", "empty stomach", or "as needed". If a specific clock time is dictated, keep it beside the timing dose, for example "morning 1 tablet at 7 AM" or "noon 1 tablet at 11 AM".
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
   1. Tablet Levipil - 20 days - morning 250 mg - night 500 mg - First 20 days
@@ -2657,6 +2658,14 @@ ${context}`;
         if (/^\d+(?:\.\d+)?$/.test(cleaned)) return `${cleaned} tablet`;
         return cleaned.replace(/\btab\b/ig, "tablet");
       }
+      function prescriptionDefaultTimingDose(medicine) {
+        const text = String(medicine || "").trim().toLowerCase();
+        if (/^capsule\b/.test(text)) return "1 capsule";
+        if (/^(syrup|syp)\b/.test(text)) return "as advised";
+        if (/^(injection|inj)\b/.test(text)) return "1 dose";
+        if (/^(drops?|eye drops?|ear drops?)\b/.test(text)) return "as advised";
+        return "1 tablet";
+      }
       function prescriptionTimingValue(line, slot) {
         const slotMap = {
           morning: "(?:morning|breakfast|am)",
@@ -2702,8 +2711,8 @@ ${context}`;
         });
         return slots;
       }
-      function appendPrescriptionTimes(value, times = []) {
-        const label = typeof value === "string" ? value.trim() : (value ? "✓" : "");
+      function appendPrescriptionTimes(value, times = [], fallbackDose = "") {
+        const label = typeof value === "string" ? value.trim() : (value ? fallbackDose : "");
         if (!times.length) return label;
         const suffix = times.join(", ");
         return label ? `${label}, ${suffix}` : suffix;
@@ -2822,6 +2831,8 @@ ${context}`;
       function prescriptionLineDetails(line) {
         const timing = prescriptionTiming(line);
         const times = prescriptionSpecificTimes(line);
+        const medicine = cleanPrescriptionMedicine(line);
+        const fallbackDose = prescriptionDefaultTimingDose(medicine);
         const values = {
           morning: prescriptionTimingValue(line, "morning"),
           noon: prescriptionTimingValue(line, "noon"),
@@ -2829,13 +2840,13 @@ ${context}`;
           needed: prescriptionTimingValue(line, "needed")
         };
         const combinedTiming = {
-          morning: appendPrescriptionTimes(values.morning || timing.morning, times.morning),
-          noon: appendPrescriptionTimes(values.noon || timing.noon, times.noon),
-          bedtime: appendPrescriptionTimes(values.bedtime || timing.bedtime, times.bedtime),
-          needed: values.needed || timing.needed
+          morning: appendPrescriptionTimes(values.morning || timing.morning, times.morning, fallbackDose),
+          noon: appendPrescriptionTimes(values.noon || timing.noon, times.noon, fallbackDose),
+          bedtime: appendPrescriptionTimes(values.bedtime || timing.bedtime, times.bedtime, fallbackDose),
+          needed: values.needed || (timing.needed ? "as needed" : "")
         };
         return {
-          medicine: cleanPrescriptionMedicine(line),
+          medicine,
           duration: prescriptionDisplayDuration(line),
           instructions: prescriptionLineInstructions(line, combinedTiming),
           timing: combinedTiming
@@ -2897,7 +2908,7 @@ ${context}`;
         const timingCell = (value) => {
           const label = typeof value === "string" ? value.trim() : "";
           if (label) return `<td class="time-cell timing-dose">${escapeHtml(label)}</td>`;
-          return `<td class="time-cell">${value ? "✓" : ""}</td>`;
+          return `<td class="time-cell"></td>`;
         };
         const medicineRows = medicineLines.map((line, index) => {
           const details = prescriptionLineDetails(line);
