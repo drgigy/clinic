@@ -1850,6 +1850,7 @@ Formatting rules:
   - Review/follow-up/investigation instructions line by line
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
+- Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
 - Do not include patient demographics inside the Prescription section.
 - Preserve dictated brand names exactly and do not convert them to generic names.
 
@@ -2437,7 +2438,10 @@ ${context}`;
       }
       function medicalPrintSignature(extraClass = "") {
         const credentials = doctorCredentialsPrintHtml();
-        return credentials ? `<div class="medical-signature ${extraClass}">${credentials}</div>` : "";
+        const whatsappLine = extraClass.includes("prescription-header-signature")
+          ? `<div>WhatsApp: 9846044490 (WhatsApp message)</div>`
+          : "";
+        return credentials || whatsappLine ? `<div class="medical-signature ${extraClass}">${credentials}${whatsappLine}</div>` : "";
       }
       function medicalPrintFooter() {
         const isDocumentPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode);
@@ -2629,7 +2633,12 @@ ${context}`;
           || line.match(/\b(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
           || line.match(/\b(?:for\s+)?((?:one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:more\s+)?(?:day|days|week|weeks|month|months|year|years))\b/i)
           || line.match(/\b(continue|long term|until review)\b/i);
-        return match ? match[1] : "";
+        if (!match) return "";
+        const numberWords = { one: "1", two: "2", three: "3", four: "4", five: "5", six: "6", seven: "7", eight: "8", nine: "9", ten: "10" };
+        const value = match[1].toLowerCase().replace(/\bmore\b/g, "").replace(/\s+/g, " ").trim();
+        const wordMatch = value.match(/^(one|two|three|four|five|six|seven|eight|nine|ten)\s+(day|days|week|weeks|month|months|year|years)$/i);
+        if (wordMatch) return `${numberWords[wordMatch[1].toLowerCase()]} ${wordMatch[2]}`;
+        return value;
       }
       function prescriptionLineInstructions(line) {
         const instructions = [];
@@ -2765,7 +2774,7 @@ ${context}`;
                   Age: ${escapeHtml(patient?.age ? `${patient.age} years` : "-")} |
                   Sex: ${escapeHtml(patient?.sex || "-")} |
                   UHID: ${escapeHtml(patient ? patientDisplayId(patient) : "-")} |
-                  Date: ${escapeHtml(dateText)}
+                  ${escapeHtml(dateText)}
                 </div>
               </div>
               <div class="prescription-rx-title">Rx / ADVICE</div>
