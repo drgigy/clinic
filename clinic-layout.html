@@ -289,7 +289,9 @@
       .settings-comment-pill button { width: 24px; min-height: 24px; border: 0; border-radius: 999px; background: #d9e4ea; color: #334454; font-weight: 900; padding: 0; }
       .settings-note { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 8px; }
       .previous-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
-      .previous-panel { align-self: start; display: grid; gap: 10px; max-height: calc(100vh - 130px); overflow: auto; }
+      .previous-panel { position: relative; align-self: stretch; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; max-height: calc(100vh - 130px); min-height: 0; overflow: hidden; }
+      .previous-panel .patient-list { min-height: 0; overflow: auto; padding-bottom: calc(6cm + 18px); }
+      .previous-panel .ambient-dock { position: absolute; left: 12px; right: 12px; bottom: 12px; top: auto; width: auto; }
       .previous-panel h2 { font-weight: 900; }
       .previous-panel h2 { font-size: 16px; }
       .previous-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -911,10 +913,10 @@
         <aside class="previous-panel">
           <h2>Previous Records</h2>
           <div id="previousRecordsList" class="patient-list"></div>
+          <div class="ambient-dock" id="ambientDock" hidden></div>
         </aside>
         <div class="record-main">
           <div class="record-status" id="recordStatus"></div>
-          <div class="ambient-dock" id="ambientDock" hidden></div>
           <div class="medical-textarea" id="medicalNoteText" contenteditable="true" role="textbox" aria-label="Medical notes"></div>
         </div>
       </div>
@@ -1851,14 +1853,16 @@ ${context}`;
         const dock = $("#ambientDock");
         if (!dock) return;
         if (!ambientFloatPosition) {
+          dock.style.position = "";
           dock.style.left = "";
           dock.style.top = "";
           dock.style.right = "";
-          dock.style.bottom = "28px";
+          dock.style.bottom = "";
           return;
         }
         const position = clampAmbientFloatPosition(ambientFloatPosition);
         ambientFloatPosition = position;
+        dock.style.position = "fixed";
         dock.style.left = `${position.left}px`;
         dock.style.top = `${position.top}px`;
         dock.style.right = "auto";
