@@ -214,29 +214,30 @@
       .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
-      .ambient-dock { display: none; position: fixed; right: 22px; top: 84px; z-index: 45; width: 5cm; height: 5cm; padding: 10px; border: 1px solid #cfe2ee; border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 18px 40px rgba(16, 24, 43, .18); user-select: none; touch-action: none; }
+      .ambient-dock { display: none; position: fixed; right: 22px; top: 84px; z-index: 45; width: 8cm; height: 5cm; padding: 10px; border: 1px solid #cfe2ee; border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 18px 40px rgba(16, 24, 43, .18); user-select: none; touch-action: none; cursor: move; }
       .ambient-dock.visible { display: grid; grid-template-rows: auto 1fr; gap: 6px; }
       .ambient-float-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: move; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
       .ambient-float-head strong { color: var(--ink); font-size: 13px; letter-spacing: 0; text-transform: none; }
-      .ambient-float-body { display: grid; align-content: center; justify-items: center; gap: 8px; min-height: 0; }
-      .ambient-float-mode { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px; align-items: center; }
-      .ambient-float-mode span { min-height: 30px; display: grid; place-items: center; border-radius: 8px; background: #eaf0f3; color: var(--ink); font-size: 11px; font-weight: 900; text-align: center; }
-      .ambient-float-mode select { min-height: 30px; width: 30px; padding: 0; border-radius: 8px; font-size: 0; }
-      .ambient-float-mode select option { font-size: 13px; }
+      .ambient-float-body { display: grid; align-content: center; justify-items: center; gap: 7px; min-height: 0; }
+      .ambient-float-mode { width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; align-items: center; }
+      .ambient-float-mode .ambient-mode { min-height: 30px; padding: 5px 6px; border-radius: 8px; font-size: 10px; font-weight: 900; background: #eaf0f3; color: var(--ink); box-shadow: none; }
+      .ambient-float-mode .ambient-mode.active { background: var(--primary); color: #fff; }
+      .ambient-float-mode .ambient-mode:disabled { opacity: .65; cursor: not-allowed; }
       .ambient-countdown { color: #10182b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 42px; font-weight: 900; letter-spacing: .04em; }
       .ambient-dock .ambient-countdown { font-size: 23px; line-height: 1; }
       .ambient-float-extend { min-height: 28px; padding: 4px 8px; font-size: 11px; border-radius: 8px; }
       .ambient-float-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
-      .ambient-wave { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; height: 28px; }
-      .ambient-wave span { width: 5px; height: 8px; border-radius: 999px; background: #2563eb; opacity: .9; transform-origin: center; animation: ambientWave .9s ease-in-out infinite; animation-play-state: paused; }
-      .ambient-wave span:nth-child(2) { animation-delay: .1s; }
-      .ambient-wave span:nth-child(3) { animation-delay: .2s; }
-      .ambient-wave span:nth-child(4) { animation-delay: .3s; }
-      .ambient-wave span:nth-child(5) { animation-delay: .4s; }
-      .ambient-wave.recording span { animation-play-state: running; }
+      .ambient-wave { width: 100%; height: 30px; overflow: hidden; color: #2563eb; }
+      .ambient-wave svg { width: 200%; height: 100%; transform: translateX(0); animation: ambientSine 1.4s linear infinite; animation-play-state: paused; }
+      .ambient-wave path { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; opacity: .9; }
+      .ambient-wave.recording svg { animation-play-state: running; }
       @keyframes ambientWave {
         0%, 100% { height: 8px; }
         50% { height: 26px; }
+      }
+      @keyframes ambientSine {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
       }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b { font-weight: 900; }
@@ -1781,11 +1782,14 @@ ${context}`;
         });
       }
       function clampAmbientFloatPosition(position) {
-        const size = 190;
+        const dock = $("#ambientDock");
+        const rect = dock?.getBoundingClientRect();
+        const width = rect?.width || 302;
+        const height = rect?.height || 190;
         const margin = 10;
         return {
-          left: Math.min(Math.max(margin, position.left), Math.max(margin, window.innerWidth - size - margin)),
-          top: Math.min(Math.max(margin, position.top), Math.max(margin, window.innerHeight - size - margin))
+          left: Math.min(Math.max(margin, position.left), Math.max(margin, window.innerWidth - width - margin)),
+          top: Math.min(Math.max(margin, position.top), Math.max(margin, window.innerHeight - height - margin))
         };
       }
       function applyAmbientFloatPosition() {
@@ -1830,7 +1834,9 @@ ${context}`;
           </div>
           <div class="ambient-float-body">
             <div class="ambient-wave ${recording ? "recording" : ""}" aria-hidden="true">
-              <span></span><span></span><span></span><span></span><span></span>
+              <svg viewBox="0 0 240 32" preserveAspectRatio="none">
+                <path d="M0 16 C15 4 30 4 45 16 S75 28 90 16 S120 4 135 16 S165 28 180 16 S210 4 225 16 S255 28 270 16 S300 4 315 16 S345 28 360 16 S390 4 405 16 S435 28 450 16 S480 4 495 16" />
+              </svg>
             </div>
             ${ambientState === "processing"
               ? `<div class="ambient-progress" aria-label="Processing audio"><div class="ambient-progress-fill"></div></div>`
@@ -1841,12 +1847,11 @@ ${context}`;
               <button class="ambient-round ambient-pause" type="button" data-ambient-pause="true" title="${paused ? "Resume" : "Pause"}" aria-label="${paused ? "Resume recording" : "Pause recording"}" ${idle || stopped || locked ? "hidden" : ""}>${paused ? "▶" : "Ⅱ"}</button>
               <button class="ambient-round ambient-stop" type="button" data-ambient-stop="true" title="Stop and process" aria-label="Stop and process" ${idle || locked ? "hidden" : ""}>■</button>
             </div>
-            <label class="ambient-float-mode">
-              <span>${ambientModeLabel()}</span>
-              <select data-ambient-mode-select="true" aria-label="WOYZ template" ${locked ? "disabled" : ""}>
-                ${Object.entries(ambientModes).map(([value, label]) => `<option value="${value}" ${value === activeAmbientMode ? "selected" : ""}>${label}</option>`).join("")}
-              </select>
-            </label>
+            <div class="ambient-float-mode" aria-label="WOYZ template">
+              ${Object.entries(ambientModes).map(([value, label]) => `
+                <button class="ambient-mode ${value === activeAmbientMode ? "active" : ""}" type="button" data-ambient-mode="${value}" ${locked ? "disabled" : ""}>${label}</button>
+              `).join("")}
+            </div>
           </div>
         `;
         applyAmbientFloatPosition();
@@ -1889,14 +1894,13 @@ ${context}`;
         renderPreviousRecords();
       }
       function beginAmbientFloatDrag(event) {
-        const handle = event.target.closest("[data-ambient-drag-handle]");
         const dock = $("#ambientDock");
-        if (!handle || !dock || dock.hidden) return;
+        if (!dock || dock.hidden || !event.target.closest("#ambientDock")) return;
+        if (event.target.closest("button, select, input, textarea, [contenteditable='true']")) return;
         event.preventDefault();
         const rect = dock.getBoundingClientRect();
         const offsetX = event.clientX - rect.left;
         const offsetY = event.clientY - rect.top;
-        dock.setPointerCapture?.(event.pointerId);
         const move = (moveEvent) => {
           ambientFloatPosition = clampAmbientFloatPosition({
             left: moveEvent.clientX - offsetX,
