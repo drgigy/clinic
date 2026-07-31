@@ -214,11 +214,30 @@
       .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
-      .ambient-dock { display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
-      .ambient-dock.visible { display: flex; }
-      .ambient-dock-left, .ambient-dock-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-      .ambient-dock .ambient-countdown { font-size: 18px; }
-      .ambient-dock .ambient-pause, .ambient-dock .ambient-stop { width: auto; min-height: 36px; height: 36px; min-width: 46px; border-radius: var(--radius); font-size: 18px; padding: 0 14px; }
+      .ambient-dock { display: none; position: fixed; right: 22px; top: 84px; z-index: 45; width: 5cm; height: 5cm; padding: 10px; border: 1px solid #cfe2ee; border-radius: 16px; background: rgba(255,255,255,.98); box-shadow: 0 18px 40px rgba(16, 24, 43, .18); user-select: none; touch-action: none; }
+      .ambient-dock.visible { display: grid; grid-template-rows: auto 1fr; gap: 6px; }
+      .ambient-float-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: move; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+      .ambient-float-head strong { color: var(--ink); font-size: 13px; letter-spacing: 0; text-transform: none; }
+      .ambient-float-body { display: grid; align-content: center; justify-items: center; gap: 8px; min-height: 0; }
+      .ambient-float-mode { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px; align-items: center; }
+      .ambient-float-mode span { min-height: 30px; display: grid; place-items: center; border-radius: 8px; background: #eaf0f3; color: var(--ink); font-size: 11px; font-weight: 900; text-align: center; }
+      .ambient-float-mode select { min-height: 30px; width: 30px; padding: 0; border-radius: 8px; font-size: 0; }
+      .ambient-float-mode select option { font-size: 13px; }
+      .ambient-countdown { color: #10182b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 42px; font-weight: 900; letter-spacing: .04em; }
+      .ambient-dock .ambient-countdown { font-size: 23px; line-height: 1; }
+      .ambient-float-extend { min-height: 28px; padding: 4px 8px; font-size: 11px; border-radius: 8px; }
+      .ambient-float-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
+      .ambient-wave { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; height: 28px; }
+      .ambient-wave span { width: 5px; height: 8px; border-radius: 999px; background: #2563eb; opacity: .9; transform-origin: center; animation: ambientWave .9s ease-in-out infinite; animation-play-state: paused; }
+      .ambient-wave span:nth-child(2) { animation-delay: .1s; }
+      .ambient-wave span:nth-child(3) { animation-delay: .2s; }
+      .ambient-wave span:nth-child(4) { animation-delay: .3s; }
+      .ambient-wave span:nth-child(5) { animation-delay: .4s; }
+      .ambient-wave.recording span { animation-play-state: running; }
+      @keyframes ambientWave {
+        0%, 100% { height: 8px; }
+        50% { height: 26px; }
+      }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b { font-weight: 900; }
       .ambient-panel { height: 100%; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; display: grid; place-items: center; padding: 26px; text-align: center; }
@@ -228,7 +247,7 @@
       .ambient-stage > div { width: 100%; }
       .ambient-timer { display: grid; justify-items: center; gap: 12px; margin-bottom: 24px; }
       .ambient-timer span { color: var(--muted); font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-      .ambient-countdown { color: #10182b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 42px; font-weight: 900; letter-spacing: .04em; }
+      .ambient-panel .ambient-countdown { color: #10182b; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 42px; font-weight: 900; letter-spacing: .04em; }
       .ambient-mode-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 auto 22px; }
       .ambient-mode { min-height: 42px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 900; background: #eaf0f3; color: var(--ink); }
       .ambient-mode.active { background: var(--primary); color: #fff; }
@@ -243,12 +262,15 @@
       .ambient-dot.recording { background: #d1495b; box-shadow: 0 0 0 5px rgba(209, 73, 91, .16); }
       .ambient-progress { width: min(520px, 100%); height: 16px; border: 1px solid var(--line); border-radius: 999px; background: #eaf0f3; overflow: hidden; }
       .ambient-progress-fill { height: 100%; width: 0%; border-radius: inherit; background: var(--primary); animation: ambientProgress 18s linear forwards; }
+      .ambient-dock .ambient-progress { width: 100%; height: 10px; }
       @keyframes ambientProgress {
         0% { width: 0%; }
         100% { width: 100%; }
       }
       .ambient-mic { width: 118px; height: 118px; border-radius: 999px; min-height: 118px; display: inline-grid; place-items: center; font-size: 46px; background: #2563eb; color: #fff; box-shadow: 0 16px 34px rgba(37, 99, 235, .22); }
       .ambient-round { width: 92px; height: 92px; border-radius: 999px; min-height: 92px; display: inline-grid; place-items: center; font-size: 34px; color: #fff; border: 0; }
+      .ambient-dock .ambient-mic { width: 62px; height: 62px; min-height: 62px; font-size: 28px; box-shadow: 0 10px 22px rgba(37, 99, 235, .2); }
+      .ambient-dock .ambient-round { width: 52px; height: 52px; min-height: 52px; font-size: 24px; }
       .ambient-pause { background: #f59e0b; }
       .ambient-stop { background: #f04b08; }
       .ambient-note { width: 100%; height: 100%; min-height: 360px; resize: none; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
@@ -1005,6 +1027,7 @@
       let ambientStopShouldProcess = false;
       let ambientState = "idle";
       let activeAmbientMode = "visit";
+      let ambientFloatPosition = null;
       let firebaseSyncStarted = false;
       let firebaseUnsubscribers = [];
       let reusedPatientUhid = "";
@@ -1734,16 +1757,40 @@ ${context}`;
       }
       function setAmbientStatus(message, isRecording = false) {
         const status = $("#ambientStatus");
-        if (!status) return;
-        status.innerHTML = `<span class="ambient-dot ${isRecording ? "recording" : ""}"></span>${message}`;
+        if (status) status.innerHTML = `<span class="ambient-dot ${isRecording ? "recording" : ""}"></span>${message}`;
+        const recordStatus = $("#recordStatus");
+        if (recordStatus && message) recordStatus.textContent = message;
       }
       function updateAmbientCountdown() {
         document.querySelectorAll("#ambientCountdown, [data-ambient-dock-countdown]").forEach((timer) => {
           timer.textContent = formatDuration(ambientRemainingMs);
         });
       }
+      function clampAmbientFloatPosition(position) {
+        const size = 190;
+        const margin = 10;
+        return {
+          left: Math.min(Math.max(margin, position.left), Math.max(margin, window.innerWidth - size - margin)),
+          top: Math.min(Math.max(margin, position.top), Math.max(margin, window.innerHeight - size - margin))
+        };
+      }
+      function applyAmbientFloatPosition() {
+        const dock = $("#ambientDock");
+        if (!dock) return;
+        if (!ambientFloatPosition) {
+          dock.style.left = "";
+          dock.style.top = "";
+          dock.style.right = "22px";
+          return;
+        }
+        const position = clampAmbientFloatPosition(ambientFloatPosition);
+        ambientFloatPosition = position;
+        dock.style.left = `${position.left}px`;
+        dock.style.top = `${position.top}px`;
+        dock.style.right = "auto";
+      }
       function ambientDockVisible() {
-        return Boolean(draftMedicalRecord?.source === "ambient" && ["recording", "paused", "stopped", "processing"].includes(ambientState));
+        return Boolean(draftMedicalRecord?.source === "ambient" && ["idle", "recording", "paused", "stopped", "processing"].includes(ambientState));
       }
       function renderAmbientDock() {
         const dock = $("#ambientDock");
@@ -1756,18 +1803,39 @@ ${context}`;
         }
         dock.hidden = false;
         dock.classList.add("visible");
+        const locked = ambientState === "processing" || ambientState === "ready";
+        const recording = ambientState === "recording";
+        const paused = ambientState === "paused";
+        const stopped = ambientState === "stopped";
+        const idle = ambientState === "idle";
+        const statusLabel = recording ? "Recording" : paused ? "Paused" : stopped ? "Stopped" : ambientState === "processing" ? "Processing" : "Ready";
         dock.innerHTML = `
-          <div class="ambient-dock-left">
-            <span class="ambient-dot ${ambientState === "recording" ? "recording" : ""}"></span>
-            <strong>${ambientState === "paused" ? "Paused" : ambientState === "processing" ? "Processing" : ambientState === "stopped" ? "Stopped" : "Recording"}</strong>
-            <span class="ambient-countdown" data-ambient-dock-countdown>${formatDuration(ambientRemainingMs)}</span>
-            <button class="secondary" type="button" data-ambient-extend="true">+ 5 min</button>
+          <div class="ambient-float-head" data-ambient-drag-handle="true">
+            <strong>WOYZ</strong>
+            <span>${statusLabel}</span>
           </div>
-          <div class="ambient-dock-actions">
-            <button class="ambient-round ambient-pause" type="button" data-ambient-pause="true" title="Pause recording" aria-label="Pause recording">Ⅱ</button>
-            <button class="ambient-round ambient-stop" type="button" data-ambient-stop="true" title="Stop and process" aria-label="Stop and process">■</button>
+          <div class="ambient-float-body">
+            <div class="ambient-wave ${recording ? "recording" : ""}" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            ${ambientState === "processing"
+              ? `<div class="ambient-progress" aria-label="Processing audio"><div class="ambient-progress-fill"></div></div>`
+              : `<div class="ambient-countdown" data-ambient-dock-countdown>${formatDuration(ambientRemainingMs)}</div>`}
+            <button class="secondary ambient-float-extend" type="button" data-ambient-extend="true" ${locked ? "disabled" : ""}>+ 5 min</button>
+            <div class="ambient-float-actions">
+              <button class="ambient-mic" type="button" data-ambient-start="true" title="Start WOYZ" aria-label="Start WOYZ" ${idle ? "" : "hidden"}>🎙</button>
+              <button class="ambient-round ambient-pause" type="button" data-ambient-pause="true" title="${paused ? "Resume" : "Pause"}" aria-label="${paused ? "Resume recording" : "Pause recording"}" ${idle || stopped || locked ? "hidden" : ""}>${paused ? "▶" : "Ⅱ"}</button>
+              <button class="ambient-round ambient-stop" type="button" data-ambient-stop="true" title="Stop and process" aria-label="Stop and process" ${idle || locked ? "hidden" : ""}>■</button>
+            </div>
+            <label class="ambient-float-mode">
+              <span>${ambientModeLabel()}</span>
+              <select data-ambient-mode-select="true" aria-label="WOYZ template" ${locked ? "disabled" : ""}>
+                ${Object.entries(ambientModes).map(([value, label]) => `<option value="${value}" ${value === activeAmbientMode ? "selected" : ""}>${label}</option>`).join("")}
+              </select>
+            </label>
           </div>
         `;
+        applyAmbientFloatPosition();
       }
       function setAmbientButtons() {
         renderAmbientDock();
@@ -1798,13 +1866,36 @@ ${context}`;
       function setAmbientMode(mode) {
         if (!ambientModes[mode] || ambientState === "processing" || ambientState === "ready") return;
         activeAmbientMode = mode;
-        if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
+        if (draftMedicalRecord?.source === "ambient") {
           draftMedicalRecord.recordKind = mode;
           draftMedicalRecord.updatedAt = new Date().toISOString();
         }
         $("#recordStatus").textContent = `${ambientModeLabel(mode)} draft. Save when ready.`;
         setAmbientButtons();
         renderPreviousRecords();
+      }
+      function beginAmbientFloatDrag(event) {
+        const handle = event.target.closest("[data-ambient-drag-handle]");
+        const dock = $("#ambientDock");
+        if (!handle || !dock || dock.hidden) return;
+        event.preventDefault();
+        const rect = dock.getBoundingClientRect();
+        const offsetX = event.clientX - rect.left;
+        const offsetY = event.clientY - rect.top;
+        dock.setPointerCapture?.(event.pointerId);
+        const move = (moveEvent) => {
+          ambientFloatPosition = clampAmbientFloatPosition({
+            left: moveEvent.clientX - offsetX,
+            top: moveEvent.clientY - offsetY
+          });
+          applyAmbientFloatPosition();
+        };
+        const up = () => {
+          document.removeEventListener("pointermove", move);
+          document.removeEventListener("pointerup", up);
+        };
+        document.addEventListener("pointermove", move);
+        document.addEventListener("pointerup", up);
       }
       function renderAmbientPanel(initialText = "", resetState = true) {
         if (resetState) {
@@ -1869,18 +1960,18 @@ ${context}`;
       function showAmbientResult(text = "", dirty = true) {
         ambientState = "ready";
         activeRecordDocs.visit = plainTextToHtml(text);
-        $("#medicalNoteText").setAttribute("contenteditable", "true");
-        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
           draftMedicalRecord.note = text;
           draftMedicalRecord.noteHtml = activeRecordDocs.visit;
           draftMedicalRecord.docs = { visit: activeRecordDocs.visit };
           draftMedicalRecord.recordKind = activeAmbientMode;
           draftMedicalRecord.updatedAt = new Date().toISOString();
+          $("#medicalNoteText").setAttribute("contenteditable", "true");
+          $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+          $("#medicalNoteText").focus();
         }
         if (dirty) setRecordDirty();
         setAmbientButtons();
-        $("#medicalNoteText").focus();
       }
       function persistAmbientNote() {
         const textarea = ambientTextarea();
@@ -1944,7 +2035,7 @@ ${context}`;
           setAmbientStatus("Recording in progress...", true);
           updateAmbientCountdown();
           setAmbientButtons();
-          renderAllMedicalEntries();
+          if (activeRecordView !== "all") renderAllMedicalEntries();
         } catch (error) {
           console.error("Ambient recording failed", error);
           stopAmbientTracks();
@@ -2012,9 +2103,7 @@ ${context}`;
         if (!ambientAudioBlob) return;
         try {
           ambientState = "processing";
-          $("#ambientStage")?.classList.add("processing");
-          const stage = $("#ambientStage");
-          if (stage) stage.innerHTML = `<div class="ambient-progress" aria-label="Processing audio"><div class="ambient-progress-fill"></div></div>`;
+          $("#recordStatus").innerHTML = `<div class="ambient-progress" aria-label="Processing audio"><div class="ambient-progress-fill"></div></div>`;
           setAmbientButtons();
           const patient = activeRecordPatient();
           const processingMode = activeAmbientMode;
@@ -2058,7 +2147,6 @@ ${context}`;
           ambientState = "stopped";
           setAmbientStatus("Could not process audio. You can type the note manually.");
           alert(`Ambient note failed: ${error.message || "Please try again."}`);
-          renderAmbientPanel("");
           ambientState = ambientAudioBlob ? "stopped" : "idle";
           setAmbientStatus(ambientAudioBlob ? "Could not process audio. Press Enter to try again, or type manually after processing succeeds." : "Ready");
           setAmbientButtons();
@@ -2112,13 +2200,10 @@ ${context}`;
         $("#recordDeleteBtn").title = "Discard draft";
         $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
         $("#recordStatus").textContent = activeRecordSource === "ambient" ? `${ambientModeLabel(activeAmbientMode)} draft. Save when ready.` : "Draft note. Save when ready.";
-        if (activeRecordSource === "ambient") {
-          renderAmbientPanel(draft.note || htmlToPlainText(activeRecordDocs.visit), false);
-        } else {
-          $("#medicalNoteText").setAttribute("contenteditable", "true");
-          $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
-          $("#medicalNoteText").focus();
-        }
+        $("#medicalNoteText").setAttribute("contenteditable", "true");
+        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        setAmbientButtons();
+        $("#medicalNoteText").focus();
         renderPreviousRecords();
       }
       function renderPreviousRecords() {
@@ -2217,7 +2302,14 @@ ${context}`;
         captureActiveDraft();
         const existingDraft = activeDraftForPatient(patient);
         if (existingDraft) {
-          openDraftMedicalEntry();
+          if (source === "ambient") {
+            activeAmbientMode = existingDraft.recordKind || "visit";
+            renderAllMedicalEntries();
+            setAmbientButtons();
+            $("#recordStatus").textContent = `${ambientModeLabel(activeAmbientMode)} draft is active.`;
+          } else {
+            openDraftMedicalEntry();
+          }
           return;
         }
         const createdAt = new Date().toISOString();
@@ -2240,28 +2332,29 @@ ${context}`;
         if (source === "ambient") {
           resetAmbientState();
         }
-        activeRecordView = "draft";
-        activeRecordId = draftMedicalRecord.id;
+        activeRecordView = source === "ambient" ? "all" : "draft";
+        activeRecordId = source === "ambient" ? "" : draftMedicalRecord.id;
         activeRecordDate = localDateKey();
         activeRecordCreatedAt = createdAt;
         activeRecordType = "visit";
-        activeRecordSource = source;
+        activeRecordSource = source === "ambient" ? "typed" : source;
         activeAmbientMode = "visit";
         activeRecordDocs = { visit: "" };
         if (source === "ambient") {
-          renderAmbientPanel("");
+          renderAllMedicalEntries();
+          setAmbientButtons();
         } else {
           $("#medicalNoteText").setAttribute("contenteditable", "true");
           $("#medicalNoteText").innerHTML = "";
+          $("#recordDeleteBtn").hidden = false;
+          $("#recordDeleteBtn").title = "Discard draft";
+          $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
+          $("#recordVisitDate").textContent = dateTimeLabel(createdAt);
         }
-        $("#recordDeleteBtn").hidden = false;
-        $("#recordDeleteBtn").title = "Discard draft";
-        $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
-        $("#recordVisitDate").textContent = dateTimeLabel(createdAt);
         $("#recordStatus").textContent = source === "ambient" ? "Visit Note draft. Save when ready." : "New note";
         activeRecordDirty = true;
         renderPreviousRecords();
-        (source === "ambient" ? ambientTextarea() : $("#medicalNoteText"))?.focus();
+        if (source !== "ambient") $("#medicalNoteText")?.focus();
       }
       function persistCurrentRecordTab() {
         if (!activeRecordId || !["single", "draft"].includes(activeRecordView)) return;
@@ -2518,7 +2611,11 @@ ${context}`;
           </section>
         `).join("") : `<div class="empty">No notes yet. Click Add note.</div>`;
         $("#recordVisitDate").textContent = "All entries";
-        $("#recordStatus").textContent = `${rows.length} ${rows.length === 1 ? "note" : "notes"}`;
+        if (draftMedicalRecord?.source === "ambient" && ["recording", "paused", "stopped", "processing"].includes(ambientState)) {
+          $("#recordStatus").textContent = "";
+        } else {
+          $("#recordStatus").textContent = `${rows.length} ${rows.length === 1 ? "note" : "notes"}`;
+        }
         renderPreviousRecords();
         setAmbientButtons();
       }
@@ -2540,6 +2637,15 @@ ${context}`;
       async function saveActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
+        if (!activeRecordId && draftMedicalRecord?.patientKey === recordPatientKey(patient)) {
+          activeRecordView = "draft";
+          activeRecordId = draftMedicalRecord.id;
+          activeRecordDate = draftMedicalRecord.date;
+          activeRecordCreatedAt = draftMedicalRecord.createdAt;
+          activeRecordSource = draftMedicalRecord.source || "typed";
+          activeAmbientMode = draftMedicalRecord.recordKind || "visit";
+          activeRecordDocs = { visit: draftMedicalRecord.docs?.visit || draftMedicalRecord.noteHtml || (draftMedicalRecord.note ? plainTextToHtml(draftMedicalRecord.note) : "") };
+        }
         if (!activeRecordId) return;
         persistCurrentRecordTab();
         const details = collectRecordDetails();
@@ -2626,12 +2732,9 @@ ${context}`;
           visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
         activeRecordType = "visit";
-        if (activeRecordSource === "ambient") {
-          renderAmbientPanel(record?.note || htmlToPlainText(activeRecordDocs.visit), true);
-        } else {
-          $("#medicalNoteText").setAttribute("contenteditable", "true");
-          $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
-        }
+        $("#medicalNoteText").setAttribute("contenteditable", "true");
+        $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        setAmbientButtons();
         $("#recordDeleteBtn").hidden = !record;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
@@ -3825,6 +3928,7 @@ ${context}`;
         if (button.id === "nextDateBtn") shiftSelectedDate(1);
       });
       window.addEventListener("afterprint", () => document.body.classList.remove("print-accounts", "print-medical", "print-prescription"));
+      window.addEventListener("resize", applyAmbientFloatPosition);
       document.addEventListener("change", (event) => {
         if (event.target.id === "clinicDate") {
           selectedDate = event.target.value || todayKey;
@@ -3844,9 +3948,10 @@ ${context}`;
         if (event.target.matches("[data-neuro-group]")) renderNeuro();
         if (event.target.matches("#neuroAnalysisRange, #neuroAnalysisMonth, #neuroAnalysisFromMonth, #neuroAnalysisToMonth, #neuroAnalysisYear")) renderNeuroReview();
         if (event.target.matches("[data-neuro-source]")) loadNeuroCenterIntoRow(event.target.closest("[data-neuro-source-row]"));
+        if (event.target.matches("[data-ambient-mode-select]")) setAmbientMode(event.target.value);
         if (event.target.dataset.test) { const [id, test] = event.target.dataset.test.split(":"); toggleTest(id, test, event.target.checked); }
         if (event.target.id === "doctorPhone") { save(); renderMessages(); }
-        if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
+        if (event.target.closest("#medicalRecordScreen") && !event.target.matches("[data-ambient-mode-select]")) setRecordDirty();
       });
       document.addEventListener("input", (event) => {
         if (event.target.dataset.amount) { const [id, field] = event.target.dataset.amount.split(":"); event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4); updatePayment(id, field, event.target.value, false); }
@@ -3860,6 +3965,7 @@ ${context}`;
         if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
       });
       document.addEventListener("pointerdown", (event) => {
+        beginAmbientFloatDrag(event);
         if (!event.target.closest("#homeMenu")) toggleHomeMenu(false);
       });
       $("#medicalNoteText").addEventListener("paste", (event) => {
