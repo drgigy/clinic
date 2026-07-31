@@ -61,10 +61,11 @@
       .main-tab { min-width: 104px; }
       .main-tab.active { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
       .whatsapp-tab { min-width: 54px; font-size: 20px; }
-      .nav-date-control { justify-self: end; display: grid; grid-template-columns: auto 42px 160px 42px auto auto; align-items: end; gap: 10px; }
-      .nav-date-control label { margin: 0; }
+      .nav-date-control { justify-self: end; display: flex; align-items: end; justify-content: flex-end; gap: 10px; min-width: 0; }
+      .nav-date-control label { margin: 0; width: 170px; flex: 0 0 170px; }
+      .nav-date-control input[type="date"] { width: 100%; min-width: 0; }
       #todayBtn { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
-      .date-step { width: 42px; padding: 0; font-size: 20px; font-weight: 900; }
+      .date-step { width: 42px; min-width: 42px; flex: 0 0 42px; padding: 0; font-size: 20px; font-weight: 900; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .home-chevron { margin-left: 6px; font-size: 12px; }
       .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -407,7 +408,8 @@
         .nav-left, .main-tabs, .nav-date-control { justify-self: stretch; }
         .main-tabs { justify-content: stretch; }
         .main-tab { flex: 1; min-width: 0; }
-        .nav-date-control { grid-template-columns: auto minmax(160px, 1fr) auto auto; }
+        .nav-date-control { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; }
+        .nav-date-control label { width: 180px; flex-basis: 180px; }
         .content-grid, .post-consult-block, .preview-body, .accounts-grid, .neuro-controls { grid-template-columns: 1fr; }
         .followup-row { grid-template-columns: 1fr 1fr; }
         .section.wide, .preview-area { grid-column: auto; }
@@ -420,6 +422,7 @@
         .topbar, .section-head, .consult-head { align-items: flex-start; flex-direction: column; }
         .actions, .primary, .secondary { width: 100%; }
         .nav-left, .main-tabs, .nav-date-control { grid-template-columns: 1fr; flex-direction: column; }
+        .nav-date-control label, .date-step { width: 100%; flex-basis: auto; }
         .main-tabs { display: grid; grid-template-columns: 1fr 1fr; }
         .stats, .two, .form-row, .date-control, .nav-date-control, .report-grid { grid-template-columns: 1fr; }
         .record-top, .record-body { grid-template-columns: 1fr; }
