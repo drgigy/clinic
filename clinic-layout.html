@@ -2460,7 +2460,7 @@ ${context}`;
       function medicalPrintSignature(extraClass = "") {
         const credentials = doctorCredentialsPrintHtml();
         const whatsappLine = extraClass.includes("prescription-header-signature")
-          ? `<div>WhatsApp: 9846044490 (WhatsApp message)</div>`
+          ? `<div>WhatsApp: 9846044490</div>`
           : "";
         return credentials || whatsappLine ? `<div class="medical-signature ${extraClass}">${credentials}${whatsappLine}</div>` : "";
       }
