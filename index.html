@@ -1758,13 +1758,13 @@ Format every prescribed medicine as a numbered list, one medicine per line:
 2. ...
 
 Include dose, frequency, route, timing, and duration only if dictated.
-Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it with the timing as "morning 1 tablet", "evening 1 tablet", "bedtime 1 tablet". Never write bare timing counts like "morning 1" or "evening 1".
+Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it with the timing as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1".
 For tapering or step-down medicines, create one numbered line for each step of the same medicine. Put the taper phase with the duration, not in the food/instruction field:
-1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
-2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
+1. Tablet Levipil - 20 days - morning 250 mg - night 500 mg - First 20 days
+2. Tablet Levipil - 20 days - morning 250 mg - night 250 mg - Next 20 days
 3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
 If the medicine strength is fixed and the doctor dictates tablet counts, use:
-1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - evening 1 tablet - after food - First 5 days
+1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - night 1 tablet - after food - First 5 days
 2. Tablet Predmet 4 mg - 5 days - morning 1 tablet - after food - Next 5 days, then stop
 Do not merge tapering steps into one long paragraph.
 If general advice or non-medicine instructions are dictated, place them after the prescription under:
@@ -1861,14 +1861,14 @@ Formatting rules:
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
-- Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it as "morning 1 tablet", "evening 1 tablet", "bedtime 1 tablet". Never write bare timing counts like "morning 1" or "evening 1", because the prescription chart needs the full count.
-- For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Put the taper phase with the duration so the prescription chart can show it in the Duration column, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Keep the Instructions column only for food or administration instructions such as "after food", "before food", "empty stomach", "at 7 AM", or "as needed".
+- Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1", because the prescription chart needs the full count.
+- For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Put the taper phase with the duration so the prescription chart can show it in the Duration column, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Keep the Instructions column only for food or administration instructions such as "after food", "before food", "empty stomach", or "as needed". If a specific clock time is dictated, keep it beside the timing dose, for example "morning 1 tablet at 7 AM" or "noon 1 tablet at 11 AM".
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
-  1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
-  2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
-  3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
+  1. Tablet Levipil - 20 days - morning 250 mg - night 500 mg - First 20 days
+  2. Tablet Levipil - 20 days - morning 250 mg - night 250 mg - Next 20 days
+  3. Tablet Levipil - 20 days - night 250 mg - Next 20 days, then stop
 - If the medicine strength is fixed and the taper changes tablet counts, write one line per step, for example:
-  1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - evening 1 tablet - after food - First 5 days
+  1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - night 1 tablet - after food - First 5 days
   2. Tablet Predmet 4 mg - 5 days - morning 1 tablet - after food - Next 5 days, then stop
 - If a lab appointment, investigation schedule, or paper/lab schedule is dictated, include it under Advice or Orders line by line. Do not omit lab appointments or investigations from the embedded prescription.
 - Do not merge tapering steps into one paragraph. Do not duplicate the same step.
@@ -2644,8 +2644,7 @@ ${context}`;
         return {
           morning: /\b(morning|breakfast|am)\b/.test(text),
           noon: /\b(noon|afternoon|lunch)\b/.test(text),
-          evening: /\b(evening|dinner)\b/.test(text),
-          bedtime: /\b(night|bedtime|hs)\b/.test(text),
+          bedtime: /\b(evening|dinner|night|bedtime|hs)\b/.test(text),
           needed: /\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/.test(text)
         };
       }
@@ -2659,8 +2658,7 @@ ${context}`;
         const slotMap = {
           morning: "(?:morning|breakfast|am)",
           noon: "(?:noon|afternoon|lunch)",
-          evening: "(?:evening|dinner)",
-          bedtime: "(?:bedtime|night|hs)",
+          bedtime: "(?:evening|dinner|bedtime|night|hs)",
           needed: "(?:as needed|when needed|sos|prn|if pain|when there is pain)"
         };
         const timing = slotMap[slot];
@@ -2671,6 +2669,41 @@ ${context}`;
         if (after?.[1]) return normalizePrescriptionTimingValue(after[1]);
         const before = line.match(new RegExp(`\\b(${doseOrCount})\\s+(?:in\\s+the\\s+)?${timing}\\b`, "i"));
         return normalizePrescriptionTimingValue(before?.[1] || "");
+      }
+      function prescriptionTimeSlot(timeText) {
+        const match = String(timeText || "").trim().match(/^(\d{1,2})(?::\d{2})?\s*(am|pm)$/i);
+        if (!match) return "";
+        let hour = Number(match[1]);
+        const meridian = match[2].toLowerCase();
+        if (meridian === "pm" && hour !== 12) hour += 12;
+        if (meridian === "am" && hour === 12) hour = 0;
+        if (hour >= 4 && hour < 11) return "morning";
+        if (hour >= 11 && hour < 16) return "noon";
+        return "bedtime";
+      }
+      function prescriptionSpecificTimes(line) {
+        const timingWords = {
+          morning: /\b(morning|breakfast)\b/i,
+          noon: /\b(noon|afternoon|lunch)\b/i,
+          bedtime: /\b(evening|dinner|night|bedtime|hs)\b/i
+        };
+        const slots = { morning: [], noon: [], bedtime: [] };
+        const matches = String(line || "").match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig) || [];
+        matches.forEach((rawTime) => {
+          const time = rawTime.replace(/\s+/g, " ").trim().toUpperCase();
+          const position = line.toLowerCase().indexOf(rawTime.toLowerCase());
+          const nearby = position >= 0 ? line.slice(Math.max(0, position - 35), position + rawTime.length + 35) : line;
+          const namedSlot = Object.entries(timingWords).find(([, pattern]) => pattern.test(nearby))?.[0];
+          const slot = namedSlot || prescriptionTimeSlot(time);
+          if (slot && !slots[slot].some((item) => item.toLowerCase() === time.toLowerCase())) slots[slot].push(time);
+        });
+        return slots;
+      }
+      function appendPrescriptionTimes(value, times = []) {
+        const label = typeof value === "string" ? value.trim() : (value ? "✓" : "");
+        if (!times.length) return label;
+        const suffix = times.join(", ");
+        return label ? `${label}, ${suffix}` : suffix;
       }
       function prescriptionDuration(line) {
         const match = line.match(/\b(?:for|x)\s+(\d+\s*(?:day|days|week|weeks|month|months|year|years))\b/i)
@@ -2716,8 +2749,7 @@ ${context}`;
         const checks = [
           ["morning", /^(?:at\s+)?(?:morning|breakfast|am)$/i],
           ["noon", /^(?:at\s+)?(?:noon|afternoon|lunch)$/i],
-          ["evening", /^(?:at\s+)?(?:evening|dinner)$/i],
-          ["bedtime", /^(?:at\s+)?(?:night|bedtime|hs)$/i],
+          ["bedtime", /^(?:at\s+)?(?:evening|dinner|night|bedtime|hs)$/i],
           ["needed", /^(?:as needed|when needed|sos|prn|if pain|when there is pain)$/i]
         ];
         return checks.some(([slot, pattern]) => timing[slot] && pattern.test(text));
@@ -2746,6 +2778,7 @@ ${context}`;
           matches.forEach((match) => {
             const cleaned = match.trim();
             if (isRedundantPrescriptionTimingInstruction(cleaned, timing)) return;
+            if (/^(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)$/i.test(cleaned)) return;
             if (cleaned && !instructions.some((item) => item.toLowerCase() === cleaned.toLowerCase())) instructions.push(cleaned);
           });
         });
@@ -2785,18 +2818,17 @@ ${context}`;
       }
       function prescriptionLineDetails(line) {
         const timing = prescriptionTiming(line);
+        const times = prescriptionSpecificTimes(line);
         const values = {
           morning: prescriptionTimingValue(line, "morning"),
           noon: prescriptionTimingValue(line, "noon"),
-          evening: prescriptionTimingValue(line, "evening"),
           bedtime: prescriptionTimingValue(line, "bedtime"),
           needed: prescriptionTimingValue(line, "needed")
         };
         const combinedTiming = {
-          morning: values.morning || timing.morning,
-          noon: values.noon || timing.noon,
-          evening: values.evening || timing.evening,
-          bedtime: values.bedtime || timing.bedtime,
+          morning: appendPrescriptionTimes(values.morning || timing.morning, times.morning),
+          noon: appendPrescriptionTimes(values.noon || timing.noon, times.noon),
+          bedtime: appendPrescriptionTimes(values.bedtime || timing.bedtime, times.bedtime),
           needed: values.needed || timing.needed
         };
         return {
@@ -2874,7 +2906,6 @@ ${context}`;
               <td class="duration-cell">${escapeHtml(details.duration)}</td>
               ${timingCell(timing.morning)}
               ${timingCell(timing.noon)}
-              ${timingCell(timing.evening)}
               ${timingCell(timing.bedtime)}
               ${timingCell(timing.needed)}
               <td class="instruction-cell">${escapeHtml(details.instructions)}</td>
@@ -2910,12 +2941,11 @@ ${context}`;
                     <col style="width:28px">
                     <col>
                     <col style="width:74px">
-                    <col style="width:54px">
-                    <col style="width:54px">
-                    <col style="width:54px">
-                    <col style="width:54px">
-                    <col style="width:56px">
-                    <col style="width:96px">
+                    <col style="width:64px">
+                    <col style="width:64px">
+                    <col style="width:64px">
+                    <col style="width:62px">
+                    <col style="width:112px">
                   </colgroup>
                   <thead>
                     <tr>
@@ -2923,8 +2953,7 @@ ${context}`;
                       <th>Duration</th>
                       <th>Morning</th>
                       <th>Noon</th>
-                      <th>Evening</th>
-                      <th>Bedtime</th>
+                      <th>Night</th>
                       <th>As Needed</th>
                       <th>Instructions</th>
                     </tr>
