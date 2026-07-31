@@ -61,9 +61,10 @@
       .main-tab { min-width: 104px; }
       .main-tab.active { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
       .whatsapp-tab { min-width: 54px; font-size: 20px; }
-      .nav-date-control { justify-self: end; display: grid; grid-template-columns: auto 160px auto auto; align-items: end; gap: 10px; }
+      .nav-date-control { justify-self: end; display: grid; grid-template-columns: auto 42px 160px 42px auto auto; align-items: end; gap: 10px; }
       .nav-date-control label { margin: 0; }
       #todayBtn { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
+      .date-step { width: 42px; padding: 0; font-size: 20px; font-weight: 900; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .home-chevron { margin-left: 6px; font-size: 12px; }
       .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -213,6 +214,11 @@
       .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
+      .ambient-dock { display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+      .ambient-dock.visible { display: flex; }
+      .ambient-dock-left, .ambient-dock-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .ambient-dock .ambient-countdown { font-size: 18px; }
+      .ambient-dock .ambient-pause, .ambient-dock .ambient-stop { width: auto; min-height: 36px; height: 36px; min-width: 46px; border-radius: var(--radius); font-size: 18px; padding: 0 14px; }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b { font-weight: 900; }
       .ambient-panel { height: 100%; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; display: grid; place-items: center; padding: 26px; text-align: center; }
@@ -330,10 +336,15 @@
         body.print-accounts .report-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
         body.print-accounts .report-toolbar { display: none; }
         body.print-medical .app, body.print-medical .record-screen, body.print-medical .neuro-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog { display: none; }
-        body.print-medical .medical-print-content { display: block; box-sizing: border-box; min-height: 100vh; width: 100%; font-family: Arial, sans-serif; color: #111; padding: 2in 1in 1in; }
+        body.print-medical .medical-print-content { display: block; box-sizing: border-box; min-height: 100vh; width: 210mm; max-width: 210mm; margin: 0 auto; font-family: Arial, sans-serif; color: #111; padding: 2in 1in 1in; }
         body.print-medical .medical-print-content h1 { font-size: 22px; font-weight: 900 !important; margin: 0 0 8px; }
         body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
         body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
+        body.print-medical .prescription-print { font-size: 14px; line-height: 1.45; }
+        body.print-medical .prescription-print h2 { font-size: 16px; margin: 18px 0 8px; }
+        body.print-medical .prescription-print ol, body.print-medical .prescription-print ul { margin: 6px 0 0 22px; padding: 0; }
+        body.print-medical .prescription-print li { margin: 3px 0; }
+        body.print-medical .prescription-signature { margin-top: 4cm; }
         body.print-medical .medical-disclaimer { break-inside: avoid; }
       }
       @media (max-width: 1200px) {
@@ -403,10 +414,12 @@
         </div>
         <div class="nav-date-control">
           <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
+          <button class="secondary date-step" id="prevDateBtn" type="button" title="Previous day" aria-label="Previous day">‹</button>
           <label>
             <span class="sr-only">Clinic date</span>
             <input id="clinicDate" type="date" />
           </label>
+          <button class="secondary date-step" id="nextDateBtn" type="button" title="Next day" aria-label="Next day">›</button>
           <button class="secondary" id="todayBtn" type="button">Today</button>
           <div class="home-menu" id="homeMenu">
             <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
@@ -829,6 +842,7 @@
           </div>
         </div>
         <div class="record-actions">
+          <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
           <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
@@ -851,7 +865,20 @@
         </aside>
         <div class="record-main">
           <div class="record-status" id="recordStatus"></div>
+          <div class="ambient-dock" id="ambientDock" hidden></div>
           <div class="medical-textarea" id="medicalNoteText" contenteditable="true" role="textbox" aria-label="Medical notes"></div>
+        </div>
+      </div>
+    </section>
+    <section class="add-patient-modal" id="recordDiagnosisModal" aria-hidden="true">
+      <div class="add-patient-card">
+        <div class="section-head">
+          <h2>Patient Diagnosis</h2>
+          <button class="secondary" type="button" id="closeRecordDiagnosisBtn">Close</button>
+        </div>
+        <label>Custom diagnosis<input id="recordDiagnosisInput" autocomplete="off" placeholder="Type diagnosis for this UHID" /></label>
+        <div class="actions">
+          <button class="primary" type="button" id="saveRecordDiagnosisBtn">Save diagnosis</button>
         </div>
       </div>
     </section>
@@ -1315,6 +1342,18 @@
         save();
         render();
       }
+      async function updatePatientDiagnosisByUhid(sourcePatient, diagnosis) {
+        const uhid = patientDisplayId(sourcePatient);
+        if (!uhid) return;
+        const cleanDiagnosis = String(diagnosis || "").trim();
+        const matched = patients.filter((patient) => samePatientUhid(patient, uhid));
+        matched.forEach((patient) => {
+          patient.customDiagnosis = cleanDiagnosis;
+          savePatientToCloud(patient);
+        });
+        save();
+        render();
+      }
       function setChoice(button) {
         const group = button.closest("[data-group]");
         group.querySelectorAll(".choice").forEach((item) => item.classList.remove("active"));
@@ -1374,11 +1413,28 @@
       function doctorPatientLine(patient) { return `${patient.name}, ${patient.age}/${(patient.sex || "").charAt(0) || "-"}`; }
       function doctorAbbreviation(value) {
         return {
-          "First consultation": "FC",
-          Review: "RE",
-          "In clinic": "IC",
-          Teleconsultation: "TM"
+          "First consultation": "First",
+          Review: "Review",
+          "In clinic": "Clinic",
+          Teleconsultation: "Tele"
         }[value] || value || "-";
+      }
+      function doctorDiagnosis(patient) {
+        const diagnosis = (patient.customDiagnosis || patient.diagnosis || "").trim();
+        return diagnosis && diagnosis !== "Others" ? diagnosis : "";
+      }
+      function shiftSelectedDate(days) {
+        const next = new Date(`${selectedDate || todayKey}T00:00:00`);
+        next.setDate(next.getDate() + days);
+        selectedDate = localDateKey(next);
+        $("#clinicDate").value = selectedDate;
+        $("#accountDate").value = selectedDate;
+        $("#accountsReportMonth").value = selectedDate.slice(0, 7);
+        $("#accountsReportFromMonth").value = selectedDate.slice(0, 7);
+        $("#accountsReportToMonth").value = selectedDate.slice(0, 7);
+        $("#accountsReportYear").value = selectedDate.slice(0, 4);
+        save();
+        render();
       }
       function uniquePatients() {
         const byKey = new Map();
@@ -1669,30 +1725,62 @@ ${context}`;
         status.innerHTML = `<span class="ambient-dot ${isRecording ? "recording" : ""}"></span>${message}`;
       }
       function updateAmbientCountdown() {
-        const timer = $("#ambientCountdown");
-        if (timer) timer.textContent = formatDuration(ambientRemainingMs);
+        document.querySelectorAll("#ambientCountdown, [data-ambient-dock-countdown]").forEach((timer) => {
+          timer.textContent = formatDuration(ambientRemainingMs);
+        });
+      }
+      function ambientDockVisible() {
+        return Boolean(draftMedicalRecord?.source === "ambient" && ["recording", "paused", "stopped", "processing"].includes(ambientState));
+      }
+      function renderAmbientDock() {
+        const dock = $("#ambientDock");
+        if (!dock) return;
+        if (!ambientDockVisible()) {
+          dock.hidden = true;
+          dock.classList.remove("visible");
+          dock.innerHTML = "";
+          return;
+        }
+        dock.hidden = false;
+        dock.classList.add("visible");
+        dock.innerHTML = `
+          <div class="ambient-dock-left">
+            <span class="ambient-dot ${ambientState === "recording" ? "recording" : ""}"></span>
+            <strong>${ambientState === "paused" ? "Paused" : ambientState === "processing" ? "Processing" : ambientState === "stopped" ? "Stopped" : "Recording"}</strong>
+            <span class="ambient-countdown" data-ambient-dock-countdown>${formatDuration(ambientRemainingMs)}</span>
+            <button class="secondary" type="button" data-ambient-extend="true">+ 5 min</button>
+          </div>
+          <div class="ambient-dock-actions">
+            <button class="ambient-round ambient-pause" type="button" data-ambient-pause="true" title="Pause recording" aria-label="Pause recording">Ⅱ</button>
+            <button class="ambient-round ambient-stop" type="button" data-ambient-stop="true" title="Stop and process" aria-label="Stop and process">■</button>
+          </div>
+        `;
       }
       function setAmbientButtons() {
-        const start = document.querySelector("[data-ambient-start]");
-        const pause = document.querySelector("[data-ambient-pause]");
-        const stop = document.querySelector("[data-ambient-stop]");
-        const extend = document.querySelector("[data-ambient-extend]");
+        renderAmbientDock();
+        const starts = document.querySelectorAll("[data-ambient-start]");
+        const pauses = document.querySelectorAll("[data-ambient-pause]");
+        const stops = document.querySelectorAll("[data-ambient-stop]");
+        const extendButtons = document.querySelectorAll("[data-ambient-extend]");
         document.querySelector("#ambientReference")?.classList.toggle("visible", activeAmbientMode === "visit" && ["recording", "paused", "stopped"].includes(ambientState));
         document.querySelectorAll("[data-ambient-mode]").forEach((button) => {
           button.classList.toggle("active", button.dataset.ambientMode === activeAmbientMode);
           button.disabled = ambientState === "processing" || ambientState === "ready";
         });
-        if (!start || !pause || !stop || !extend) return;
         const initial = ambientState === "idle";
-        start.hidden = !initial;
-        pause.hidden = initial || ambientState === "processing" || ambientState === "ready" || ambientState === "stopped";
-        stop.hidden = initial || ambientState === "processing" || ambientState === "ready";
-        pause.disabled = ambientState !== "recording" && ambientState !== "paused";
-        stop.disabled = ambientState === "recording" || ambientState === "paused" ? false : !ambientAudioBlob;
-        extend.disabled = ambientState === "processing" || ambientState === "ready";
-        pause.textContent = ambientState === "paused" ? "▶" : "Ⅱ";
-        pause.title = ambientState === "paused" ? "Resume" : "Pause";
-        pause.setAttribute("aria-label", ambientState === "paused" ? "Resume recording" : "Pause recording");
+        starts.forEach((start) => { start.hidden = !initial; });
+        pauses.forEach((pause) => {
+          pause.hidden = initial || ambientState === "processing" || ambientState === "ready" || ambientState === "stopped";
+          pause.disabled = ambientState !== "recording" && ambientState !== "paused";
+          pause.textContent = ambientState === "paused" ? "▶" : "Ⅱ";
+          pause.title = ambientState === "paused" ? "Resume" : "Pause";
+          pause.setAttribute("aria-label", ambientState === "paused" ? "Resume recording" : "Pause recording");
+        });
+        stops.forEach((stop) => {
+          stop.hidden = initial || ambientState === "processing" || ambientState === "ready";
+          stop.disabled = ambientState === "recording" || ambientState === "paused" ? false : !ambientAudioBlob;
+        });
+        extendButtons.forEach((extend) => { extend.disabled = ambientState === "processing" || ambientState === "ready"; });
       }
       function setAmbientMode(mode) {
         if (!ambientModes[mode] || ambientState === "processing" || ambientState === "ready") return;
@@ -1843,6 +1931,7 @@ ${context}`;
           setAmbientStatus("Recording in progress...", true);
           updateAmbientCountdown();
           setAmbientButtons();
+          renderAllMedicalEntries();
         } catch (error) {
           console.error("Ambient recording failed", error);
           stopAmbientTracks();
@@ -1945,9 +2034,11 @@ ${context}`;
             showAmbientResult(note);
             $("#recordStatus").textContent = `${ambientModeLabel(processingMode)} ready. Review and save.`;
           } else {
+            ambientState = "ready";
             activeRecordDirty = true;
             $("#recordStatus").textContent = "AI note ready in draft.";
             renderPreviousRecords();
+            setAmbientButtons();
           }
         } catch (error) {
           console.error("Ambient processing failed", error);
@@ -1971,6 +2062,8 @@ ${context}`;
             activeRecordDocs.visit = plainTextToHtml(text);
             draftMedicalRecord.note = text;
             draftMedicalRecord.noteHtml = activeRecordDocs.visit;
+          } else if ($("#medicalNoteText")?.querySelector(".ambient-panel") && ambientState !== "ready") {
+            activeRecordDocs.visit = draftMedicalRecord.docs?.visit || draftMedicalRecord.noteHtml || "";
           } else {
             activeRecordDocs.visit = $("#medicalNoteText").innerHTML;
             draftMedicalRecord.note = htmlToPlainText(activeRecordDocs.visit);
@@ -2051,13 +2144,13 @@ ${context}`;
       function medicalPrintDisclaimer() {
         return `<div class="medical-disclaimer"><strong>Disclaimer:</strong> This medical note is generated with AI assistance and may contain errors. Please inform us if you notice any errors.</div>`;
       }
-      function medicalPrintSignature() {
+      function medicalPrintSignature(extraClass = "") {
         const credentials = doctorCredentialsPrintHtml();
-        return credentials ? `<div class="medical-signature">${credentials}</div>` : "";
+        return credentials ? `<div class="medical-signature ${extraClass}">${credentials}</div>` : "";
       }
       function medicalPrintFooter() {
         const isDocumentPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode);
-        return isDocumentPrint ? medicalPrintSignature() : medicalPrintDisclaimer();
+        return isDocumentPrint ? medicalPrintSignature(activeAmbientMode === "prescription" ? "prescription-signature" : "") : medicalPrintDisclaimer();
       }
       function deleteMedicalEntry(recordId) {
         const record = medicalRecords.find((item) => item.id === recordId);
@@ -2233,12 +2326,34 @@ ${context}`;
         while (lines.length && !lines[0].trim()) lines.shift();
         return plainTextToHtml(lines.join("\n"));
       }
+      function formatPrescriptionPrintHtml(html) {
+        const text = htmlToPlainText(stripDuplicateDocumentTitle(html, "Prescription"));
+        const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+        const adviceIndex = lines.findIndex((line) => /^(advice|instruction|instructions|follow[-\s]*up)\s*:?/i.test(line));
+        const medicineLines = (adviceIndex >= 0 ? lines.slice(0, adviceIndex) : lines)
+          .filter((line) => !/^date\s*:?$/i.test(line));
+        const firstAdvice = adviceIndex >= 0 ? lines[adviceIndex].replace(/^(advice|instruction|instructions|follow[-\s]*up)\s*:?\s*/i, "").trim() : "";
+        const adviceLines = adviceIndex >= 0 ? [...(firstAdvice ? [firstAdvice] : []), ...lines.slice(adviceIndex + 1)] : [];
+        const listItems = (items) => items
+          .map((line) => line.replace(/^\d+[\).\s-]+/, "").replace(/^[*•-]\s*/, "").trim())
+          .filter(Boolean)
+          .map((line) => `<li>${escapeHtml(line)}</li>`)
+          .join("");
+        return `
+          <div class="prescription-print">
+            ${medicineLines.length ? `<h2>Medications</h2><ol>${listItems(medicineLines)}</ol>` : ""}
+            ${adviceLines.length ? `<h2>Instructions</h2><ul>${listItems(adviceLines)}</ul>` : ""}
+            ${!medicineLines.length && !adviceLines.length ? `<div>${html}</div>` : ""}
+          </div>
+        `;
+      }
       function activeMedicalPrintBody() {
         const rawHtml = ["single", "draft"].includes(activeRecordView)
           ? (activeRecordDocs.visit || "No notes entered.")
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
         if (activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode)) {
           const withoutTitle = stripDuplicateDocumentTitle(rawHtml, ambientModeLabel(activeAmbientMode));
+          if (activeAmbientMode === "prescription") return formatPrescriptionPrintHtml(withoutTitle);
           return activeAmbientMode === "certificate" ? stripCertificateDemographics(withoutTitle) : withoutTitle;
         }
         return rawHtml;
@@ -2350,6 +2465,18 @@ ${context}`;
         $("#recordCommentsModal").classList.remove("open");
         $("#recordCommentsModal").setAttribute("aria-hidden", "true");
       }
+      function openRecordDiagnosisModal() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        $("#recordDiagnosisInput").value = patient.customDiagnosis || "";
+        $("#recordDiagnosisModal").classList.add("open");
+        $("#recordDiagnosisModal").setAttribute("aria-hidden", "false");
+        $("#recordDiagnosisInput").focus();
+      }
+      function closeRecordDiagnosisModal() {
+        $("#recordDiagnosisModal").classList.remove("open");
+        $("#recordDiagnosisModal").setAttribute("aria-hidden", "true");
+      }
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
         if (!patient) return;
@@ -2375,15 +2502,17 @@ ${context}`;
         $("#recordVisitDate").textContent = "All entries";
         $("#recordStatus").textContent = `${rows.length} ${rows.length === 1 ? "note" : "notes"}`;
         renderPreviousRecords();
+        setAmbientButtons();
       }
       function printActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
         if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
+        const isPrescriptionPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && activeAmbientMode === "prescription";
         $("#medicalPrintContent").innerHTML = `
           <h1>${patient.name}</h1>
           <div class="meta">ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordView === "all" ? "All entries" : `${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`}</div>
-          <div>${activeMedicalPrintBody()}</div>
+          <div class="${isPrescriptionPrint ? "prescription-sheet-body" : ""}">${activeMedicalPrintBody()}</div>
           ${medicalPrintFooter()}
         `;
         document.body.classList.add("print-medical");
@@ -2601,6 +2730,7 @@ ${context}`;
               ? `<span class="status-pill noshow">No show</span>`
               : "";
           const selectedTests = (p.tests || []).filter((test) => tests.includes(test));
+          const diagnosis = doctorDiagnosis(p);
           return `
           <article class="patient ${hasNote ? "patient-seen-note" : ""}">
             <div class="doctor-patient-row">
@@ -2612,7 +2742,7 @@ ${context}`;
                 </div>
                 <div class="doctor-consult-meta">
                   ${patientCommentsHtml(p)}
-                  <span class="doctor-detail-pill diagnosis-pill">${p.diagnosis || "-"}</span>
+                  ${diagnosis ? `<span class="doctor-detail-pill diagnosis-pill">${escapeHtml(diagnosis)}</span>` : ""}
                   <span class="doctor-detail-pill">${doctorAbbreviation(p.visitType)}</span>
                   <span class="doctor-detail-pill">${doctorAbbreviation(p.mode)}</span>
                   ${status}
@@ -3417,7 +3547,8 @@ ${context}`;
         const visitType = selected("visitType"), mode = selected("mode"), diagnosis = selected("diagnosis");
         if (!visitType || !mode || !diagnosis) { alert("Please select visit type, consultation mode, and diagnosis."); return; }
         const id = makeId();
-        const patient = { id, patientId: reusedPatientUhid || nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), comments: selectedPatientComments("patientComments"), visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
+        const reusedPatient = reusedPatientUhid ? patients.find((item) => samePatientUhid(item, reusedPatientUhid)) : null;
+        const patient = { id, patientId: reusedPatientUhid || nextPatientSequenceId(selectedDate), date: selectedDate, name: $("#name").value.trim(), age: $("#age").value.trim(), sex: $("#sex").value, mobile: $("#mobile").value.trim(), comments: selectedPatientComments("patientComments"), customDiagnosis: reusedPatient?.customDiagnosis || "", visitType, mode, diagnosis, attendance: "", callbackStatus: "", tests: [], consultAmount: "", consultPayMode: "", testAmount: "", testPayMode: "" };
         patients.push(patient);
         savePatientToCloud(patient);
         event.target.reset();
@@ -3632,6 +3763,16 @@ ${context}`;
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
+        if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
+        if (button.id === "closeRecordDiagnosisBtn") closeRecordDiagnosisModal();
+        if (button.id === "saveRecordDiagnosisBtn") {
+          const patient = activeRecordPatient();
+          if (patient) {
+            await updatePatientDiagnosisByUhid(patient, $("#recordDiagnosisInput").value);
+            $("#recordStatus").textContent = "Diagnosis saved.";
+          }
+          closeRecordDiagnosisModal();
+        }
         if (button.id === "recordCommentsBtn") openRecordCommentsModal();
         if (button.id === "closeRecordCommentsBtn") closeRecordCommentsModal();
         if (button.id === "saveRecordCommentsBtn") {
@@ -3661,6 +3802,8 @@ ${context}`;
         }
         if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
         if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
+        if (button.id === "prevDateBtn") shiftSelectedDate(-1);
+        if (button.id === "nextDateBtn") shiftSelectedDate(1);
       });
       window.addEventListener("afterprint", () => document.body.classList.remove("print-accounts", "print-medical"));
       document.addEventListener("change", (event) => {
@@ -3708,7 +3851,8 @@ ${context}`;
       });
       document.addEventListener("keydown", async (event) => {
         const recordOpen = $("#medicalRecordScreen").classList.contains("open");
-        if (!recordOpen || activeRecordSource !== "ambient" || activeRecordView !== "draft") return;
+        const ambientDraftActive = draftMedicalRecord?.source === "ambient";
+        if (!recordOpen || !ambientDraftActive) return;
         if (ambientState === "ready") return;
         if (event.code === "Space") {
           event.preventDefault();
