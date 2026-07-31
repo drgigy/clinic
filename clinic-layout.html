@@ -1759,7 +1759,7 @@ Format every prescribed medicine as a numbered list, one medicine per line:
 
 Include dose, frequency, route, timing, and duration only if dictated.
 When a tablet count is dictated, write it with the timing as "morning 1 tablet", "evening 1 tablet", "bedtime 1 tablet". Never write bare timing counts like "morning 1" or "evening 1".
-For tapering or step-down medicines, create one numbered line for each step of the same medicine. Keep the duration simple in each line, and place the sequence in the instruction:
+For tapering or step-down medicines, create one numbered line for each step of the same medicine. Put the taper phase with the duration, not in the food/instruction field:
 1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
 2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
 3. Tablet Levipil - 20 days - bedtime 250 mg - Next 20 days, then stop
@@ -1862,7 +1862,7 @@ Formatting rules:
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
 - When a tablet count is dictated, write it as "morning 1 tablet", "evening 1 tablet", "bedtime 1 tablet". Never write bare timing counts like "morning 1" or "evening 1", because the prescription chart needs the full count.
-- For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Keep the Duration as only the step duration, for example "20 days", "20 days", "20 days". Put the sequence in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop".
+- For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Put the taper phase with the duration so the prescription chart can show it in the Duration column, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Keep the Instructions column only for food or administration instructions such as "after food", "before food", "empty stomach", "at 7 AM", or "as needed".
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
   1. Tablet Levipil - 20 days - morning 250 mg - evening 500 mg - First 20 days
   2. Tablet Levipil - 20 days - morning 250 mg - evening 250 mg - Next 20 days
@@ -2691,15 +2691,31 @@ ${context}`;
           .filter(Boolean);
       }
       function isPrescriptionSequenceInstruction(part) {
-        return /^(first|next|then|after|last|final)\b/i.test(String(part || "").trim())
-          || /\bthen\s+stop\b/i.test(String(part || ""));
+        const text = String(part || "").trim();
+        return /^(first|next|last|final)\s+\d+\s*(?:day|days|week|weeks|month|months|year|years)\b/i.test(text)
+          || /^after\s+\d+\s*(?:day|days|week|weeks|month|months|year|years)\b/i.test(text)
+          || /^then\s+stop\b/i.test(text)
+          || /\bthen\s+stop\b/i.test(text);
+      }
+      function prescriptionSequencePhase(line) {
+        const parts = splitPrescriptionParts(line);
+        if (parts.length <= 1) return "";
+        return parts.slice(1).find((part) => isPrescriptionSequenceInstruction(part)) || "";
+      }
+      function prescriptionDisplayDuration(line) {
+        const duration = prescriptionDuration(line);
+        const sequence = prescriptionSequencePhase(line);
+        if (!sequence) return duration;
+        if (!duration) return sequence;
+        if (sequence.toLowerCase().includes(duration.toLowerCase())) return sequence;
+        return `${duration} - ${sequence}`;
       }
       function prescriptionLineInstructions(line) {
         const instructions = [];
         const parts = splitPrescriptionParts(line);
         if (parts.length > 1) {
           const stepParts = parts.slice(1).filter((part) => {
-            if (prescriptionDuration(part) && !isPrescriptionSequenceInstruction(part)) return false;
+            if (prescriptionDuration(part) || isPrescriptionSequenceInstruction(part)) return false;
             if (/^(morning|breakfast|am|noon|afternoon|lunch|evening|dinner|bedtime|night|hs|as needed|when needed|sos|prn|if pain|when there is pain)\b/i.test(part)) return false;
             return true;
           });
@@ -2760,15 +2776,9 @@ ${context}`;
           bedtime: prescriptionTimingValue(line, "bedtime"),
           needed: prescriptionTimingValue(line, "needed")
         };
-        const parts = splitPrescriptionParts(line);
-        let duration = prescriptionDuration(line);
-        if (parts.length > 1) {
-          const durationPart = parts.slice(1).find((part) => prescriptionDuration(part));
-          if (durationPart) duration = prescriptionDuration(durationPart);
-        }
         return {
           medicine: cleanPrescriptionMedicine(line),
-          duration,
+          duration: prescriptionDisplayDuration(line),
           instructions: prescriptionLineInstructions(line),
           timing: {
             morning: values.morning || timing.morning,
@@ -2835,7 +2845,7 @@ ${context}`;
         const timingCell = (value) => {
           const label = typeof value === "string" ? value.trim() : "";
           if (label) return `<td class="time-cell timing-dose">${escapeHtml(label)}</td>`;
-          return `<td class="time-cell">${value ? `<span class="prescription-check">✓</span>` : `<span class="prescription-check"></span>`}</td>`;
+          return `<td class="time-cell">${value ? "✓" : ""}</td>`;
         };
         const medicineRows = medicineLines.map((line, index) => {
           const details = prescriptionLineDetails(line);
