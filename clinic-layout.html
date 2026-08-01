@@ -382,6 +382,12 @@
         body.print-medical.print-prescription .prescription-patient-plain h1 { color: #111; font-size: 20px; font-weight: 900 !important; margin: 0 0 3mm; }
         body.print-medical.print-prescription .prescription-patient-meta { color: #222; font-size: 12px; line-height: 1.4; }
         body.print-medical.print-prescription .prescription-rx-title { color: #15496f; font-size: 15px; font-weight: 900; margin: 0 0 5mm; }
+        body.print-medical.print-prescription .prescription-list { display: flex; flex-direction: column; gap: 5mm; margin: 0 0 8mm; }
+        body.print-medical.print-prescription .prescription-item { display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; break-inside: avoid; }
+        body.print-medical.print-prescription .prescription-number { font-weight: 900; color: #111; line-height: 1.45; }
+        body.print-medical.print-prescription .prescription-medicine { font-size: 14px; font-weight: 900; line-height: 1.45; margin-bottom: 1.5mm; }
+        body.print-medical.print-prescription .prescription-line { font-size: 13px; line-height: 1.45; margin: 0 0 1mm; }
+        body.print-medical.print-prescription .prescription-malayalam { font-size: 12px; line-height: 1.5; margin: 1mm 0 0; }
         body.print-medical.print-prescription .prescription-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6mm; }
         body.print-medical.print-prescription .prescription-table th { background: #f0f2f3; color: #111; font-size: 10px; text-align: center; border: 1px solid #9aa7af; padding: 8px 6px; }
         body.print-medical.print-prescription .prescription-table th:first-child { text-align: left; }
@@ -1858,25 +1864,33 @@ Formatting rules:
 - Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
 - Inside Prescription, use exactly these subheadings when relevant:
   Medications:
-  1. Tablet/Cap/Syrup/Inj brand name dose - timing - duration - food/administration instruction
+  1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction with timing, duration, and food/administration instruction.
+     Malayalam patient instruction for the same medicine.
   Advice:
   - Review/follow-up/investigation instructions line by line
+- Do not write the word "Malayalam" before the Malayalam text. Put the Malayalam instruction directly below the English instruction.
+- For each prescription medicine, keep the medicine name and dose as the first part of the line, then write a clear English instruction. Directly below it, write the same patient-facing instruction in Malayalam when possible.
+- Do not translate medicine brand names into Malayalam. Keep medicine names and doses in English in both English and Malayalam instruction lines.
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
 - If one duration is dictated for a group of medicines, repeat that duration in every medication line. Do not leave duration implicit or blank for any prescribed medicine when a shared duration was spoken.
-- Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1", because the prescription chart needs the full count.
-- The printed prescription chart has Morning, Noon, Night, As Needed, and Instructions columns. Do not use a separate Evening column.
-- When a specific clock time is dictated, use the clock time to choose the column: before 11 AM = Morning; 11 AM to before 4 PM = Noon; 4 PM onward or bedtime/night = Night. Put the clock time beside the dose in that timing column, not in Instructions.
-- If only the word evening is dictated without a clock time, treat it as Night.
-- For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Put the taper phase with the duration so the prescription chart can show it in the Duration column, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Keep the Instructions column only for food or administration instructions such as "after food", "before food", "empty stomach", or "as needed". If a specific clock time is dictated, keep it beside the timing dose, for example "morning 1 tablet at 7 AM" or "noon 1 tablet at 11 AM".
+- Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it clearly as "1 tablet in the morning", "1 tablet at noon", or "1 tablet at night".
+- When a specific clock time is dictated, keep the clock time in the instruction, for example "1 tablet at 7 AM before food".
+- If only the word evening is dictated without a clock time, write it as night.
+- For tapering or step-down prescriptions, create one numbered medication entry for each step. Repeat the same medicine name in each entry. Write the phase clearly in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label.
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
-  1. Tablet Levipil - 20 days - morning 250 mg - night 500 mg - First 20 days
-  2. Tablet Levipil - 20 days - morning 250 mg - night 250 mg - Next 20 days
-  3. Tablet Levipil - 20 days - night 250 mg - Next 20 days, then stop
+  1. Tablet Levipil - Take 250 mg in the morning and 500 mg at night for the first 20 days.
+     ആദ്യ 20 ദിവസത്തേക്ക് രാവിലെ 250 mg, രാത്രി 500 mg കഴിക്കുക.
+  2. Tablet Levipil - Take 250 mg in the morning and 250 mg at night for the next 20 days.
+     അടുത്ത 20 ദിവസത്തേക്ക് രാവിലെ 250 mg, രാത്രി 250 mg കഴിക്കുക.
+  3. Tablet Levipil - Take 250 mg at night for the next 20 days, then stop.
+     അടുത്ത 20 ദിവസത്തേക്ക് രാത്രി 250 mg കഴിച്ച് ശേഷം നിർത്തുക.
 - If the medicine strength is fixed and the taper changes tablet counts, write one line per step, for example:
-  1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - night 1 tablet - after food - First 5 days
-  2. Tablet Predmet 4 mg - 5 days - morning 1 tablet - after food - Next 5 days, then stop
+  1. Tablet Predmet 4 mg - Take 1 tablet in the morning and 1 tablet at night after food for the first 5 days.
+     ആദ്യ 5 ദിവസത്തേക്ക് ഭക്ഷണത്തിന് ശേഷം രാവിലെ 1 ഗുളികയും രാത്രി 1 ഗുളികയും കഴിക്കുക.
+  2. Tablet Predmet 4 mg - Take 1 tablet in the morning after food for the next 5 days, then stop.
+     അടുത്ത 5 ദിവസത്തേക്ക് ഭക്ഷണത്തിന് ശേഷം രാവിലെ 1 ഗുളിക കഴിച്ച് ശേഷം നിർത്തുക.
 - If a lab appointment, investigation schedule, paper/lab schedule, imaging, EEG, NCS, CT, MRI, blood test, or any investigation order is dictated, include it under Prescription > Advice line by line, even if it is also written under Orders. Do not omit investigation orders from the embedded prescription.
 - Do not merge tapering steps into one paragraph. Do not duplicate the same step.
 - Do not include patient demographics inside the Prescription section.
@@ -2861,6 +2875,9 @@ ${context}`;
           .replace(/^[*•-]\s*/, "")
           .trim();
       }
+      function hasMalayalamText(text) {
+        return /[\u0D00-\u0D7F]/.test(String(text || ""));
+      }
       function isPrescriptionSectionHeading(line) {
         return /^(date|prescription|rx|medications?|medicines?|drugs?|medications?\s*\/\s*advice)\s*:?$/i.test(line);
       }
@@ -2879,7 +2896,7 @@ ${context}`;
         return /^(advice|continue|review|follow\s*up|follow-up|return|come\s+for|repeat|avoid|physiotherapy|exercise|investigation|investigations|blood\s+test|cbc|rft|lft|tft|hba1c|urine|ecg|eeg|ncs|mri|ct|x-?ray|scan)\b/i.test(cleaned);
       }
       function splitPrescriptionLines(lines) {
-        const medicineLines = [];
+        const medicineItems = [];
         const adviceLines = [];
         let inAdvice = false;
         lines.forEach((line) => {
@@ -2895,9 +2912,53 @@ ${context}`;
             inAdvice = true;
             return;
           }
-          medicineLines.push(line);
+          const cleaned = prescriptionInstructionText(line);
+          if (hasMalayalamText(cleaned) && medicineItems.length) {
+            medicineItems[medicineItems.length - 1].malayalam.push(cleaned);
+            return;
+          }
+          if (isPrescriptionMedicineLine(line) || !medicineItems.length) {
+            medicineItems.push({ line, extra: [], malayalam: [] });
+            return;
+          }
+          medicineItems[medicineItems.length - 1].extra.push(cleaned);
         });
-        return { medicineLines, adviceLines };
+        return { medicineLines: medicineItems.map((item) => item.line), medicineItems, adviceLines };
+      }
+      function prescriptionTimingPhrase(timing = {}) {
+        const parts = [];
+        if (timing.morning) parts.push(`morning: ${timing.morning}`);
+        if (timing.noon) parts.push(`noon: ${timing.noon}`);
+        if (timing.bedtime) parts.push(`night: ${timing.bedtime}`);
+        if (timing.needed) parts.push(`as needed: ${timing.needed}`);
+        return parts.join("; ");
+      }
+      function descriptivePrescriptionLine(details, sourceLine, extraLines = []) {
+        const parts = splitPrescriptionParts(sourceLine);
+        const explicitInstruction = parts.slice(1)
+          .filter((part) => part && part !== details.duration && !isPrescriptionSequenceInstruction(part))
+          .join("; ");
+        if (/^(take|use|apply|instill|inject|continue|review|repeat|avoid|do)\b/i.test(explicitInstruction)) {
+          const sentence = [explicitInstruction, ...(extraLines || [])]
+            .filter(Boolean)
+            .join(". ")
+            .replace(/\.+/g, ".")
+            .trim();
+          return sentence ? `${sentence}${/[.!?]$/.test(sentence) ? "" : "."}` : prescriptionInstructionText(sourceLine);
+        }
+        const instructionParts = [];
+        const timingText = prescriptionTimingPhrase(details.timing);
+        if (timingText) instructionParts.push(`Take ${timingText}`);
+        if (details.duration) instructionParts.push(`Duration: ${details.duration}`);
+        if (details.instructions) instructionParts.push(details.instructions);
+        if (explicitInstruction && !instructionParts.some((part) => part.toLowerCase() === explicitInstruction.toLowerCase())) {
+          instructionParts.push(explicitInstruction);
+        }
+        extraLines.forEach((line) => {
+          if (line && !instructionParts.some((part) => part.toLowerCase() === line.toLowerCase())) instructionParts.push(line);
+        });
+        const sentence = instructionParts.join(". ").replace(/\.+/g, ".").trim();
+        return sentence ? `${sentence}${/[.!?]$/.test(sentence) ? "" : "."}` : prescriptionInstructionText(sourceLine);
       }
       function formatPrescriptionPrintHtml(html, patient) {
         const text = htmlToPlainText(stripDuplicateDocumentTitle(html, "Prescription"));
@@ -2906,27 +2967,23 @@ ${context}`;
           .map((line) => line.trim())
           .filter(Boolean)
           .filter((line) => !isDemographicLine(line) && !isPrescriptionSectionHeading(line));
-        const { medicineLines, adviceLines } = splitPrescriptionLines(lines);
+        const { medicineItems, adviceLines } = splitPrescriptionLines(lines);
         const dateText = activeRecordCreatedAt ? dateLabel(activeRecordCreatedAt.slice(0, 10)) : dateLabel(localDateKey());
-        const timingCell = (value) => {
-          const label = typeof value === "string" ? value.trim() : "";
-          if (label) return `<td class="time-cell timing-dose">${escapeHtml(label)}</td>`;
-          return `<td class="time-cell"></td>`;
-        };
-        const medicineRows = medicineLines.map((line, index) => {
-          const details = prescriptionLineDetails(line);
-          const timing = details.timing;
+        const medicineRows = medicineItems.map((item, index) => {
+          const details = prescriptionLineDetails(item.line);
+          const englishLine = descriptivePrescriptionLine(details, item.line, item.extra || []);
+          const malayalamLines = (item.malayalam || [])
+            .map((line) => `<div class="prescription-malayalam">${escapeHtml(line)}</div>`)
+            .join("");
           return `
-            <tr>
-              <td class="number-cell">${index + 1}.</td>
-              <td class="medicine-cell"><strong>${escapeHtml(details.medicine)}</strong></td>
-              <td class="duration-cell">${escapeHtml(details.duration)}</td>
-              ${timingCell(timing.morning)}
-              ${timingCell(timing.noon)}
-              ${timingCell(timing.bedtime)}
-              ${timingCell(timing.needed)}
-              <td class="instruction-cell">${escapeHtml(details.instructions)}</td>
-            </tr>
+            <div class="prescription-item">
+              <div class="prescription-number">${index + 1}.</div>
+              <div>
+                <div class="prescription-medicine">${escapeHtml(details.medicine)}</div>
+                <div class="prescription-line">${escapeHtml(englishLine)}</div>
+                ${malayalamLines}
+              </div>
+            </div>
           `;
         }).join("");
         const instructionRows = adviceLines
@@ -2952,32 +3009,7 @@ ${context}`;
                 </div>
               </div>
               <div class="prescription-rx-title">Rx / ADVICE</div>
-              ${medicineRows ? `
-                <table class="prescription-table">
-                  <colgroup>
-                    <col style="width:28px">
-                    <col>
-                    <col style="width:74px">
-                    <col style="width:64px">
-                    <col style="width:64px">
-                    <col style="width:64px">
-                    <col style="width:62px">
-                    <col style="width:112px">
-                  </colgroup>
-                  <thead>
-                    <tr>
-                      <th colspan="2">Medicine and dose</th>
-                      <th>Duration</th>
-                      <th>Morning</th>
-                      <th>Noon</th>
-                      <th>Night</th>
-                      <th>As Needed</th>
-                      <th>Instructions</th>
-                    </tr>
-                  </thead>
-                  <tbody>${medicineRows}</tbody>
-                </table>
-              ` : `<div>${html}</div>`}
+              ${medicineRows ? `<div class="prescription-list">${medicineRows}</div>` : `<div>${html}</div>`}
               ${instructionRows ? `<div class="prescription-instructions"><h2>Instructions</h2>${instructionRows}</div>` : ""}
               <div class="prescription-alert">
                 If you develop any rash, breathing difficulty, swelling, severe allergy symptoms, or any unexpected reaction, please contact us immediately or get urgent medical attention.
