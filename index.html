@@ -1854,7 +1854,7 @@ Formatting rules:
 - Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
-- Orders: line by line.
+- Orders: line by line. If investigations, lab tests, imaging, EEG/NCS, scans, or follow-up tests are ordered, always include them here line by line.
 - Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
 - Inside Prescription, use exactly these subheadings when relevant:
   Medications:
@@ -1864,8 +1864,11 @@ Formatting rules:
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
 - Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
+- If one duration is dictated for a group of medicines, repeat that duration in every medication line. Do not leave duration implicit or blank for any prescribed medicine when a shared duration was spoken.
 - Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1", because the prescription chart needs the full count.
-- The printed prescription chart has Morning, Noon, Night, As Needed, and Instructions columns. Do not use a separate Evening column. If evening is dictated, treat it as Night.
+- The printed prescription chart has Morning, Noon, Night, As Needed, and Instructions columns. Do not use a separate Evening column.
+- When a specific clock time is dictated, use the clock time to choose the column: before 11 AM = Morning; 11 AM to before 4 PM = Noon; 4 PM onward or bedtime/night = Night. Put the clock time beside the dose in that timing column, not in Instructions.
+- If only the word evening is dictated without a clock time, treat it as Night.
 - For tapering or step-down prescriptions, create one numbered medication line for each step. Repeat the same medicine name in each line. Put the taper phase with the duration so the prescription chart can show it in the Duration column, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Keep the Instructions column only for food or administration instructions such as "after food", "before food", "empty stomach", or "as needed". If a specific clock time is dictated, keep it beside the timing dose, for example "morning 1 tablet at 7 AM" or "noon 1 tablet at 11 AM".
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
   1. Tablet Levipil - 20 days - morning 250 mg - night 500 mg - First 20 days
@@ -1874,7 +1877,7 @@ Formatting rules:
 - If the medicine strength is fixed and the taper changes tablet counts, write one line per step, for example:
   1. Tablet Predmet 4 mg - 5 days - morning 1 tablet - night 1 tablet - after food - First 5 days
   2. Tablet Predmet 4 mg - 5 days - morning 1 tablet - after food - Next 5 days, then stop
-- If a lab appointment, investigation schedule, or paper/lab schedule is dictated, include it under Advice or Orders line by line. Do not omit lab appointments or investigations from the embedded prescription.
+- If a lab appointment, investigation schedule, paper/lab schedule, imaging, EEG, NCS, CT, MRI, blood test, or any investigation order is dictated, include it under Prescription > Advice line by line, even if it is also written under Orders. Do not omit investigation orders from the embedded prescription.
 - Do not merge tapering steps into one paragraph. Do not duplicate the same step.
 - Do not include patient demographics inside the Prescription section.
 - Preserve dictated brand names exactly and do not convert them to generic names.
@@ -2706,7 +2709,7 @@ ${context}`;
           const position = line.toLowerCase().indexOf(rawTime.toLowerCase());
           const nearby = position >= 0 ? line.slice(Math.max(0, position - 35), position + rawTime.length + 35) : line;
           const namedSlot = Object.entries(timingWords).find(([, pattern]) => pattern.test(nearby))?.[0];
-          const slot = namedSlot || prescriptionTimeSlot(time);
+          const slot = prescriptionTimeSlot(time) || namedSlot;
           if (slot && !slots[slot].some((item) => item.toLowerCase() === time.toLowerCase())) slots[slot].push(time);
         });
         return slots;
@@ -3003,14 +3006,29 @@ ${context}`;
         const fallbackIndex = lines.findIndex((line) => /^orders\s*:?\s*$/i.test(line));
         const index = startIndex >= 0 ? startIndex : fallbackIndex;
         if (index < 0) return "";
-        const headingPattern = /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|orders|prescription|rx)\s*:/i;
-        const extracted = [];
-        const firstLine = lines[index];
-        const sameLine = firstLine.replace(/^(prescription|rx|medications?\s*\/\s*advice|orders)\s*:?\s*/i, "").trim();
-        if (sameLine) extracted.push(sameLine);
-        for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
-          if (headingPattern.test(lines[cursor]) && extracted.length) break;
-          extracted.push(lines[cursor]);
+        const headingPattern = /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|orders|prescription|rx)(?:\s*:|\s*$)/i;
+        const collectSection = (sectionIndex, stripPattern) => {
+          const collected = [];
+          const firstLine = lines[sectionIndex];
+          const sameLine = firstLine.replace(stripPattern, "").trim();
+          if (sameLine) collected.push(sameLine);
+          for (let cursor = sectionIndex + 1; cursor < lines.length; cursor += 1) {
+            if (headingPattern.test(lines[cursor]) && collected.length) break;
+            if (headingPattern.test(lines[cursor]) && !collected.length) break;
+            collected.push(lines[cursor]);
+          }
+          return collected;
+        };
+        const extracted = collectSection(index, /^(prescription|rx|medications?\s*\/\s*advice|orders)\s*:?\s*/i);
+        if (startIndex >= 0 && fallbackIndex >= 0 && fallbackIndex !== startIndex) {
+          const orderLines = collectSection(fallbackIndex, /^orders\s*:?\s*/i)
+            .filter((line) => line && !/^(prescription|rx|advice|medications?)\s*:?\s*$/i.test(line));
+          const existing = new Set(extracted.map((line) => line.toLowerCase()));
+          const extraOrders = orderLines.filter((line) => !existing.has(line.toLowerCase()));
+          if (extraOrders.length) {
+            if (!extracted.some((line) => /^advice\s*:?/i.test(line))) extracted.push("Advice:");
+            extracted.push(...extraOrders);
+          }
         }
         return plainTextToHtml(extracted.join("\n").trim());
       }
