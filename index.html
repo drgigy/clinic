@@ -202,6 +202,8 @@
       .print-report table { width: 100%; border-collapse: collapse; margin-top: 10px; }
       .print-report th, .print-report td { border: 1px solid #ccd6dc; padding: 8px; text-align: left; font-size: 13px; }
       .print-report th { background: #f2f5f6; }
+      .print-report h2 { break-after: avoid; page-break-after: avoid; }
+      .print-report tr { break-inside: avoid; page-break-inside: avoid; }
       .print-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
       .print-box { border: 1px solid #ccd6dc; padding: 10px; border-radius: 6px; }
       .print-box span { display: block; color: #555; font-size: 12px; }
@@ -300,6 +302,36 @@
       .previous-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .previous-actions [data-new-record] { order: 1; }
       .previous-actions [data-ambient-record] { order: 2; }
+      .previous-actions [data-ambient-record] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        position: relative;
+        overflow: hidden;
+        min-height: 54px;
+        border: 2px solid #ff514a;
+        border-radius: 18px;
+        background: #1b1b1d;
+        color: #f7f7fb;
+        box-shadow: 0 10px 24px rgba(16, 24, 43, .14), inset 0 0 0 1px rgba(255,255,255,.03);
+        font-size: 20px;
+        font-weight: 950;
+        letter-spacing: .04em;
+      }
+      .previous-actions [data-ambient-record]::before {
+        content: "";
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        background: #ff514a;
+        box-shadow: 0 0 0 5px rgba(255, 81, 74, .1);
+        flex: 0 0 auto;
+      }
+      .previous-actions [data-ambient-record]::after { content: none; }
+      .previous-actions [data-ambient-record]:hover { background: #222225; border-color: #ff6963; color: #fff; }
+      .previous-actions [data-ambient-record]:active { transform: translateY(1px); }
+      .previous-actions [data-ambient-record].active { background: #2a1f20; color: #fff; border-color: #ff6963; }
       .previous-actions [data-all-records] { order: 3; grid-column: 1 / -1; }
       .note-action { justify-content: center; min-height: 54px; font-size: 16px; font-weight: 900; text-align: center; }
       .previous-record { justify-content: flex-start; width: 100%; text-align: left; min-height: auto; padding: 10px; }
@@ -311,6 +343,13 @@
       .icon-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
+      .treatment-summary-print { font-size: 15px; line-height: 1.45; }
+      .summary-visit { margin: 0 0 18px; }
+      .summary-date { font-size: 17px; font-weight: 900 !important; margin: 0 0 8px; }
+      .summary-section { margin: 0 0 8px; }
+      .summary-section h3 { font-size: 14px; font-weight: 900 !important; margin: 8px 0 4px; }
+      .summary-section ul { margin: 0 0 0 20px; padding: 0; }
+      .summary-section li { margin: 2px 0; }
       .medical-print-content { display: none; }
       .medical-disclaimer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #bbb; color: #555; font-size: 11px; line-height: 1.45; }
       .medical-signature { margin-top: 42px; color: #111; font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
@@ -367,6 +406,11 @@
         body.print-medical .medical-print-content h1 { font-size: 22px; font-weight: 900 !important; margin: 0 0 8px; }
         body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
         body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
+        body.print-medical .treatment-summary-print { font-size: 14px; line-height: 1.35; border-top: 1px solid #ccc; padding-top: 14px; }
+        body.print-medical .summary-visit { margin-bottom: 14px; break-inside: avoid; }
+        body.print-medical .summary-date { font-size: 15px; font-weight: 900 !important; margin-bottom: 5px; }
+        body.print-medical .summary-section h3 { font-size: 13px; font-weight: 900 !important; margin: 6px 0 3px; }
+        body.print-medical .summary-section li { margin: 1px 0; }
         body.print-medical .prescription-print { font-size: 14px; line-height: 1.45; }
         body.print-medical .prescription-print h2 { font-size: 16px; margin: 18px 0 8px; }
         body.print-medical .prescription-print ol, body.print-medical .prescription-print ul { margin: 6px 0 0 22px; padding: 0; }
@@ -817,7 +861,7 @@
         <div class="report-toolbar">
           <div>
             <h1>Clinic Accounts Report</h1>
-            <p id="accountsReportMonth"></p>
+            <p id="accountsReportTitleRange"></p>
           </div>
           <div class="report-actions">
             <button class="primary" type="button" id="savePdfAccountsBtn">Save as PDF</button>
@@ -1675,12 +1719,22 @@
         activeRecordDirty = true;
         $("#recordStatus").textContent = "Unsaved changes";
       }
-      function stopAmbientTracks() {
+      function hasLiveAmbientStream() {
+        return !!ambientStream && ambientStream.getAudioTracks().some((track) => track.readyState === "live");
+      }
+      async function getAmbientStream() {
+        if (hasLiveAmbientStream()) return ambientStream;
+        ambientStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        return ambientStream;
+      }
+      function stopAmbientTracks({ releaseMic = false } = {}) {
         if (ambientTimer) clearInterval(ambientTimer);
         ambientTimer = null;
         stopAmbientWave();
-        if (ambientStream) ambientStream.getTracks().forEach((track) => track.stop());
-        ambientStream = null;
+        if (releaseMic && ambientStream) {
+          ambientStream.getTracks().forEach((track) => track.stop());
+          ambientStream = null;
+        }
       }
       function setAmbientLevel(level = 0) {
         const activeBars = Math.min(28, Math.max(0, Math.round(level * 95)));
@@ -2158,7 +2212,7 @@ ${context}`;
       }
       function showAmbientResult(text = "", dirty = true) {
         ambientState = "ready";
-        activeRecordDocs.visit = plainTextToHtml(text);
+        activeRecordDocs.visit = activeAmbientMode === "summary" ? formattedTreatmentSummaryHtml(text) : plainTextToHtml(text);
         if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
           draftMedicalRecord.note = text;
           draftMedicalRecord.noteHtml = activeRecordDocs.visit;
@@ -2175,7 +2229,9 @@ ${context}`;
       function persistAmbientNote() {
         const textarea = ambientTextarea();
         const text = textarea ? textarea.value : htmlToPlainText($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "");
-        activeRecordDocs.visit = textarea ? plainTextToHtml(text) : ($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "");
+        activeRecordDocs.visit = activeAmbientMode === "summary"
+          ? formattedTreatmentSummaryHtml(text || $("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "")
+          : textarea ? plainTextToHtml(text) : ($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "");
         if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
           draftMedicalRecord.note = text;
           draftMedicalRecord.noteHtml = activeRecordDocs.visit;
@@ -2209,7 +2265,7 @@ ${context}`;
             ambientAudioBlob = null;
           }
           ambientStopShouldProcess = false;
-          ambientStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          ambientStream = await getAmbientStream();
           ambientRecorder = new MediaRecorder(ambientStream);
           ambientRecorder.ondataavailable = (event) => {
             if (event.data && event.data.size) ambientChunks.push(event.data);
@@ -2238,7 +2294,7 @@ ${context}`;
           if (activeRecordView !== "all") renderAllMedicalEntries();
         } catch (error) {
           console.error("Ambient recording failed", error);
-          stopAmbientTracks();
+          stopAmbientTracks({ releaseMic: true });
           ambientState = ambientAudioBlob ? "stopped" : "idle";
           setAmbientButtons();
           alert("Could not start microphone. Please allow microphone permission and try again.");
@@ -2425,13 +2481,13 @@ ${context}`;
         if (activeRecordSource === "ambient") {
           const text = ambientTextarea()?.value;
           if (text !== undefined) {
-            activeRecordDocs.visit = plainTextToHtml(text);
+            activeRecordDocs.visit = activeAmbientMode === "summary" ? formattedTreatmentSummaryHtml(text) : plainTextToHtml(text);
             draft.note = text;
             draft.noteHtml = activeRecordDocs.visit;
           } else if ($("#medicalNoteText")?.querySelector(".ambient-panel") && ambientState !== "ready") {
             activeRecordDocs.visit = draft.docs?.visit || draft.noteHtml || "";
           } else {
-            activeRecordDocs.visit = $("#medicalNoteText").innerHTML;
+            activeRecordDocs.visit = activeAmbientMode === "summary" ? formattedTreatmentSummaryHtml($("#medicalNoteText").innerHTML) : $("#medicalNoteText").innerHTML;
             draft.note = htmlToPlainText(activeRecordDocs.visit);
             draft.noteHtml = activeRecordDocs.visit;
           }
@@ -2444,6 +2500,11 @@ ${context}`;
         draft.updatedAt = new Date().toISOString();
         draft.source = activeRecordSource;
         if (activeRecordSource === "ambient") draft.recordKind = activeAmbientMode;
+        if (draft.recordKind === "summary") {
+          draft.noteHtml = formattedTreatmentSummaryHtml(draft.noteHtml || draft.note || activeRecordDocs.visit || "");
+          draft.docs = { visit: draft.noteHtml };
+          activeRecordDocs = { visit: draft.noteHtml };
+        }
       }
       function openDraftMedicalEntry(draftId = "") {
         const patient = activeRecordPatient();
@@ -2457,6 +2518,7 @@ ${context}`;
         activeAmbientMode = draft.recordKind || "visit";
         activeRecordType = "visit";
         activeRecordDocs = { visit: draft.docs?.visit || draft.noteHtml || (draft.note ? plainTextToHtml(draft.note) : "") };
+        if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
         $("#recordPatientName").textContent = draft.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${draft.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${draft.mobile || patient.mobile || "-"}`;
@@ -2485,7 +2547,7 @@ ${context}`;
           <div class="previous-actions">
             <button class="secondary previous-record ${activeRecordView === "all" ? "active" : ""}" type="button" data-all-records="true">All entries</button>
             <button class="primary previous-record note-action" type="button" data-new-record="true" title="Add typed note" aria-label="Add typed note">+ Note</button>
-            <button class="primary previous-record note-action" type="button" data-ambient-record="true" title="Add WOYZ voice note" aria-label="Add WOYZ voice note">+ WOYZ</button>
+            <button class="primary previous-record note-action" type="button" data-ambient-record="true" title="Add WOYZ voice note" aria-label="Add WOYZ voice note">WOYZ</button>
           </div>
           ${drafts.map((draft) => `
           <div class="record-entry-row">
@@ -2631,6 +2693,90 @@ ${context}`;
         container.innerHTML = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
         return container.innerText || container.textContent || "";
       }
+      function cleanSummaryLine(value) {
+        return String(value || "")
+          .replace(/\*\*([^*]+)\*\*/g, "$1")
+          .replace(/^[-*•]\s*/, "")
+          .trim();
+      }
+      function isTreatmentSummaryDateLine(value) {
+        return /^\*{0,2}\s*\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}(?:,\s*\d{1,2}:\d{2})?\s*\*{0,2}\s*$/.test(String(value || "").trim());
+      }
+      function isInvestigationSummaryLine(value) {
+        return /\b(mri|ct|eeg|ncs|baer|vep|blood|cbc|rft|lft|lipid|haemoglobin|hemoglobin|platelet|creatinine|urea|sodium|potassium|scan|x-?ray|angiogram|doppler|investigation|ordered|showed|revealed|reported|finding)\b/i.test(value);
+      }
+      function isMedicationSummaryLine(value) {
+        return /\b(tablet|tab|capsule|cap|injection|syrup|levipil|gabapin|gabantin|gabapentin|betacap|parkin|syndopa|ecosprin|clopilet|predmet|pantocid|betahistine|betavert|caltchnil|etoshine|started|continued|continue|prescribed|stopped|reduced|increased|taper|dose|mg|mcg|ml|once|twice|daily|nightly|morning|noon|evening|night|bedtime)\b/i.test(value);
+      }
+      function formattedTreatmentSummaryHtml(value) {
+        return treatmentSummaryHtml(value || "");
+      }
+      function treatmentSummaryHtml(value) {
+        const sourceText = /<\/?[a-z][\s\S]*>/i.test(String(value || "")) ? htmlToPlainText(value) : String(value || "");
+        const lines = sourceText.split("\n").map((line) => line.trim()).filter(Boolean);
+        if (!lines.length) return "";
+        const visits = [];
+        let current = null;
+        let section = "clinical";
+        const ensureCurrent = () => {
+          if (!current) {
+            current = { date: "Summary", clinical: [], investigations: [], medication: [] };
+            visits.push(current);
+          }
+          return current;
+        };
+        lines.forEach((line) => {
+          const cleaned = cleanSummaryLine(line);
+          if (isTreatmentSummaryDateLine(line) || isTreatmentSummaryDateLine(cleaned)) {
+            current = { date: cleaned, clinical: [], investigations: [], medication: [] };
+            visits.push(current);
+            section = "clinical";
+            return;
+          }
+          if (!cleaned) return;
+          if (/^clinical details\s*:?\s*$/i.test(cleaned)) {
+            section = "clinical";
+            return;
+          }
+          if (/^investigations?\s*:?\s*$/i.test(cleaned)) {
+            section = "investigations";
+            return;
+          }
+          if (/^(medication summary|medications?|treatment\s*\/\s*medications?)\s*:?\s*$/i.test(cleaned)) {
+            section = "medication";
+            return;
+          }
+          const target = section === "investigations" || isInvestigationSummaryLine(cleaned)
+            ? "investigations"
+            : section === "medication" || isMedicationSummaryLine(cleaned)
+              ? "medication"
+              : "clinical";
+          ensureCurrent()[target].push(cleaned);
+        });
+        return `<div class="treatment-summary-print">${visits.map((visit) => `
+          <section class="summary-visit">
+            <h2 class="summary-date">${escapeHtml(visit.date)}</h2>
+            ${visit.clinical.length ? `
+              <div class="summary-section">
+                <h3>Clinical Details</h3>
+                <ul>${visit.clinical.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+              </div>
+            ` : ""}
+            ${visit.investigations.length ? `
+              <div class="summary-section">
+                <h3>Investigations</h3>
+                <ul>${visit.investigations.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+              </div>
+            ` : ""}
+            ${visit.medication.length ? `
+              <div class="summary-section">
+                <h3>Medication Summary</h3>
+                <ul>${visit.medication.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+              </div>
+            ` : ""}
+          </section>
+        `).join("")}</div>`;
+      }
       function treatmentSummarySourceRecords(patient) {
         return patientMedicalRecords(patient)
           .filter((record) => !["prescription", "certificate", "reply", "summary"].includes(record.recordKind || "visit"))
@@ -2657,11 +2803,19 @@ For each date, include only relevant details that are actually present:
 - key investigation or examination finding
 - important treatment change, prescription change, or follow-up/order
 
-Use this compact format:
+Use this exact compact format for each visit:
 Date
-- 1 to 3 short bullets only.
+Clinical Details:
+- 1 to 3 short bullets about symptoms, course, diagnosis, advice, or follow-up.
+Investigations:
+- 1 to 3 short bullets about investigations, imaging, EEG, blood tests, or test orders.
+Medication Summary:
+- 1 to 3 short bullets about medication starts, stops, continuation, tapering, or dose changes.
 
-Omit empty headings.
+Omit any heading that has no content for that date.
+Put imaging, EEG, NCS, blood tests, and test orders only under Investigations.
+Put medicines, prescriptions, tapers, and dose changes only under Medication Summary.
+Do not use Markdown bold markers. Do not put asterisks around dates.
 Avoid repeating full medication lists unless there was a change.
 Avoid copying Malayalam prescription instruction lines into the summary unless clinically essential.
 If several visits say the same thing, summarize the change instead of repeating.
@@ -2693,7 +2847,7 @@ ${visitNotes}`;
           const createdAt = new Date().toISOString();
           const summaryDraft = createDraftMedicalRecord(patient, "ambient", "summary", createdAt);
           summaryDraft.note = summaryText;
-          summaryDraft.noteHtml = plainTextToHtml(summaryText);
+          summaryDraft.noteHtml = formattedTreatmentSummaryHtml(summaryText);
           summaryDraft.docs = { visit: summaryDraft.noteHtml };
           extraDraftMedicalRecords = [summaryDraft, ...extraDraftMedicalRecords.filter((draft) => draft.id !== summaryDraft.id)];
           activeRecordView = "draft";
@@ -3160,6 +3314,9 @@ ${visitNotes}`;
         const rawHtml = ["single", "draft"].includes(activeRecordView)
           ? (activeRecordDocs.visit || "No notes entered.")
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
+        if (activeRecordView !== "all" && activeAmbientMode === "summary") {
+          return formattedTreatmentSummaryHtml(rawHtml);
+        }
         if (activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode)) {
           const withoutTitle = stripDuplicateDocumentTitle(rawHtml, ambientModeLabel(activeAmbientMode));
           if (activeAmbientMode === "prescription") return formatPrescriptionPrintHtml(withoutTitle, activeRecordPatient());
@@ -3352,12 +3509,18 @@ ${visitNotes}`;
         $("#recordDeleteBtn").hidden = true;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
-        $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => `
-          <section class="timeline-entry" id="entry-${record.id}">
-            <h2>${record.source === "ambient" ? `${ambientModeLabel(record.recordKind || "visit")} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</h2>
-            <div>${record.docs?.visit || record.noteHtml || plainTextToHtml(record.note || "")}</div>
-          </section>
-        `).join("") : `<div class="empty">No notes yet. Click Add note.</div>`;
+        $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => {
+          const recordKind = record.recordKind || "visit";
+          const bodyHtml = recordKind === "summary"
+            ? formattedTreatmentSummaryHtml(record.docs?.visit || record.noteHtml || record.note || "")
+            : (record.docs?.visit || record.noteHtml || plainTextToHtml(record.note || ""));
+          return `
+            <section class="timeline-entry" id="entry-${record.id}">
+              <h2>${record.source === "ambient" ? `${ambientModeLabel(recordKind)} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</h2>
+              <div>${bodyHtml}</div>
+            </section>
+          `;
+        }).join("") : `<div class="empty">No notes yet. Click Add note.</div>`;
         $("#recordVisitDate").textContent = "All entries";
         if (draftMedicalRecord?.source === "ambient" && ["recording", "paused", "stopped", "processing"].includes(ambientState)) {
           $("#recordStatus").textContent = "";
@@ -3413,6 +3576,10 @@ ${visitNotes}`;
         const savingDraft = Boolean(savingDraftRecord && activeRecordView === "draft");
         const recordId = savingDraft ? `${patient.id}_${localDateKey()}_${makeId().slice(0, 8)}` : activeRecordId;
         const createdAt = savingDraft ? savingDraftRecord.createdAt : (activeRecordCreatedAt || new Date().toISOString());
+        if (activeRecordSource === "ambient" && activeAmbientMode === "summary") {
+          activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "");
+          $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        }
         const record = {
           id: recordId,
           patientAppointmentId: patient.id,
@@ -3483,6 +3650,7 @@ ${visitNotes}`;
         activeRecordDocs = {
           visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
+        if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
         activeRecordType = "visit";
         $("#medicalNoteText").setAttribute("contenteditable", "true");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
@@ -3499,7 +3667,7 @@ ${visitNotes}`;
       }
       function closeMedicalRecordScreen() {
         captureActiveDraft();
-        stopAmbientTracks();
+        stopAmbientTracks({ releaseMic: true });
         draftMedicalRecord = null;
         extraDraftMedicalRecords = [];
         $("#medicalRecordScreen").classList.remove("open");
@@ -4369,6 +4537,7 @@ ${visitNotes}`;
         const account = accountTotals(report.accounts);
         const rows = report.accounts;
         const totalIncome = clinic.grandTotal + account.otherIncome;
+        const profit = totalIncome - account.expense;
         const autoDoctorGpay = clinic.consultGpay;
         const autoDoctorCard = clinic.consultCard;
         const autoNeuroGpay = clinic.testGpay;
@@ -4378,10 +4547,26 @@ ${visitNotes}`;
         const autoBankCredit = autoDoctorCredit + autoNeuroCredit + account.gpayOtherIncome + account.cardOtherIncome + account.chequeOtherIncome;
         const totalBankCredit = autoBankCredit + account.remittance;
         const cashBalance = clinic.cashTotal + account.cashOtherIncome - account.cashExpense - account.cashRemittance;
-        const bankRows = Object.entries(account.bank).map(([bank, amount]) => `<tr><td>${bank}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No remittance entered</td></tr>`;
-        const expenseRows = Object.entries(account.expenseCategory).map(([category, amount]) => `<tr><td>${category}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No expenses entered</td></tr>`;
-        const ledgerRows = rows.map((entry) => `<tr><td>${entry.date}</td><td>${entry.type}</td><td>${entry.bank}</td><td>${entry.mode || "-"}</td><td>${entry.type === "Expense" ? "-" : money(entry.amount)}</td><td>${entry.type === "Expense" ? money(entry.amount) : "-"}</td><td>${entry.note || ""}</td></tr>`).join("") || `<tr><td colspan="7">No manual account entries</td></tr>`;
-        $("#accountsReportMonth").textContent = report.label;
+        const noShowRate = clinic.total ? Math.round((clinic.noShow / clinic.total) * 100) : 0;
+        const common = Object.entries(clinic.diagnosis).sort((a, b) => b[1] - a[1])[0];
+        const clinicDetailRows = [
+          ["Total booked", clinic.total],
+          ["Came", clinic.came],
+          ["Missed", clinic.total - clinic.came],
+          ["No show", clinic.noShow],
+          ["No show rate", `${noShowRate}%`],
+          ["First consultation", clinic.first],
+          ["Review", clinic.review],
+          ["In clinic", clinic.clinic],
+          ["Teleconsultation", clinic.tele],
+          ["Most common diagnosis", common ? `${common[0]}: ${common[1]}` : "-"]
+        ].map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`).join("");
+        const testRows = tests.map((test) => `<tr><td>${escapeHtml(test)}</td><td>${clinic.tests[test] || 0}</td></tr>`).join("");
+        const bankRows = Object.entries(account.bank).map(([bank, amount]) => `<tr><td>${escapeHtml(bank)}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No remittance entered</td></tr>`;
+        const expenseRows = Object.entries(account.expenseCategory).map(([category, amount]) => `<tr><td>${escapeHtml(category)}</td><td>${money(amount)}</td></tr>`).join("") || `<tr><td colspan="2">No expenses entered</td></tr>`;
+        const manualIncomeRows = rows.filter((entry) => entry.type !== "Expense").map((entry) => `<tr><td>${escapeHtml(entry.date)}</td><td>${escapeHtml(entry.type || "-")}</td><td>${escapeHtml(entry.bank || "-")}</td><td>${escapeHtml(entry.mode || "-")}</td><td>${money(entry.amount)}</td><td>${escapeHtml(entry.note || "")}</td></tr>`).join("") || `<tr><td colspan="6">No manual income or remittance entries</td></tr>`;
+        const expenseDetailRows = rows.filter((entry) => entry.type === "Expense").map((entry) => `<tr><td>${escapeHtml(entry.date)}</td><td>${escapeHtml(entry.bank || "-")}</td><td>${escapeHtml(entry.mode || "-")}</td><td>${money(entry.amount)}</td><td>${escapeHtml(entry.note || "")}</td></tr>`).join("") || `<tr><td colspan="5">No expense entries</td></tr>`;
+        $("#accountsReportTitleRange").textContent = report.label;
         $("#accountsReportContent").innerHTML = `
           <div class="print-summary">
             <div class="print-box"><span>Clinic income</span><strong>${money(clinic.grandTotal)}</strong></div>
@@ -4390,7 +4575,12 @@ ${visitNotes}`;
             <div class="print-box"><span>Expenses</span><strong>${money(account.expense)}</strong></div>
             <div class="print-box"><span>Bank credited</span><strong>${money(totalBankCredit)}</strong></div>
             <div class="print-box"><span>Cash balance</span><strong>${money(cashBalance)}</strong></div>
+            <div class="print-box"><span>Profit</span><strong>${money(profit)}</strong></div>
           </div>
+          <h2>Clinic Monthly Details</h2>
+          <table><tr><th>Detail</th><th>Value</th></tr>${clinicDetailRows}</table>
+          <h2>Tests Ordered</h2>
+          <table><tr><th>Test</th><th>Count</th></tr>${testRows}</table>
           <h2>Income Breakup</h2>
           <table><tr><th>Type</th><th>Cash</th><th>GPay</th><th>Card</th><th>Total</th></tr>
           <tr><td>Consultation</td><td>${money(clinic.consultCash)}</td><td>${money(clinic.consultGpay)}</td><td>${money(clinic.consultCard)}</td><td>${money(clinic.consultTotal)}</td></tr>
@@ -4402,7 +4592,8 @@ ${visitNotes}`;
           <h2>Manual Bank Remittance</h2>
           <table><tr><th>Mode</th><th>Amount</th></tr><tr><td>Cash</td><td>${money(account.cashRemittance)}</td></tr><tr><td>GPay</td><td>${money(account.gpayRemittance)}</td></tr><tr><td>Card</td><td>${money(account.cardRemittance)}</td></tr><tr><td>Cheque</td><td>${money(account.chequeRemittance)}</td></tr></table>
           <table><tr><th>Account</th><th>Amount</th></tr>${bankRows}</table>
-          <h2>Ledger Entries</h2><table><tr><th>Date</th><th>Type</th><th>Account / Category</th><th>Mode</th><th>Income</th><th>Expense</th><th>Notes</th></tr>${ledgerRows}</table>
+          <h2>Manual Income and Remittance Details</h2><table><tr><th>Date</th><th>Type</th><th>Account / Category</th><th>Mode</th><th>Amount</th><th>Notes</th></tr>${manualIncomeRows}</table>
+          <h2>Expense Details</h2><table><tr><th>Date</th><th>Category</th><th>Mode</th><th>Amount</th><th>Notes</th></tr>${expenseDetailRows}</table>
         `;
         $("#accountsReportOverlay").classList.add("open");
         $("#accountsReportOverlay").setAttribute("aria-hidden", "false");
@@ -4582,7 +4773,7 @@ ${visitNotes}`;
         if (button.id === "printNeuroBtn") {
           renderNeuroReview();
           const analysis = selectedNeuroAnalysis();
-          $("#accountsReportMonth").textContent = `Neurodiagnostics report - ${analysis.label}`;
+          $("#accountsReportTitleRange").textContent = `Neurodiagnostics report - ${analysis.label}`;
           $("#accountsReportContent").innerHTML = neuroPrintableReport();
           $("#accountsReportOverlay").classList.add("open");
           $("#accountsReportOverlay").setAttribute("aria-hidden", "false");
@@ -4758,7 +4949,11 @@ ${visitNotes}`;
         }
       });
       $("#logoutBtn").addEventListener("click", async () => {
+        stopAmbientTracks({ releaseMic: true });
         await signOut(auth);
+      });
+      window.addEventListener("beforeunload", () => {
+        stopAmbientTracks({ releaseMic: true });
       });
       onAuthStateChanged(auth, (user) => {
         if (user) {
