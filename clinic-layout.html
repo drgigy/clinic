@@ -961,7 +961,7 @@
         </div>
           <div class="record-actions">
           <button class="secondary" type="button" id="recordPrintPrescriptionBtn">Print Prescription</button>
-          <button class="secondary" type="button" id="recordSummaryBtn">Summary</button>
+          <button class="secondary" type="button" id="recordSummaryBtn">Timeline</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
@@ -1802,7 +1802,7 @@
         return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
       }
       function ambientModeLabel(mode = activeAmbientMode) {
-        if (mode === "summary") return "Treatment Summary";
+        if (mode === "summary") return "Timeline";
         return ambientModes[mode] || ambientModes.visit;
       }
       function ambientFloatModeLabel(mode = activeAmbientMode) {
@@ -2711,7 +2711,9 @@ ${context}`;
         return /\b(tablet|tab|capsule|cap|injection|syrup|levipil|gabapin|gabantin|gabapentin|betacap|parkin|syndopa|ecosprin|clopilet|predmet|pantocid|betahistine|betavert|caltchnil|etoshine|started|continued|continue|prescribed|stopped|reduced|increased|taper|dose|mg|mcg|ml|once|twice|daily|nightly|morning|noon|evening|night|bedtime)\b/i.test(value);
       }
       function formattedTreatmentSummaryHtml(value) {
-        return treatmentSummaryHtml(value || "");
+        const source = String(value || "");
+        if (source.includes("treatment-timeline-print")) return source;
+        return treatmentSummaryHtml(source);
       }
       function treatmentSummaryHtml(value) {
         const sourceText = /<\/?[a-z][\s\S]*>/i.test(String(value || "")) ? htmlToPlainText(value) : String(value || "");
@@ -2784,50 +2786,18 @@ ${context}`;
           .filter((record) => !["prescription", "certificate", "reply", "summary"].includes(record.recordKind || "visit"))
           .sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
       }
-      function treatmentSummaryPrompt(patient, records) {
-        const visitNotes = records.map((record) => {
-          const title = dateTimeLabel(recordTimestamp(record));
-          const text = htmlToPlainText(record.docs?.visit || record.noteHtml || record.note || "").trim();
-          return `--- ${title} ---\n${text}`;
-        }).join("\n\n");
-        return `You are preparing a compact treatment summary for a doctor to review a patient's history at a glance.
-
-Use ONLY the visit notes provided. Do not add, infer, assume, or hallucinate clinical details.
-Arrange visits in chronological order from oldest to newest.
-Separate each visit by date.
-
-This is for REVIEW inside the app, so keep it concise and avoid page-length output.
-Do NOT include clinic letterhead, formal header, patient demographics, UHID, mobile number, or long introductions in the summary text.
-
-For each date, include only relevant details that are actually present:
-- diagnosis/assessment
-- major symptom or clinical course change
-- key investigation or examination finding
-- important treatment change, prescription change, or follow-up/order
-
-Use this exact compact format for each visit:
-Date
-Clinical Details:
-- 1 to 3 short bullets about symptoms, course, diagnosis, advice, or follow-up.
-Investigations:
-- 1 to 3 short bullets about investigations, imaging, EEG, blood tests, or test orders.
-Medication Summary:
-- 1 to 3 short bullets about medication starts, stops, continuation, tapering, or dose changes.
-
-Omit any heading that has no content for that date.
-Put imaging, EEG, NCS, blood tests, and test orders only under Investigations.
-Put medicines, prescriptions, tapers, and dose changes only under Medication Summary.
-Do not use Markdown bold markers. Do not put asterisks around dates.
-Avoid repeating full medication lists unless there was a change.
-Avoid copying Malayalam prescription instruction lines into the summary unless clinically essential.
-If several visits say the same thing, summarize the change instead of repeating.
-Keep each visit preferably within 3 lines.
-Use clear plain text. Return only the concise summary.
-
-Patient name for context only: ${patient?.name || ""}
-
-VISIT NOTES:
-${visitNotes}`;
+      function timelineRecordBody(record) {
+        const html = record.docs?.visit || record.noteHtml || "";
+        if (html) return html;
+        return escapeHtml(record.note || "").replace(/\n/g, "<br>");
+      }
+      function treatmentTimelineHtml(records) {
+        return `<div class="treatment-summary-print treatment-timeline-print">${records.map((record) => `
+          <section class="summary-visit treatment-timeline-entry">
+            <h2 class="summary-date">${escapeHtml(dateTimeLabel(recordTimestamp(record)))}</h2>
+            <div class="timeline-note-body">${timelineRecordBody(record)}</div>
+          </section>
+        `).join("")}</div>`;
       }
       async function createTreatmentSummary() {
         const patient = activeRecordPatient();
@@ -2835,46 +2805,34 @@ ${visitNotes}`;
         persistCurrentRecordTab();
         const records = treatmentSummarySourceRecords(patient);
         if (!records.length) {
-          alert("No saved visit notes found for summary.");
+          alert("No saved visit notes found for timeline.");
           return;
         }
-        const apiKey = readStore(geminiApiKeyStore, "").trim();
-        if (!apiKey) {
-          alert("Please add the authorization key in Settings first.");
-          return;
-        }
-        try {
-          $("#recordStatus").textContent = "Preparing concise treatment summary...";
-          const summaryText = await requestGeminiText(apiKey, treatmentSummaryPrompt(patient, records));
-          const createdAt = new Date().toISOString();
-          const summaryDraft = createDraftMedicalRecord(patient, "ambient", "summary", createdAt);
-          summaryDraft.note = summaryText;
-          summaryDraft.noteHtml = formattedTreatmentSummaryHtml(summaryText);
-          summaryDraft.docs = { visit: summaryDraft.noteHtml };
-          extraDraftMedicalRecords = [summaryDraft, ...extraDraftMedicalRecords.filter((draft) => draft.id !== summaryDraft.id)];
-          activeRecordView = "draft";
-          activeRecordId = summaryDraft.id;
-          activeRecordDate = summaryDraft.date;
-          activeRecordCreatedAt = summaryDraft.createdAt;
-          activeRecordSource = "ambient";
-          activeAmbientMode = "summary";
-          activeRecordType = "visit";
-          activeRecordDocs = { visit: summaryDraft.noteHtml };
-          $("#recordVisitDate").textContent = `${dateTimeLabel(createdAt)} - draft`;
-          $("#medicalNoteText").setAttribute("contenteditable", "true");
-          $("#medicalNoteText").innerHTML = summaryDraft.noteHtml;
-          $("#recordDeleteBtn").hidden = false;
-          $("#recordDeleteBtn").title = "Discard draft";
-          $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
-          activeRecordDirty = true;
-          $("#recordStatus").textContent = "Treatment Summary draft. Review and save.";
-          renderPreviousRecords();
-          $("#medicalNoteText").focus();
-        } catch (error) {
-          console.error("Treatment summary failed", error);
-          $("#recordStatus").textContent = "Could not prepare summary.";
-          alert(`Summary failed: ${error.message || "Please try again."}`);
-        }
+        const createdAt = new Date().toISOString();
+        const timelineHtml = treatmentTimelineHtml(records);
+        const timelineDraft = createDraftMedicalRecord(patient, "manual", "summary", createdAt);
+        timelineDraft.note = htmlToPlainText(timelineHtml);
+        timelineDraft.noteHtml = timelineHtml;
+        timelineDraft.docs = { visit: timelineHtml };
+        extraDraftMedicalRecords = [timelineDraft, ...extraDraftMedicalRecords.filter((draft) => draft.id !== timelineDraft.id)];
+        activeRecordView = "draft";
+        activeRecordId = timelineDraft.id;
+        activeRecordDate = timelineDraft.date;
+        activeRecordCreatedAt = timelineDraft.createdAt;
+        activeRecordSource = "manual";
+        activeAmbientMode = "summary";
+        activeRecordType = "visit";
+        activeRecordDocs = { visit: timelineHtml };
+        $("#recordVisitDate").textContent = `${dateTimeLabel(createdAt)} - draft`;
+        $("#medicalNoteText").setAttribute("contenteditable", "true");
+        $("#medicalNoteText").innerHTML = timelineHtml;
+        $("#recordDeleteBtn").hidden = false;
+        $("#recordDeleteBtn").title = "Discard draft";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
+        activeRecordDirty = true;
+        $("#recordStatus").textContent = "Timeline draft. Review and save.";
+        renderPreviousRecords();
+        $("#medicalNoteText").focus();
       }
       function cleanCredentialsHtml(value) {
         const container = document.createElement("div");
