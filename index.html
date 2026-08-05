@@ -116,6 +116,16 @@
       .two, .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
       .date-control { display: grid; grid-template-columns: auto 160px auto; align-items: end; gap: 10px; }
       .patient-list { display: grid; gap: 10px; }
+      .doctor-search-panel { margin: 0 0 14px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; display: grid; gap: 8px; }
+      .doctor-search-panel[hidden] { display: none; }
+      .doctor-search-panel label { font-size: 13px; font-weight: 800; color: var(--muted); }
+      .doctor-search-row { display: flex; gap: 8px; align-items: center; }
+      .doctor-search-row input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 16px; font-weight: 800; color: var(--text); }
+      .doctor-search-results { display: grid; gap: 8px; }
+      .doctor-search-result { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #f8fbfc; color: var(--text); text-align: left; display: grid; gap: 3px; cursor: pointer; }
+      .doctor-search-result strong { font-size: 16px; }
+      .doctor-search-result span { color: var(--muted); font-size: 13px; font-weight: 700; }
+      .doctor-search-result:hover { border-color: var(--green); background: #eefaf4; }
       .patient { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; }
       .patient.simple { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
       .patient b { display: block; margin-bottom: 4px; }
@@ -681,6 +691,14 @@
 
           <section class="section wide" id="after">
             <div class="section-head" id="afterSectionHead"><h2>After Consultation</h2><div class="filters"><button class="chip active" type="button" id="afterDateLabel"></button></div></div>
+            <div class="doctor-search-panel" id="doctorSearchPanel" hidden>
+              <label for="doctorPatientSearch">Search previous patient</label>
+              <div class="doctor-search-row">
+                <input id="doctorPatientSearch" type="search" autocomplete="off" placeholder="Name, mobile number, or UHID" />
+                <button class="secondary" id="clearDoctorSearch" type="button">Clear</button>
+              </div>
+              <div class="doctor-search-results" id="doctorPatientSearchResults"></div>
+            </div>
             <div class="patient-list" id="afterList"></div>
           </section>
 
@@ -1087,6 +1105,7 @@
       let activeFilter = "all";
       let followupFilter = "needs";
       let activeMainTab = "doctor";
+      let doctorSearchQuery = "";
       let openCallbackId = "";
       let followupExpanded = false;
       let whatsappExpanded = false;
@@ -1940,13 +1959,16 @@ Formatting rules:
 - Do not translate medicine brand names into Malayalam. Keep medicine names and doses in English in both English and Malayalam instruction lines.
 - Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
 - For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
-- Write prescription duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
+- In English prescription instructions, write duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
+- In Malayalam patient instruction lines, spell general counts and durations in Malayalam words instead of English numerals when possible, especially at the start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days" -> "പത്ത് ദിവസം", "20 days" -> "ഇരുപത് ദിവസം", "1 month" -> "ഒരു മാസം", "2 weeks" -> "രണ്ട് ആഴ്ച".
+- Keep drug names and doses in English/numerals inside Malayalam instruction lines, for example "Gabapin 300 mg" and "Levipil 250 mg" should remain in English.
+- If the English instruction says "After 10 days, take 1 tablet at night for 10 days", the Malayalam instruction should say "പത്ത് ദിവസത്തിന് ശേഷം, രാത്രിയിൽ ഒരു ഗുളിക പത്ത് ദിവസത്തേക്ക് കഴിക്കുക." The Malayalam line must not begin with "10".
 - If one duration is dictated for a group of medicines, repeat that duration in every medication line. Do not leave duration implicit or blank for any prescribed medicine when a shared duration was spoken.
 - Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it clearly as "1 tablet in the morning", "1 tablet at noon", or "1 tablet at night".
 - When a specific clock time is dictated, keep the clock time in the instruction, for example "1 tablet at 7 AM before food".
 - If only the word evening is dictated without a clock time, write it as night.
 - Do not use internal labels like "morning:", "noon:", "night:", "bedtime:", "Duration:", or "Instructions:" in prescription lines. Write one clear patient-facing sentence after the medicine name.
-- For tapering or step-down prescriptions, create one numbered medication entry for each step. Repeat the same medicine name in each entry. Write the phase clearly in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label.
+- For tapering or step-down prescriptions, create one numbered medication entry for each step. Repeat the same medicine name in each entry. Write the phase clearly in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label, using Malayalam words for phase durations and tablet counts where possible.
 - For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
   1. Tablet Levipil - Take 250 mg in the morning and 500 mg at night for the first 20 days.
      ആദ്യ 20 ദിവസത്തേക്ക് രാവിലെ 250 mg, രാത്രി 500 mg കഴിക്കുക.
@@ -3773,7 +3795,66 @@ ${context}`;
           <article class="patient simple"><div><b>${patientLine(p)}</b><div class="meta">${p.diagnosis} · ${p.visitType} · ${p.mode}</div><div class="mobile">Mobile: ${p.mobile || "-"}</div></div><button class="secondary" data-delete="${p.id}" type="button">Delete</button></article>
         `).join("") : `<div class="empty">No patients added for this date.</div>`;
       }
+      function latestPatientsByUhid() {
+        const latest = new Map();
+        patients.forEach((patient) => {
+          const uhid = patientDisplayId(patient);
+          if (!uhid) return;
+          const existing = latest.get(uhid);
+          const existingKey = `${existing?.date || ""}-${existing?.createdAt || ""}-${existing?.id || ""}`;
+          const patientKey = `${patient.date || ""}-${patient.createdAt || ""}-${patient.id || ""}`;
+          if (!existing || patientKey > existingKey) latest.set(uhid, patient);
+        });
+        return [...latest.values()].sort((a, b) =>
+          `${b.date || ""}-${b.createdAt || ""}-${b.id || ""}`.localeCompare(`${a.date || ""}-${a.createdAt || ""}-${a.id || ""}`)
+        );
+      }
+
+      function doctorSearchText(patient) {
+        return [
+          patient.name,
+          patient.mobile,
+          patientDisplayId(patient),
+          patient.patientId,
+          patient.diagnosis,
+          patient.customDiagnosis,
+          patient.visitType,
+          patient.mode,
+          ...(Array.isArray(patient.comments) ? patient.comments.map(String) : [])
+        ].filter(Boolean).join(" ").toLowerCase();
+      }
+
+      function renderDoctorPatientSearch() {
+        const panel = $("#doctorSearchPanel");
+        const input = $("#doctorPatientSearch");
+        const results = $("#doctorPatientSearchResults");
+        if (!panel || !input || !results) return;
+        const visible = activeMainTab === "doctor";
+        panel.hidden = !visible;
+        if (!visible) return;
+        if (document.activeElement !== input && input.value !== doctorSearchQuery) {
+          input.value = doctorSearchQuery;
+        }
+        const query = doctorSearchQuery.trim().toLowerCase();
+        if (!query) {
+          results.innerHTML = "";
+          return;
+        }
+        const matches = latestPatientsByUhid()
+          .filter((patient) => doctorSearchText(patient).includes(query))
+          .slice(0, 10);
+        results.innerHTML = matches.length
+          ? matches.map((patient) => `
+              <button class="doctor-search-result" type="button" data-doctor-open-patient="${patient.id}">
+                <strong>${escapeHtml(patient.name || "Unnamed patient")}, ${escapeHtml(patient.age || "-")}/${escapeHtml((patient.sex || "-").charAt(0) || "-")} · ID: ${escapeHtml(patientDisplayId(patient))}</strong>
+                <span>Mobile: ${escapeHtml(patient.mobile || "-")} · Last visit: ${escapeHtml(dateLabel(patient.date))} · ${escapeHtml(patient.customDiagnosis || patient.diagnosis || "-")}</span>
+              </button>
+            `).join("")
+          : `<div class="empty compact">No patient found.</div>`;
+      }
+
       function renderAfterList() {
+        renderDoctorPatientSearch();
         const rows = selectedDayPatients();
         const doctorRow = ({ patient: p, hasNote }, index) => {
           const status = p.attendance === "Came"
@@ -4716,6 +4797,17 @@ ${context}`;
         if (!button) return;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
         if (button.id === "homeMenuBtn") { toggleHomeMenu(); return; }
+        if (button.id === "clearDoctorSearch") {
+          doctorSearchQuery = "";
+          const doctorSearchInput = $("#doctorPatientSearch");
+          if (doctorSearchInput) doctorSearchInput.value = "";
+          renderDoctorPatientSearch();
+          return;
+        }
+        if (button.dataset.doctorOpenPatient) {
+          openMedicalRecord(button.dataset.doctorOpenPatient);
+          return;
+        }
         if (button.dataset.mainTab) {
           setMainTab(button.dataset.mainTab);
           if (button.closest(".home-dropdown")) toggleHomeMenu(false);
@@ -4922,6 +5014,11 @@ ${context}`;
         if (event.target.closest("#medicalRecordScreen") && !event.target.matches("[data-ambient-mode-select]")) setRecordDirty();
       });
       document.addEventListener("input", (event) => {
+        if (event.target.id === "doctorPatientSearch") {
+          doctorSearchQuery = event.target.value;
+          renderDoctorPatientSearch();
+          return;
+        }
         if (event.target.dataset.amount) { const [id, field] = event.target.dataset.amount.split(":"); event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4); updatePayment(id, field, event.target.value, false); }
         if (event.target.id === "accountAmount") { event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6); }
         if (event.target.matches("[data-neuro-ncs], [data-neuro-eeg], [data-neuro-total], [data-neuro-amount], [data-neuro-expense-amount]")) { event.target.value = numberInput(event.target.value).slice(0, 7); }
