@@ -364,8 +364,9 @@
       .smart-chart-section h3 { font-size: 16px; font-weight: 900; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
       .smart-chart-graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
       .blood-chart { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); }
+      .blood-chart.wide { grid-column: 1 / -1; }
       .blood-chart-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 0; font-size: 13px; font-weight: 900; }
-      .blood-chart-latest { color: #991b1b; font-size: 16px; font-weight: 950; margin-bottom: 2px; }
+      .blood-chart-single-value { color: #991b1b; font-size: 16px; font-weight: 950; margin: 1px 0 2px; }
       .blood-chart-unit { color: var(--muted); font-weight: 750; }
       .blood-chart svg { width: 100%; height: 96px; display: block; overflow: visible; }
       .blood-chart-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 750; }
@@ -3138,17 +3139,19 @@ ${context}`;
         const latest = coordinates[coordinates.length - 1];
         const guideValues = [...new Set([max, (min + max) / 2, min])];
         const uniqueDateLabels = [...new Set(coordinates.map((point) => point.label).filter(Boolean))];
+        const isWideChart = uniqueDateLabels.length > 5;
         const dateLabels = uniqueDateLabels.length <= 5
           ? uniqueDateLabels
-          : [uniqueDateLabels[0], uniqueDateLabels[Math.floor(uniqueDateLabels.length / 2)], uniqueDateLabels[uniqueDateLabels.length - 1]].filter(Boolean);
+          : [uniqueDateLabels[0], uniqueDateLabels[Math.floor(uniqueDateLabels.length / 3)], uniqueDateLabels[Math.floor(uniqueDateLabels.length * 2 / 3)], uniqueDateLabels[uniqueDateLabels.length - 1]].filter(Boolean);
+        const showSingleValue = uniqueDateLabels.length === 1 && coordinates.length === 1;
         return `
-          <article class="blood-chart">
+          <article class="blood-chart ${isWideChart ? "wide" : ""}">
             <button class="smart-delete-btn" type="button" data-smart-delete-card="true">Delete</button>
             <div class="blood-chart-head">
               <span class="smart-editable" contenteditable="true">${escapeHtml(series.label)}</span>
               <span class="blood-chart-unit">${escapeHtml(unit)}</span>
             </div>
-            <div class="blood-chart-latest">${escapeHtml(latest ? `${latest.value}${unit ? ` ${unit}` : ""}` : "")}</div>
+            ${showSingleValue ? `<div class="blood-chart-single-value">${escapeHtml(latest ? `${latest.value}${unit ? ` ${unit}` : ""}` : "")}</div>` : ""}
             <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(series.label)} blood value trend">
               ${guideValues.map((value) => {
                 const y = yFor(value);
