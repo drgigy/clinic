@@ -369,10 +369,14 @@
       .blood-chart svg { width: 100%; height: 172px; display: block; overflow: visible; }
       .blood-chart-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 750; }
       .smart-result-list { display: grid; gap: 8px; }
-      .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
+      .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
       .smart-result-date { color: var(--muted); font-size: 13px; font-weight: 900; }
       .smart-result-test { color: #334454; font-size: 13px; font-weight: 900; }
       .smart-result-text { font-size: 14px; line-height: 1.45; white-space: pre-wrap; }
+      .smart-editable { border-radius: 6px; min-height: 24px; padding: 2px 4px; outline: 1px dashed transparent; }
+      .smart-editable:focus { background: #fffdf2; outline-color: #d6a100; }
+      .smart-delete-btn { min-height: 30px; padding: 0 9px; border: 0; border-radius: 6px; background: #fde8e8; color: #9b1c1c; font-size: 12px; font-weight: 900; }
+      .blood-chart .smart-delete-btn { float: right; margin-left: 8px; }
       .smart-blood-table { width: 100%; border-collapse: collapse; background: #fff; }
       .smart-blood-table th, .smart-blood-table td { border: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: 13px; }
       .smart-blood-table th { background: #f7fafb; font-weight: 900; }
@@ -442,6 +446,8 @@
         body.print-medical .medical-print-content pre { white-space: pre-wrap; font: 14px/1.5 Arial, sans-serif; border-top: 1px solid #ccc; padding-top: 14px; }
         body.print-medical .treatment-summary-print { font-size: 14px; line-height: 1.35; border-top: 1px solid #ccc; padding-top: 14px; }
         body.print-medical .smart-chart-actions { display: none; }
+        body.print-medical .smart-delete-btn { display: none; }
+        body.print-medical .smart-editable { outline: 0; padding: 0; }
         body.print-medical .smart-chart-view { max-width: none; font-size: 13px; }
         body.print-medical .smart-chart-section { break-inside: avoid; page-break-inside: avoid; }
         body.print-medical .blood-chart { break-inside: avoid; page-break-inside: avoid; }
@@ -3123,8 +3129,9 @@ ${context}`;
         const guideValues = [...new Set([max, (min + max) / 2, min])];
         return `
           <article class="blood-chart">
+            <button class="smart-delete-btn" type="button" data-smart-delete-card="true">Delete</button>
             <div class="blood-chart-head">
-              <span>${escapeHtml(series.label)}</span>
+              <span class="smart-editable" contenteditable="true">${escapeHtml(series.label)}</span>
               <span class="blood-chart-unit">${escapeHtml(unit)}</span>
             </div>
             <div class="blood-chart-latest">${escapeHtml(latest ? `${latest.value}${unit ? ` ${unit}` : ""}` : "")}</div>
@@ -3179,9 +3186,10 @@ ${context}`;
                 <div class="smart-result-list">
                   ${investigationRows.map((row) => `
                     <div class="smart-result-row">
-                      <div class="smart-result-date">${escapeHtml(row.label)}</div>
-                      <div class="smart-result-test">${escapeHtml(row.test)}</div>
-                      <div class="smart-result-text">${escapeHtml(row.text)}</div>
+                      <div class="smart-result-date smart-editable" contenteditable="true">${escapeHtml(row.label)}</div>
+                      <div class="smart-result-test smart-editable" contenteditable="true">${escapeHtml(row.test)}</div>
+                      <div class="smart-result-text smart-editable" contenteditable="true">${escapeHtml(row.text)}</div>
+                      <button class="smart-delete-btn" type="button" data-smart-delete-row="true">Delete</button>
                     </div>
                   `).join("")}
                 </div>
@@ -3191,13 +3199,14 @@ ${context}`;
               <section class="smart-chart-section">
                 <h3>Blood Reports</h3>
                 <table class="smart-blood-table">
-                  <thead><tr><th>Date</th><th>Blood test</th><th>Value</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Blood test</th><th>Value</th><th></th></tr></thead>
                   <tbody>
                     ${bloodRows.map((row) => `
                       <tr>
-                        <td>${escapeHtml(row.label)}</td>
-                        <td>${escapeHtml(row.test)}</td>
-                        <td>${escapeHtml(`${row.value}${row.unit ? ` ${row.unit}` : ""}`)}</td>
+                        <td class="smart-editable" contenteditable="true">${escapeHtml(row.label)}</td>
+                        <td class="smart-editable" contenteditable="true">${escapeHtml(row.test)}</td>
+                        <td class="smart-editable" contenteditable="true">${escapeHtml(`${row.value}${row.unit ? ` ${row.unit}` : ""}`)}</td>
+                        <td><button class="smart-delete-btn" type="button" data-smart-delete-row="true">Delete</button></td>
                       </tr>
                     `).join("")}
                   </tbody>
@@ -3727,6 +3736,13 @@ ${context}`;
         const rawHtml = ["single", "draft"].includes(activeRecordView)
           ? (activeRecordDocs.visit || "No notes entered.")
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
+        if (activeRecordView === "smart") {
+          const container = document.createElement("div");
+          container.innerHTML = rawHtml;
+          container.querySelectorAll(".smart-chart-actions, .smart-delete-btn").forEach((node) => node.remove());
+          container.querySelectorAll("[contenteditable]").forEach((node) => node.removeAttribute("contenteditable"));
+          return container.innerHTML || "No investigation summary entered.";
+        }
         if (activeRecordView !== "all" && activeAmbientMode === "summary") {
           return formattedTreatmentSummaryHtml(rawHtml);
         }
@@ -5286,6 +5302,14 @@ ${context}`;
         if (button.dataset.medicalRecord) openMedicalRecord(button.dataset.medicalRecord);
         if (button.dataset.allRecords) renderAllMedicalEntries();
         if (button.dataset.printSmartChart) printActiveMedicalRecord();
+        if (button.dataset.smartDeleteRow) {
+          button.closest(".smart-result-row, tr")?.remove();
+          activeRecordDirty = true;
+        }
+        if (button.dataset.smartDeleteCard) {
+          button.closest(".blood-chart")?.remove();
+          activeRecordDirty = true;
+        }
         if (button.dataset.newRecord) createNewMedicalEntry();
         if (button.dataset.ambientRecord) createNewMedicalEntry("ambient");
         if (button.dataset.openDraftRecord) openDraftMedicalEntry(button.dataset.openDraftRecord);
