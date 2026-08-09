@@ -357,7 +357,6 @@
       .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-bottom: 2px solid var(--line); padding-bottom: 14px; }
       .smart-chart-header h2 { font-size: 26px; font-weight: 900; }
       .smart-chart-header p { color: var(--muted); font-size: 13px; font-weight: 750; }
-      .smart-chart-patient { text-align: right; color: #334454; font-size: 13px; font-weight: 800; line-height: 1.45; }
       .smart-chart-actions { display: flex; justify-content: flex-end; gap: 8px; }
       .smart-chart-section { display: grid; gap: 10px; break-inside: avoid; }
       .smart-chart-section h3 { font-size: 17px; font-weight: 900; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
@@ -534,7 +533,6 @@
         .analysis-controls select, .analysis-controls input[type="month"], .analysis-controls input[type="number"], .analysis-controls button { width: 100%; }
         .chart-grid { grid-template-columns: 1fr; }
         .smart-chart-header, .smart-result-row { grid-template-columns: 1fr; }
-        .smart-chart-patient { text-align: left; }
         .smart-chart-actions { justify-content: stretch; }
         .bar-row { grid-template-columns: 1fr; }
         .bar-value { text-align: left; }
@@ -2633,7 +2631,7 @@ ${context}`;
       }
       function medicalPrintFooter() {
         const isDocumentPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode);
-        if (activeRecordView === "smart") return medicalPrintSignature();
+        if (activeRecordView === "smart") return "";
         return isDocumentPrint ? medicalPrintSignature(activeAmbientMode === "prescription" ? "prescription-signature" : "") : medicalPrintDisclaimer();
       }
       function deleteMedicalEntry(recordId) {
@@ -3122,14 +3120,6 @@ ${context}`;
             <div class="smart-chart-header">
               <div>
                 <h2>Investigation Summary</h2>
-                <p>Chronological investigation summary for patient printout.</p>
-              </div>
-              <div class="smart-chart-patient">
-                <div>${escapeHtml(patient.name || "Patient")}</div>
-                <div>ID: ${escapeHtml(patientDisplayId(patient))}</div>
-                <div>${escapeHtml(patient.age ? `${patient.age} years` : "-")} / ${escapeHtml(patient.sex || "-")}</div>
-                <div>Mobile: ${escapeHtml(patient.mobile || "-")}</div>
-                <div>Printed: ${escapeHtml(dateLabel(localDateKey()))}</div>
               </div>
             </div>
             <div class="smart-chart-actions">
@@ -3147,7 +3137,7 @@ ${context}`;
                     </div>
                   `).join("")}
                 </div>
-              ` : `<div class="smart-empty">No dictated MRI, CT, EEG, NCS, scan, or other investigation results detected in saved visit notes.</div>`}
+              ` : ""}
             </section>
             <section class="smart-chart-section">
               <h3>Blood Reports</h3>
@@ -3911,7 +3901,7 @@ ${context}`;
         if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
         const isPrescriptionPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && activeAmbientMode === "prescription";
         const metaText = activeRecordView === "smart"
-          ? `Smart Chart | ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"}`
+          ? ""
           : activeRecordView === "all"
             ? `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | All entries`
             : `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`;
@@ -3919,7 +3909,7 @@ ${context}`;
           ? activeMedicalPrintBody()
           : `
             <h1>${patient.name}</h1>
-            <div class="meta">${metaText}</div>
+            ${metaText ? `<div class="meta">${metaText}</div>` : ""}
             <div>${activeMedicalPrintBody()}</div>
             ${medicalPrintFooter()}
           `;
