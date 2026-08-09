@@ -354,12 +354,11 @@
       .icon-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
-      .smart-chart-view { display: grid; gap: 14px; max-width: 1120px; margin: 0 auto; }
-      .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-bottom: 2px solid var(--line); padding-bottom: 10px; }
-      .smart-chart-header h1 { font-size: 22px; font-weight: 950; margin: 0 0 3px; }
-      .smart-chart-header h2 { font-size: 24px; font-weight: 900; margin: 0; }
+      .smart-chart-view { display: grid; gap: 12px; max-width: 1240px; margin: 0 auto; }
+      .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-bottom: 2px solid var(--line); padding-bottom: 8px; }
+      .smart-chart-header h1 { font-size: 22px; font-weight: 950; margin: 0; }
       .smart-chart-header p { color: var(--muted); font-size: 13px; font-weight: 750; }
-      .smart-patient-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: #334454; font-size: 13px; font-weight: 850; }
+      .smart-patient-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 5px; color: #334454; font-size: 13px; font-weight: 850; }
       .smart-chart-actions { display: flex; justify-content: flex-end; gap: 8px; }
       .smart-chart-section { display: grid; gap: 8px; break-inside: avoid; }
       .smart-chart-section h3 { font-size: 16px; font-weight: 900; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
@@ -454,6 +453,7 @@
         body.print-medical .smart-delete-btn { display: none; }
         body.print-medical .smart-editable { outline: 0; padding: 0; }
         body.print-medical .smart-chart-view { max-width: none; font-size: 13px; }
+        body.print-medical.print-smart-chart .medical-print-content { padding: .25in .3in .35in; }
         body.print-medical .smart-chart-section { break-inside: avoid; page-break-inside: avoid; }
         body.print-medical .blood-chart { break-inside: avoid; page-break-inside: avoid; }
         body.print-medical .summary-visit { margin-bottom: 14px; break-inside: avoid; }
@@ -3180,7 +3180,6 @@ ${context}`;
             <div class="smart-chart-header">
               <div>
                 <h1>${escapeHtml(patient.name || "Patient")}</h1>
-                <h2>Blood Value Summary</h2>
                 <div class="smart-patient-meta">
                   <span>ID: ${escapeHtml(patientDisplayId(patient))}</span>
                   <span>Age/Sex: ${escapeHtml(patient.age || "-")} / ${escapeHtml(patient.sex || "-")}</span>
@@ -3193,7 +3192,6 @@ ${context}`;
             </div>
             ${bloodSeries.length ? `
               <section class="smart-chart-section">
-                <h3>Blood Value Graphs</h3>
                 <div class="smart-chart-graphs">${bloodSeries.map(bloodChartHtml).join("")}</div>
               </section>
             ` : ""}
@@ -3219,13 +3217,13 @@ ${context}`;
         activeRecordSource = "typed";
         activeRecordDocs = {};
         activeRecordDirty = false;
-        $("#recordVisitDate").textContent = "Blood Value Summary";
+        $("#recordVisitDate").textContent = "Smart Chart";
         $("#medicalNoteText").setAttribute("contenteditable", "false");
         $("#medicalNoteText").innerHTML = smartChartHtml(patient, records);
         $("#recordDeleteBtn").hidden = true;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
-        $("#recordStatus").textContent = "Blood Value Summary is editable. Use Print / Save PDF for patient copy.";
+        $("#recordStatus").textContent = "Smart Chart is editable. Use Print / Save PDF for patient copy.";
         renderPreviousRecords();
       }
       function cleanCredentialsHtml(value) {
@@ -3961,6 +3959,7 @@ ${context}`;
             ${medicalPrintFooter()}
           `;
         document.body.classList.toggle("print-prescription", isPrescriptionPrint);
+        document.body.classList.toggle("print-smart-chart", activeRecordView === "smart");
         document.body.classList.add("print-medical");
         window.print();
       }
