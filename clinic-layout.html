@@ -353,6 +353,28 @@
       .icon-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
+      .smart-chart-view { display: grid; gap: 16px; }
+      .smart-chart-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+      .smart-chart-header h2 { font-size: 22px; font-weight: 900; }
+      .smart-chart-header p { color: var(--muted); font-size: 13px; font-weight: 750; }
+      .smart-chart-section { display: grid; gap: 10px; }
+      .smart-chart-section h3 { font-size: 15px; font-weight: 900; }
+      .smart-chart-graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+      .blood-chart { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; }
+      .blood-chart-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 900; }
+      .blood-chart-unit { color: var(--muted); font-weight: 750; }
+      .blood-chart svg { width: 100%; height: 150px; display: block; overflow: visible; }
+      .blood-chart-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 750; }
+      .smart-visit { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; overflow: hidden; }
+      .smart-visit-head { padding: 12px 14px; background: #f7fafb; border-bottom: 1px solid var(--line); }
+      .smart-visit-head h3 { font-size: 16px; font-weight: 900; }
+      .smart-visit-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .36fr); gap: 0; }
+      .smart-original-note { padding: 14px; min-width: 0; }
+      .smart-extracted { display: grid; gap: 10px; align-content: start; padding: 14px; border-left: 1px solid var(--line); background: #fbfdfe; }
+      .smart-extracted-block { display: grid; gap: 6px; }
+      .smart-extracted-block h4 { margin: 0; font-size: 13px; font-weight: 900; color: #334454; }
+      .smart-extracted-block ul { margin: 0; padding-left: 18px; color: #334454; font-size: 13px; line-height: 1.4; }
+      .smart-extracted-empty { color: var(--muted); font-size: 13px; font-weight: 750; }
       .treatment-summary-print { font-size: 15px; line-height: 1.45; }
       .summary-visit { margin: 0 0 18px; }
       .summary-date { font-size: 17px; font-weight: 900 !important; margin: 0 0 8px; }
@@ -505,6 +527,8 @@
         .analysis-controls { width: 100%; flex-wrap: wrap; justify-content: stretch; }
         .analysis-controls select, .analysis-controls input[type="month"], .analysis-controls input[type="number"], .analysis-controls button { width: 100%; }
         .chart-grid { grid-template-columns: 1fr; }
+        .smart-visit-grid { grid-template-columns: 1fr; }
+        .smart-extracted { border-left: 0; border-top: 1px solid var(--line); }
         .bar-row { grid-template-columns: 1fr; }
         .bar-value { text-align: left; }
         .button-row.compact, .diagnosis-row { flex-wrap: wrap; }
@@ -979,7 +1003,7 @@
         </div>
           <div class="record-actions">
           <button class="secondary" type="button" id="recordPrintPrescriptionBtn">Print Prescription</button>
-          <button class="secondary" type="button" id="recordSummaryBtn">Timeline</button>
+          <button class="secondary" type="button" id="recordSummaryBtn">Smart Chart</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
@@ -1821,7 +1845,7 @@
         return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
       }
       function ambientModeLabel(mode = activeAmbientMode) {
-        if (mode === "summary") return "Timeline";
+        if (mode === "summary") return "Smart Chart";
         return ambientModes[mode] || ambientModes.visit;
       }
       function ambientFloatModeLabel(mode = activeAmbientMode) {
@@ -2821,40 +2845,197 @@ ${context}`;
           </section>
         `).join("")}</div>`;
       }
-      async function createTreatmentSummary() {
+      function smartChartLines(record) {
+        return htmlToPlainText(timelineRecordBody(record))
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean);
+      }
+      function smartChartSections(record) {
+        const investigations = [];
+        const medications = [];
+        let section = "";
+        smartChartLines(record).forEach((line) => {
+          const cleaned = cleanSummaryLine(line);
+          if (!cleaned) return;
+          if (/^(investigations?|review of investigations|reports?|labs?|blood tests?)\s*:?\s*$/i.test(cleaned)) {
+            section = "investigations";
+            return;
+          }
+          if (/^(medications?|current medications?|prescription|rx|treatment\s*\/\s*medications?|orders)\s*:?\s*$/i.test(cleaned)) {
+            section = "medications";
+            return;
+          }
+          if (/^(chief complaints?|history|examination|diagnosis|advice|follow up|plan)\s*:?\s*$/i.test(cleaned)) {
+            section = "";
+            return;
+          }
+          const isInvestigation = section === "investigations" || isInvestigationSummaryLine(cleaned);
+          if (isInvestigation) {
+            investigations.push(cleaned);
+            return;
+          }
+          if (section === "medications" || isMedicationSummaryLine(cleaned)) medications.push(cleaned);
+        });
+        return {
+          investigations: [...new Set(investigations)],
+          medications: [...new Set(medications)]
+        };
+      }
+      function bloodTestPatterns() {
+        return [
+          ["Hemoglobin", /\b(?:hb|hgb|haemoglobin|hemoglobin)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(g\/?dl|gm%|g%))?/ig],
+          ["WBC", /\b(?:wbc|white blood cells?|tc|total count)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(?:\/?cumm|cells\/?mm3|x?\s*10\^?3)?)?/ig],
+          ["Platelets", /\b(?:platelets?|plt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(lakhs?|lakh|k|x?\s*10\^?3)?)?/ig],
+          ["Creatinine", /\bcreatinine\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
+          ["Urea", /\burea\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
+          ["Sodium", /\b(?:sodium|na\+?)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mmol\/?l|meq\/?l))?/ig],
+          ["Potassium", /\b(?:potassium|k\+?)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mmol\/?l|meq\/?l))?/ig],
+          ["ESR", /\besr\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mm\/?hr))?/ig],
+          ["CRP", /\bcrp\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?l|mg\/?dl))?/ig],
+          ["TSH", /\btsh\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?l|uiu\/?ml))?/ig],
+          ["HbA1c", /\b(?:hba1c|a1c)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(%))?/ig],
+          ["FBS", /\b(?:fbs|fasting blood sugar|fasting glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
+          ["PPBS", /\b(?:ppbs|post prandial blood sugar|postprandial glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
+          ["ALT", /\b(?:alt|sgpt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig],
+          ["AST", /\b(?:ast|sgot)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig]
+        ];
+      }
+      function smartChartBloodSeries(records) {
+        const series = new Map();
+        records.forEach((record) => {
+          const text = smartChartLines(record).join("\n");
+          bloodTestPatterns().forEach(([label, pattern]) => {
+            [...text.matchAll(pattern)].forEach((match) => {
+              const value = Number(match[1]);
+              if (!Number.isFinite(value)) return;
+              const points = series.get(label) || [];
+              points.push({
+                value,
+                unit: match[2] || "",
+                date: recordTimestamp(record),
+                label: dateLabel((record.date || recordTimestamp(record).slice(0, 10)))
+              });
+              series.set(label, points);
+            });
+          });
+        });
+        return [...series.entries()]
+          .map(([label, points]) => ({ label, points: points.sort((a, b) => new Date(a.date) - new Date(b.date)) }))
+          .filter((item) => item.points.length);
+      }
+      function bloodChartHtml(series) {
+        const values = series.points.map((point) => point.value);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = max - min || Math.max(max, 1);
+        const width = 320;
+        const height = 130;
+        const pad = 24;
+        const xFor = (index) => series.points.length === 1 ? width / 2 : pad + (index * (width - pad * 2)) / (series.points.length - 1);
+        const yFor = (value) => height - pad - ((value - min) * (height - pad * 2)) / range;
+        const coordinates = series.points.map((point, index) => ({ ...point, x: xFor(index), y: yFor(point.value) }));
+        const polyline = coordinates.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+        const unit = series.points.find((point) => point.unit)?.unit || "";
+        return `
+          <article class="blood-chart">
+            <div class="blood-chart-head">
+              <span>${escapeHtml(series.label)}</span>
+              <span class="blood-chart-unit">${escapeHtml(unit)}</span>
+            </div>
+            <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(series.label)} blood value trend">
+              <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#d9e4ea" stroke-width="1" />
+              <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" stroke="#d9e4ea" stroke-width="1" />
+              <polyline points="${polyline}" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              ${coordinates.map((point) => `
+                <g>
+                  <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4" fill="#dc2626" />
+                  <text x="${point.x.toFixed(1)}" y="${Math.max(12, point.y - 8).toFixed(1)}" text-anchor="middle" fill="#991b1b" font-size="11" font-weight="800">${escapeHtml(point.value)}</text>
+                </g>
+              `).join("")}
+            </svg>
+            <div class="blood-chart-labels">
+              <span>${escapeHtml(coordinates[0]?.label || "")}</span>
+              <span>${escapeHtml(coordinates[coordinates.length - 1]?.label || "")}</span>
+            </div>
+          </article>
+        `;
+      }
+      function smartChartHtml(patient, records) {
+        const bloodSeries = smartChartBloodSeries(records);
+        return `
+          <div class="smart-chart-view">
+            <div class="smart-chart-header">
+              <div>
+                <h2>Smart Chart</h2>
+                <p>Read-only chronological view from saved visit notes. Original note text is shown unchanged.</p>
+              </div>
+              <p>${records.length} ${records.length === 1 ? "visit" : "visits"} for ID ${escapeHtml(patientDisplayId(patient))}</p>
+            </div>
+            ${bloodSeries.length ? `
+              <section class="smart-chart-section">
+                <h3>Blood Values</h3>
+                <div class="smart-chart-graphs">${bloodSeries.map(bloodChartHtml).join("")}</div>
+              </section>
+            ` : ""}
+            <section class="smart-chart-section">
+              <h3>Visits</h3>
+              ${records.map((record) => {
+                const sections = smartChartSections(record);
+                return `
+                  <article class="smart-visit">
+                    <div class="smart-visit-head">
+                      <h3>${escapeHtml(dateTimeLabel(recordTimestamp(record)))}</h3>
+                    </div>
+                    <div class="smart-visit-grid">
+                      <div class="smart-original-note">${timelineRecordBody(record)}</div>
+                      <aside class="smart-extracted">
+                        ${sections.investigations.length ? `
+                          <div class="smart-extracted-block">
+                            <h4>Investigations</h4>
+                            <ul>${sections.investigations.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+                          </div>
+                        ` : ""}
+                        ${sections.medications.length ? `
+                          <div class="smart-extracted-block">
+                            <h4>Medications</h4>
+                            <ul>${sections.medications.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+                          </div>
+                        ` : ""}
+                        ${!sections.investigations.length && !sections.medications.length ? `<div class="smart-extracted-empty">No investigations or medications detected.</div>` : ""}
+                      </aside>
+                    </div>
+                  </article>
+                `;
+              }).join("")}
+            </section>
+          </div>
+        `;
+      }
+      function showSmartChart() {
         const patient = activeRecordPatient();
         if (!patient) return;
         persistCurrentRecordTab();
         const records = treatmentSummarySourceRecords(patient);
         if (!records.length) {
-          alert("No saved visit notes found for timeline.");
+          alert("No saved visit notes found for Smart Chart.");
           return;
         }
-        const createdAt = new Date().toISOString();
-        const timelineHtml = treatmentTimelineHtml(records);
-        const timelineDraft = createDraftMedicalRecord(patient, "manual", "summary", createdAt);
-        timelineDraft.note = htmlToPlainText(timelineHtml);
-        timelineDraft.noteHtml = timelineHtml;
-        timelineDraft.docs = { visit: timelineHtml };
-        extraDraftMedicalRecords = [timelineDraft, ...extraDraftMedicalRecords.filter((draft) => draft.id !== timelineDraft.id)];
-        activeRecordView = "draft";
-        activeRecordId = timelineDraft.id;
-        activeRecordDate = timelineDraft.date;
-        activeRecordCreatedAt = timelineDraft.createdAt;
-        activeRecordSource = "manual";
-        activeAmbientMode = "summary";
-        activeRecordType = "visit";
-        activeRecordDocs = { visit: timelineHtml };
-        $("#recordVisitDate").textContent = `${dateTimeLabel(createdAt)} - draft`;
-        $("#medicalNoteText").setAttribute("contenteditable", "true");
-        $("#medicalNoteText").innerHTML = timelineHtml;
-        $("#recordDeleteBtn").hidden = false;
-        $("#recordDeleteBtn").title = "Discard draft";
-        $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
-        activeRecordDirty = true;
-        $("#recordStatus").textContent = "Timeline draft. Review and save.";
+        activeRecordView = "smart";
+        activeRecordId = "";
+        activeRecordDate = "";
+        activeRecordCreatedAt = "";
+        activeRecordSource = "typed";
+        activeRecordDocs = {};
+        activeRecordDirty = false;
+        $("#recordVisitDate").textContent = "Smart Chart";
+        $("#medicalNoteText").setAttribute("contenteditable", "false");
+        $("#medicalNoteText").innerHTML = smartChartHtml(patient, records);
+        $("#recordDeleteBtn").hidden = true;
+        $("#recordDeleteBtn").title = "Delete note";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
+        $("#recordStatus").textContent = "Smart Chart is read-only. Saved notes are unchanged.";
         renderPreviousRecords();
-        $("#medicalNoteText").focus();
       }
       function cleanCredentialsHtml(value) {
         const container = document.createElement("div");
@@ -4942,7 +5123,7 @@ ${context}`;
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
         if (button.id === "recordPrintPrescriptionBtn") printPrescriptionFromVisitNote();
-        if (button.id === "recordSummaryBtn") await createTreatmentSummary();
+        if (button.id === "recordSummaryBtn") showSmartChart();
         if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
         if (button.id === "closeRecordDiagnosisBtn") closeRecordDiagnosisModal();
         if (button.id === "saveRecordDiagnosisBtn") {
@@ -5087,5 +5268,233 @@ ${context}`;
       setMainTab("doctor");
       render();
     </script>
-  </body>
+<script>
+(function () {
+  if (window.__woyzPrintLettersInstalled) return;
+  window.__woyzPrintLettersInstalled = true;
+
+  var doctorHeader = [
+    "Dr Gigy Kuruttukulam MD, DM",
+    "Consultant Neurologist",
+    "Reg no: 17733",
+    "WhatsApp: 9846044490"
+  ];
+
+  function textOf(el) {
+    return (el && (el.innerText || el.textContent || el.value) || "").trim();
+  }
+
+  function isVisible(el) {
+    if (!el) return false;
+    var style = window.getComputedStyle(el);
+    return style.display !== "none" && style.visibility !== "hidden" && el.offsetParent !== null;
+  }
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatDate() {
+    return new Date().toLocaleDateString("en-IN", {
+      weekday: "long",
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+  }
+
+  function getPatientDetails() {
+    var pageText = document.body.innerText || "";
+    var headings = Array.from(document.querySelectorAll("h1,h2,.patient-name,.record-patient-name"))
+      .filter(isVisible)
+      .map(textOf)
+      .filter(Boolean);
+    var name = headings[0] || (pageText.split(/\n/).map(function (line) { return line.trim(); }).filter(Boolean)[0] || "Patient");
+    var idMatch = pageText.match(/\bID:\s*([A-Za-z0-9]+)/i);
+    var mobileMatch = pageText.match(/\bMobile:\s*([0-9 ]{6,})/i);
+    return {
+      name: name,
+      id: idMatch ? idMatch[1] : "",
+      mobile: mobileMatch ? mobileMatch[1].trim() : "",
+      date: formatDate()
+    };
+  }
+
+  function getCurrentNoteText() {
+    var editable = Array.from(document.querySelectorAll("textarea,[contenteditable='true']"))
+      .filter(isVisible)
+      .map(textOf)
+      .filter(function (value) { return value.length > 20; });
+    if (editable.length) return editable.sort(function (a, b) { return b.length - a.length; })[0];
+
+    var candidates = Array.from(document.querySelectorAll(
+      ".medical-note-body,.note-body,.record-note,.note-card,.medical-record-main,.record-content,.note-content,.medical-record-content"
+    ))
+      .filter(isVisible)
+      .map(textOf)
+      .filter(function (value) { return value.length > 20; });
+    if (candidates.length) return candidates.sort(function (a, b) { return b.length - a.length; })[0];
+
+    return textOf(document.body);
+  }
+
+  function stripPatientChrome(lines) {
+    return lines.filter(function (line) {
+      return !/^(ID:|Mobile:|All entries|Previous Records|Save|Save & Close|Close|Print|Diagnosis|Comments|Smart Chart|Print Prescription)/i.test(line);
+    });
+  }
+
+  function extractSection(source, type) {
+    var labels = type === "certificate"
+      ? ["Medical Certificate", "Certificate"]
+      : ["Reply Letter", "Referral Letter", "Reply", "Letter"];
+    var stopHeadings = [
+      "Chief Complaints", "History of Present Illness", "History of Present Illness:",
+      "Past Medical", "Allergies", "Examination", "Review of Investigations",
+      "Current Medications", "Diagnosis", "Orders", "Prescription", "Advice",
+      "Medical Certificate", "Certificate", "Reply Letter", "Referral Letter", "Reply"
+    ];
+    var lines = String(source || "").split(/\r?\n/).map(function (line) { return line.trim(); });
+    var cleaned = stripPatientChrome(lines).filter(Boolean);
+    var start = -1;
+    var labelUsed = "";
+
+    for (var i = 0; i < cleaned.length; i += 1) {
+      for (var j = 0; j < labels.length; j += 1) {
+        var label = labels[j];
+        var pattern = new RegExp("^" + label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:?\\s*$", "i");
+        if (pattern.test(cleaned[i])) {
+          start = i + 1;
+          labelUsed = label;
+          break;
+        }
+      }
+      if (start !== -1) break;
+    }
+
+    if (start === -1) {
+      var titlePattern = type === "certificate" ? /certificate/i : /(reply|referral|letter)/i;
+      if (titlePattern.test(cleaned.slice(0, 5).join(" "))) {
+        return cleaned.slice(1).join("\n").trim();
+      }
+      return "";
+    }
+
+    var output = [];
+    for (var k = start; k < cleaned.length; k += 1) {
+      var line = cleaned[k];
+      var isStop = stopHeadings.some(function (heading) {
+        if (heading.toLowerCase() === labelUsed.toLowerCase()) return false;
+        return new RegExp("^" + heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*:?\\s*$", "i").test(line);
+      });
+      if (isStop && output.length) break;
+      output.push(line);
+    }
+    return output.join("\n").trim();
+  }
+
+  function paragraphsFromText(value) {
+    return String(value || "")
+      .split(/\n{2,}/)
+      .map(function (block) {
+        var safe = block.split(/\n/).map(escapeHtml).join("<br>");
+        return "<p>" + safe + "</p>";
+      })
+      .join("");
+  }
+
+  function openPrintWindow(type) {
+    var patient = getPatientDetails();
+    var source = getCurrentNoteText();
+    var content = extractSection(source, type);
+    if (!content) {
+      alert(type === "certificate"
+        ? "No certificate text found in the selected note. Please select or generate a certificate note first."
+        : "No reply letter text found in the selected note. Please select or generate a reply letter note first.");
+      return;
+    }
+
+    var title = type === "certificate" ? "MEDICAL CERTIFICATE" : "REPLY LETTER";
+    var patientLine = [
+      patient.id ? "UHID: " + patient.id : "",
+      patient.mobile ? "Mobile: " + patient.mobile : "",
+      patient.date
+    ].filter(Boolean).join(" | ");
+
+    var html = "<!doctype html><html><head><meta charset='utf-8'><title>" + title + "</title>" +
+      "<style>" +
+      "@page{size:A4;margin:18mm;}" +
+      "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#111;margin:0;font-size:14px;line-height:1.45;}" +
+      ".doctor-header{background:#eef2f4;padding:18px 24px;margin:-18mm -18mm 24px -18mm;}" +
+      ".doctor-header strong{display:block;font-size:22px;margin-bottom:4px;}" +
+      ".doctor-header div{font-size:14px;}" +
+      ".patient-name{font-size:20px;font-weight:800;margin:0 0 6px;}" +
+      ".meta{font-size:12px;margin-bottom:28px;}" +
+      ".doc-title{text-align:center;font-size:18px;font-weight:800;text-decoration:underline;margin:10px 0 24px;}" +
+      ".body{white-space:normal;min-height:360px;}" +
+      ".body p{margin:0 0 12px;}" +
+      ".signature{margin-top:48px;font-weight:700;}" +
+      ".signature span{display:block;font-weight:400;}" +
+      "</style></head><body>" +
+      "<div class='doctor-header'><strong>" + escapeHtml(doctorHeader[0]) + "</strong>" +
+      "<div>" + escapeHtml(doctorHeader[1]) + "</div>" +
+      "<div>" + escapeHtml(doctorHeader[2]) + "</div>" +
+      "<div>" + escapeHtml(doctorHeader[3]) + "</div></div>" +
+      "<h1 class='patient-name'>" + escapeHtml(patient.name) + "</h1>" +
+      "<div class='meta'>" + escapeHtml(patientLine) + "</div>" +
+      "<div class='doc-title'>" + title + "</div>" +
+      "<div class='body'>" + paragraphsFromText(content) + "</div>" +
+      "<div class='signature'>" + escapeHtml(doctorHeader[0]) +
+      "<span>" + escapeHtml(doctorHeader[1]) + "</span>" +
+      "<span>" + escapeHtml(doctorHeader[2]) + "</span></div>" +
+      "<script>window.onload=function(){setTimeout(function(){window.print();},100);};<\/script>" +
+      "</body></html>";
+
+    var printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Popup blocked. Please allow popups for this site to print.");
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+  function addButton(label, type) {
+    var existing = Array.from(document.querySelectorAll("button")).find(function (button) {
+      return textOf(button).toLowerCase() === label.toLowerCase();
+    });
+    if (existing) return;
+
+    var prescriptionButton = Array.from(document.querySelectorAll("button")).find(function (button) {
+      return textOf(button).toLowerCase() === "print prescription";
+    });
+    if (!prescriptionButton || !prescriptionButton.parentNode) return;
+
+    var button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.className = prescriptionButton.className;
+    button.addEventListener("click", function () { openPrintWindow(type); });
+    prescriptionButton.parentNode.insertBefore(button, prescriptionButton.nextSibling);
+  }
+
+  function installButtons() {
+    addButton("Print Certificate", "certificate");
+    addButton("Print Reply", "reply");
+  }
+
+  window.printCertificate = function () { openPrintWindow("certificate"); };
+  window.printReply = function () { openPrintWindow("reply"); };
+  document.addEventListener("DOMContentLoaded", installButtons);
+  installButtons();
+  new MutationObserver(installButtons).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+</body>
 </html>
