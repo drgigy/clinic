@@ -354,20 +354,21 @@
       .icon-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
-      .smart-chart-view { display: grid; gap: 18px; max-width: 1120px; margin: 0 auto; }
-      .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-bottom: 2px solid var(--line); padding-bottom: 14px; }
-      .smart-chart-header h2 { font-size: 26px; font-weight: 900; }
+      .smart-chart-view { display: grid; gap: 14px; max-width: 1120px; margin: 0 auto; }
+      .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-bottom: 2px solid var(--line); padding-bottom: 10px; }
+      .smart-chart-header h1 { font-size: 22px; font-weight: 950; margin: 0 0 3px; }
+      .smart-chart-header h2 { font-size: 24px; font-weight: 900; margin: 0; }
       .smart-chart-header p { color: var(--muted); font-size: 13px; font-weight: 750; }
-      .smart-patient-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; color: #334454; font-size: 14px; font-weight: 850; }
+      .smart-patient-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: #334454; font-size: 13px; font-weight: 850; }
       .smart-chart-actions { display: flex; justify-content: flex-end; gap: 8px; }
-      .smart-chart-section { display: grid; gap: 10px; break-inside: avoid; }
-      .smart-chart-section h3 { font-size: 17px; font-weight: 900; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
-      .smart-chart-graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-      .blood-chart { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: #fff; box-shadow: 0 1px 4px rgba(16, 32, 43, .06); }
-      .blood-chart-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 2px; font-size: 14px; font-weight: 900; }
-      .blood-chart-latest { color: #991b1b; font-size: 22px; font-weight: 950; margin-bottom: 8px; }
+      .smart-chart-section { display: grid; gap: 8px; break-inside: avoid; }
+      .smart-chart-section h3 { font-size: 16px; font-weight: 900; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
+      .smart-chart-graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+      .blood-chart { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; background: #fff; box-shadow: 0 1px 4px rgba(16, 32, 43, .06); }
+      .blood-chart-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 0; font-size: 13px; font-weight: 900; }
+      .blood-chart-latest { color: #991b1b; font-size: 18px; font-weight: 950; margin-bottom: 4px; }
       .blood-chart-unit { color: var(--muted); font-weight: 750; }
-      .blood-chart svg { width: 100%; height: 172px; display: block; overflow: visible; }
+      .blood-chart svg { width: 100%; height: 118px; display: block; overflow: visible; }
       .blood-chart-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 750; }
       .blood-chart-labels.single-date { justify-content: center; }
       .smart-result-list { display: grid; gap: 8px; }
@@ -3124,9 +3125,9 @@ ${context}`;
         const min = Math.min(...values);
         const max = Math.max(...values);
         const range = max - min || Math.max(max, 1);
-        const width = 360;
-        const height = 160;
-        const pad = 34;
+        const width = 320;
+        const height = 112;
+        const pad = 26;
         const xFor = (index) => series.points.length === 1 ? width / 2 : pad + (index * (width - pad * 2)) / (series.points.length - 1);
         const yFor = (value) => height - pad - ((value - min) * (height - pad * 2)) / range;
         const coordinates = series.points.map((point, index) => ({ ...point, x: xFor(index), y: yFor(point.value) }));
@@ -3156,11 +3157,11 @@ ${context}`;
               }).join("")}
               <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#d9e4ea" stroke-width="1.4" />
               <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" stroke="#d9e4ea" stroke-width="1.4" />
-              ${coordinates.length > 1 ? `<polyline points="${polyline}" fill="none" stroke="#dc2626" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />` : ""}
+              ${coordinates.length > 1 ? `<polyline points="${polyline}" fill="none" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />` : ""}
               ${coordinates.map((point) => `
                 <g>
-                  <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="7" fill="#fff" stroke="#dc2626" stroke-width="4" />
-                  <text x="${point.x.toFixed(1)}" y="${Math.max(14, point.y - 12).toFixed(1)}" text-anchor="middle" fill="#991b1b" font-size="12" font-weight="900">${escapeHtml(point.value)}</text>
+                  <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5" fill="#fff" stroke="#dc2626" stroke-width="3" />
+                  <text x="${point.x.toFixed(1)}" y="${Math.max(12, point.y - 9).toFixed(1)}" text-anchor="middle" fill="#991b1b" font-size="10" font-weight="900">${escapeHtml(point.value)}</text>
                 </g>
               `).join("")}
             </svg>
@@ -3981,6 +3982,8 @@ ${context}`;
             : `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`;
         $("#medicalPrintContent").innerHTML = isPrescriptionPrint
           ? activeMedicalPrintBody()
+          : activeRecordView === "smart"
+            ? activeMedicalPrintBody()
           : `
             <h1>${patient.name}</h1>
             ${metaText ? `<div class="meta">${metaText}</div>` : ""}
