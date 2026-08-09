@@ -384,6 +384,8 @@
       .smart-blood-table th, .smart-blood-table td { border: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; font-size: 13px; }
       .smart-blood-table th { background: #f7fafb; font-weight: 900; }
       .smart-empty { color: var(--muted); font-size: 13px; font-weight: 750; }
+      .smart-disclaimer { border-top: 1px solid var(--line); padding-top: 8px; color: #526273; font-size: 11px; line-height: 1.45; }
+      .smart-disclaimer strong { color: #334454; }
       .treatment-summary-print { font-size: 15px; line-height: 1.45; }
       .summary-visit { margin: 0 0 18px; }
       .summary-date { font-size: 17px; font-weight: 900 !important; margin: 0 0 8px; }
@@ -3230,6 +3232,9 @@ ${context}`;
                 <div class="smart-chart-graphs">${bloodSeries.map(bloodChartHtml).join("")}</div>
               </section>
             ` : ""}
+            <div class="smart-disclaimer">
+              <strong>Disclaimer:</strong> This is an AI-assisted summary prepared from the available investigation report text. It is for reference only. If there is any discrepancy, please refer to the original reports.
+            </div>
           </div>
         `;
       }
