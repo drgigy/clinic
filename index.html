@@ -44,7 +44,7 @@
       .login-error { min-height: 20px; color: var(--danger-ink); font-size: 13px; font-weight: 750; }
       .login-status { min-height: 20px; color: var(--muted); font-size: 13px; }
       .signed-in-user { overflow-wrap: anywhere; }
-      #recordSummaryBtn { background: #dc2626; color: #fff; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22); }
+      #recordSummaryBtn, .smart-chart-button { background: #dc2626 !important; color: #fff !important; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22) !important; }
       .app { min-height: 100vh; display: block; }
       .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(180px, auto) minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
       .nav-left { display: flex; align-items: end; gap: 8px; min-width: 0; }
@@ -369,6 +369,7 @@
       .blood-chart-unit { color: var(--muted); font-weight: 750; }
       .blood-chart svg { width: 100%; height: 172px; display: block; overflow: visible; }
       .blood-chart-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 750; }
+      .blood-chart-labels.single-date { justify-content: center; }
       .smart-result-list { display: grid; gap: 8px; }
       .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
       .smart-result-date { color: var(--muted); font-size: 13px; font-weight: 900; }
@@ -1016,7 +1017,7 @@
         </div>
           <div class="record-actions">
           <button class="secondary" type="button" id="recordPrintPrescriptionBtn">Print Prescription</button>
-          <button class="secondary" type="button" id="recordSummaryBtn">Smart Chart</button>
+          <button class="secondary smart-chart-button" type="button" id="recordSummaryBtn" style="background:#dc2626;color:#fff;box-shadow:inset 0 0 0 2px #991b1b,0 1px 4px rgba(153,27,27,.22);">Smart Chart</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
@@ -3133,9 +3134,10 @@ ${context}`;
         const unit = series.points.find((point) => point.unit)?.unit || "";
         const latest = coordinates[coordinates.length - 1];
         const guideValues = [...new Set([max, (min + max) / 2, min])];
-        const dateLabels = coordinates.length <= 5
-          ? coordinates.map((point) => point.label)
-          : [coordinates[0]?.label, coordinates[Math.floor(coordinates.length / 2)]?.label, coordinates[coordinates.length - 1]?.label].filter(Boolean);
+        const uniqueDateLabels = [...new Set(coordinates.map((point) => point.label).filter(Boolean))];
+        const dateLabels = uniqueDateLabels.length <= 5
+          ? uniqueDateLabels
+          : [uniqueDateLabels[0], uniqueDateLabels[Math.floor(uniqueDateLabels.length / 2)], uniqueDateLabels[uniqueDateLabels.length - 1]].filter(Boolean);
         return `
           <article class="blood-chart">
             <button class="smart-delete-btn" type="button" data-smart-delete-card="true">Delete</button>
@@ -3162,7 +3164,7 @@ ${context}`;
                 </g>
               `).join("")}
             </svg>
-            <div class="blood-chart-labels">
+            <div class="blood-chart-labels ${dateLabels.length === 1 ? "single-date" : ""}">
               ${dateLabels.map((label) => `<span>${escapeHtml(label || "")}</span>`).join("")}
             </div>
           </article>
