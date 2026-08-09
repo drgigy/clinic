@@ -2861,6 +2861,21 @@ ${context}`;
       function smartChartDateLabel(record) {
         return dateLabel(record.date || recordTimestamp(record).slice(0, 10));
       }
+      function smartChartParsedDate(value) {
+        const match = String(value || "").match(/\b(\d{1,2})\s+(Jan|January|Feb|February|Mar|March|Apr|April|May|Jun|June|Jul|July|Aug|August|Sep|Sept|September|Oct|October|Nov|November|Dec|December)\s+(\d{4})\b/i);
+        if (!match) return null;
+        const months = { jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11 };
+        const date = new Date(Number(match[3]), months[match[2].toLowerCase()], Number(match[1]));
+        return Number.isNaN(date.getTime()) ? null : {
+          sortDate: date.toISOString(),
+          label: date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+          text: match[0]
+        };
+      }
+      function smartChartResultDate(record, value) {
+        const parsed = smartChartParsedDate(value);
+        return parsed || { sortDate: recordTimestamp(record), label: smartChartDateLabel(record), text: "" };
+      }
       function smartChartSentencePieces(line) {
         return String(line || "")
           .replace(/([.!?])\s+(?=[A-Z0-9])/g, "$1\n")
@@ -2899,6 +2914,12 @@ ${context}`;
         if (resultMatch) return resultMatch[0].trim();
         return cleaned.replace(smartChartTestPattern(), "").trim() || cleaned;
       }
+      function smartChartCleanInvestigationLine(value) {
+        return cleanSummaryLine(value)
+          .replace(/^\d+\.\s*/, "")
+          .replace(/^[-*•]\s*/, "")
+          .trim();
+      }
       function isSmartChartBloodLine(value) {
         return bloodTestPatterns().some(([, pattern]) => {
           pattern.lastIndex = 0;
@@ -2908,8 +2929,18 @@ ${context}`;
       function smartChartInvestigationRows(records) {
         const rows = [];
         const seen = new Set();
+        const addRow = (record, draft) => {
+          if (!draft) return;
+          const text = draft.findings.join("\n").trim() || smartChartResultText(draft.source);
+          if (!text || isSmartChartBloodLine(text)) return;
+          const key = `${draft.sortDate}__${draft.test.toLowerCase()}__${text.toLowerCase()}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          rows.push({ date: draft.sortDate, label: draft.label, test: draft.test, text });
+        };
         records.forEach((record) => {
           let section = "";
+          let current = null;
           smartChartLines(record).forEach((line) => {
             const cleaned = cleanSummaryLine(line);
             if (!cleaned) return;
@@ -2918,29 +2949,39 @@ ${context}`;
               return;
             }
             if (isSmartChartBloodHeading(cleaned)) {
+              addRow(record, current);
+              current = null;
               section = "blood";
               return;
             }
             if (isSmartChartStopHeading(cleaned)) {
+              addRow(record, current);
+              current = null;
               section = "";
               return;
             }
             smartChartSentencePieces(cleaned).forEach((piece) => {
-              const stripHeading = piece.replace(/^(investigations?|review of investigations|reports?|test results?|scan results?)\s*:?\s*/i, "").trim();
+              const stripHeading = smartChartCleanInvestigationLine(piece.replace(/^(investigations?|review of investigations|reports?|test results?|scan results?)\s*:?\s*/i, ""));
               if (!stripHeading || isSmartChartBloodLine(stripHeading)) return;
-              const isTestResult = smartChartTestPattern().test(stripHeading) && (section === "investigations" || smartChartResultPattern().test(stripHeading) || /[:=\-]/.test(stripHeading));
-              if (!isTestResult) return;
-              const key = `${recordTimestamp(record)}__${stripHeading.toLowerCase()}`;
-              if (seen.has(key)) return;
-              seen.add(key);
-              rows.push({
-                date: recordTimestamp(record),
-                label: smartChartDateLabel(record),
-                test: smartChartTestLabel(stripHeading),
-                text: smartChartResultText(stripHeading)
-              });
+              const hasTestName = smartChartTestPattern().test(stripHeading);
+              const isBulletFinding = /^[-*•]\s*/.test(piece) || smartChartResultPattern().test(stripHeading);
+              if (hasTestName && (section === "investigations" || smartChartResultPattern().test(stripHeading) || /[:=\-]/.test(stripHeading))) {
+                addRow(record, current);
+                const dateInfo = smartChartResultDate(record, stripHeading);
+                const sameLineResult = smartChartResultText(stripHeading).replace(dateInfo.text, "").replace(/^[-–—:,\s]+/, "").trim();
+                current = {
+                  source: stripHeading,
+                  sortDate: dateInfo.sortDate,
+                  label: dateInfo.label,
+                  test: smartChartTestLabel(stripHeading),
+                  findings: sameLineResult && sameLineResult !== stripHeading ? [sameLineResult] : []
+                };
+                return;
+              }
+              if (current && section === "investigations" && isBulletFinding) current.findings.push(stripHeading);
             });
           });
+          addRow(record, current);
         });
         return rows.sort((a, b) => new Date(a.date) - new Date(b.date));
       }
@@ -3139,9 +3180,9 @@ ${context}`;
                 </div>
               ` : ""}
             </section>
-            <section class="smart-chart-section">
-              <h3>Blood Reports</h3>
-              ${bloodRows.length ? `
+            ${bloodRows.length ? `
+              <section class="smart-chart-section">
+                <h3>Blood Reports</h3>
                 <table class="smart-blood-table">
                   <thead><tr><th>Date</th><th>Blood test</th><th>Value</th></tr></thead>
                   <tbody>
@@ -3154,8 +3195,8 @@ ${context}`;
                     `).join("")}
                   </tbody>
                 </table>
-              ` : `<div class="smart-empty">No blood report values detected in saved visit notes.</div>`}
-            </section>
+              </section>
+            ` : ""}
             ${bloodSeries.length ? `
               <section class="smart-chart-section">
                 <h3>Blood Value Graphs</h3>
