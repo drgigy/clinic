@@ -357,6 +357,7 @@
       .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-bottom: 2px solid var(--line); padding-bottom: 14px; }
       .smart-chart-header h2 { font-size: 26px; font-weight: 900; }
       .smart-chart-header p { color: var(--muted); font-size: 13px; font-weight: 750; }
+      .smart-patient-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; color: #334454; font-size: 14px; font-weight: 850; }
       .smart-chart-actions { display: flex; justify-content: flex-end; gap: 8px; }
       .smart-chart-section { display: grid; gap: 10px; break-inside: avoid; }
       .smart-chart-section h3 { font-size: 17px; font-weight: 900; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
@@ -3160,7 +3161,13 @@ ${context}`;
           <div class="smart-chart-view">
             <div class="smart-chart-header">
               <div>
+                <h1>${escapeHtml(patient.name || "Patient")}</h1>
                 <h2>Investigation Summary</h2>
+                <div class="smart-patient-meta">
+                  <span>ID: ${escapeHtml(patientDisplayId(patient))}</span>
+                  <span>Age/Sex: ${escapeHtml(patient.age || "-")} / ${escapeHtml(patient.sex || "-")}</span>
+                  <span>Mobile: ${escapeHtml(patient.mobile || "-")}</span>
+                </div>
               </div>
             </div>
             <div class="smart-chart-actions">
