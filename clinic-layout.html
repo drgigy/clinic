@@ -1890,24 +1890,41 @@ Do not remove any dictated medicine or instruction.
 Preserve dictated drug names exactly as brand names when brand names are spoken. Do not convert brand names to generic names.
 Return a single plain text prescription only. Do not return JSON. Do not use markdown fences.
 
-Format every prescribed medicine as a numbered list, one medicine per line:
-1. Tablet Drug name dose frequency duration
+Format every prescribed medicine as a numbered list, one medicine entry at a time:
+1. Tablet Drug name dose
+   Clear English patient instruction without repeating the medicine name.
+   Malayalam patient instruction without repeating the medicine name.
 2. ...
 
 Include dose, frequency, route, timing, and duration only if dictated.
 Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it with the timing as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1".
+Write the medicine name once only as the numbered medicine line. The English instruction line below it must not repeat the medicine name. The Malayalam instruction line below it must not repeat the medicine name and should only explain how to take it.
+Good:
+1. Tablet Levipil 500 mg
+   Take 1 tablet at night for 1 month.
+   രാത്രി ഒരു ഗുളിക ഒരു മാസം കഴിക്കുക.
+Avoid:
+1. Tablet Levipil 500 mg
+   Take Tablet Levipil 500 mg at night for 1 month.
+   Tablet Levipil 500 mg രാത്രി കഴിക്കുക.
 Write patient-facing prescription instructions as natural sentences. Do not use internal labels such as "morning:", "noon:", "night:", "bedtime:", "Duration:", or "Instructions:".
-For tapering or step-down medicines, create one numbered line for each step of the same medicine:
-1. Tablet Levipil - Take 250 mg in the morning and 500 mg at night for the first 20 days.
-2. Tablet Levipil - Take 250 mg in the morning and 250 mg at night for the next 20 days.
-3. Tablet Levipil - Take 250 mg at night for the next 20 days, then stop.
+For tapering or step-down medicines, create one numbered medicine entry for each step of the same medicine, with instruction lines below it:
+1. Tablet Levipil
+   Take 250 mg in the morning and 500 mg at night for the first 20 days.
+2. Tablet Levipil
+   Take 250 mg in the morning and 250 mg at night for the next 20 days.
+3. Tablet Levipil
+   Take 250 mg at night for the next 20 days, then stop.
 If the medicine strength is fixed and the doctor dictates tablet counts, use:
-1. Tablet Predmet 4 mg - Take 1 tablet in the morning and 1 tablet at night after food for the first 5 days.
-2. Tablet Predmet 4 mg - Take 1 tablet in the morning after food for the next 5 days, then stop.
+1. Tablet Predmet 4 mg
+   Take 1 tablet in the morning and 1 tablet at night after food for the first 5 days.
+2. Tablet Predmet 4 mg
+   Take 1 tablet in the morning after food for the next 5 days, then stop.
 Do not merge tapering steps into one long paragraph.
-If general advice or non-medicine instructions are dictated, place them after the prescription under:
-Advice:
+If general advice, investigations, review plans, follow-up advice, precautions, certificates, or non-medicine instructions are dictated, place them after the prescription under:
+Advice / Instructions:
 If investigations are advised under Advice, place each investigation on its own separate line as a simple bullet point. Do not combine multiple investigations in one sentence.
+If the doctor dictates the word "orders", do not create an Orders heading. Route medicine orders into the numbered prescription list, and route non-medicine orders into Advice / Instructions.
 
 Never add clinical information that was not spoken.
 
@@ -1972,13 +1989,14 @@ Current Medications:
 
 Diagnosis:
 
-Orders:
-
 Prescription:
+
+Advice / Instructions:
 
 Place the dictated information under the correct heading.
 Do not write "Not dictated".
 Do not create extra headings.
+Never create a separate "Orders" heading. If the doctor dictates the word "orders", intelligently place those dictated items at the end under Prescription or Advice / Instructions.
 
 Formatting rules:
 - Chief Complaints: each complaint on a separate line.
@@ -1989,19 +2007,26 @@ Formatting rules:
 - Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
-- Orders: line by line. If investigations, lab tests, imaging, EEG/NCS, scans, or follow-up tests are ordered, always include them here line by line.
 - Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
-- Inside Prescription, use exactly these subheadings when relevant:
-  Medications:
-  1. Tablet/Cap/Syrup/Inj brand name dose - clear English patient instruction with timing, duration, and food/administration instruction.
-     Malayalam patient instruction for the same medicine.
-  Advice:
-  - Review/follow-up/investigation instructions line by line
+- Advice / Instructions: include investigations, lab tests, imaging, EEG/NCS, scans, review plans, follow-up advice, precautions, certificates, and other non-medicine orders line by line.
+- Dictated "orders" rule: medicines go under Prescription; everything else goes under Advice / Instructions. Do not duplicate the same dictated order in both sections.
+- Inside Prescription, use exactly this compact format for each medicine:
+  1. Tablet/Cap/Syrup/Inj brand name dose
+     Clear English patient instruction with timing, duration, and food/administration instruction, without repeating the medicine name.
+     Malayalam patient instruction for the same medicine, without repeating the medicine name.
 - Do not write the word "Malayalam" before the Malayalam text. Put the Malayalam instruction directly below the English instruction.
-- For each prescription medicine, keep the medicine name and dose as the first part of the line, then write a clear English instruction. Directly below it, write the same patient-facing instruction in Malayalam when possible.
-- Do not translate medicine brand names into Malayalam. Keep medicine names and doses in English in both English and Malayalam instruction lines.
-- Do not put advice such as "continue medicines", "review after one month", or investigation advice as numbered medicine rows.
-- For each medication, keep brand name and dose clear. Put timing, duration, and before food/after food/empty stomach instructions in the same medication line if dictated.
+- For each prescription medicine, write the medicine name and dose once in the numbered medicine line. The English instruction below it must not repeat the medicine name. The Malayalam instruction below it must not repeat the medicine name.
+- Do not translate medicine brand names into Malayalam. Keep medicine names and doses in English in the numbered medicine line only.
+- Good prescription example:
+  1. Tablet Levipil 500 mg
+     Take 1 tablet at night for 1 month.
+     രാത്രി ഒരു ഗുളിക ഒരു മാസം കഴിക്കുക.
+- Avoid repeating the medicine name in instruction lines:
+  1. Tablet Levipil 500 mg
+     Take Tablet Levipil 500 mg at night for 1 month.
+     Tablet Levipil 500 mg രാത്രി കഴിക്കുക.
+- Do not put advice such as "continue medicines", "review after one month", investigation advice, certificates, or precautions as numbered medicine rows.
+- For each medication, keep brand name and dose clear in the numbered medicine line. Put timing, duration, and before food/after food/empty stomach instructions in the English and Malayalam instruction lines below it if dictated.
 - In English prescription instructions, write duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
 - In Malayalam patient instruction lines, spell general counts and durations in Malayalam words instead of English numerals when possible, especially at the start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days" -> "പത്ത് ദിവസം", "20 days" -> "ഇരുപത് ദിവസം", "1 month" -> "ഒരു മാസം", "2 weeks" -> "രണ്ട് ആഴ്ച".
 - Keep drug names and doses in English/numerals inside Malayalam instruction lines, for example "Gabapin 300 mg" and "Levipil 250 mg" should remain in English.
@@ -2011,21 +2036,26 @@ Formatting rules:
 - When a specific clock time is dictated, keep the clock time in the instruction, for example "1 tablet at 7 AM before food".
 - If only the word evening is dictated without a clock time, write it as night.
 - Do not use internal labels like "morning:", "noon:", "night:", "bedtime:", "Duration:", or "Instructions:" in prescription lines. Write one clear patient-facing sentence after the medicine name.
-- For tapering or step-down prescriptions, create one numbered medication entry for each step. Repeat the same medicine name in each entry. Write the phase clearly in the instruction, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label, using Malayalam words for phase durations and tablet counts where possible.
-- For tapering medicines with different doses at different times, write the timing dose clearly in the same line, for example:
-  1. Tablet Levipil - Take 250 mg in the morning and 500 mg at night for the first 20 days.
+- For tapering or step-down prescriptions, create one numbered medicine entry for each step. Write the same medicine name once in each numbered medicine line. Write the phase clearly in the English instruction below it, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label, using Malayalam words for phase durations and tablet counts where possible.
+- For tapering medicines with different doses at different times, write each step as a medicine line followed by instruction lines, for example:
+  1. Tablet Levipil
+     Take 250 mg in the morning and 500 mg at night for the first 20 days.
      ആദ്യ 20 ദിവസത്തേക്ക് രാവിലെ 250 mg, രാത്രി 500 mg കഴിക്കുക.
-  2. Tablet Levipil - Take 250 mg in the morning and 250 mg at night for the next 20 days.
+  2. Tablet Levipil
+     Take 250 mg in the morning and 250 mg at night for the next 20 days.
      അടുത്ത 20 ദിവസത്തേക്ക് രാവിലെ 250 mg, രാത്രി 250 mg കഴിക്കുക.
-  3. Tablet Levipil - Take 250 mg at night for the next 20 days, then stop.
+  3. Tablet Levipil
+     Take 250 mg at night for the next 20 days, then stop.
      അടുത്ത 20 ദിവസത്തേക്ക് രാത്രി 250 mg കഴിച്ച് ശേഷം നിർത്തുക.
 - If the medicine strength is fixed and the taper changes tablet counts, write one line per step, for example:
-  1. Tablet Predmet 4 mg - Take 1 tablet in the morning and 1 tablet at night after food for the first 5 days.
+  1. Tablet Predmet 4 mg
+     Take 1 tablet in the morning and 1 tablet at night after food for the first 5 days.
      ആദ്യ 5 ദിവസത്തേക്ക് ഭക്ഷണത്തിന് ശേഷം രാവിലെ 1 ഗുളികയും രാത്രി 1 ഗുളികയും കഴിക്കുക.
-  2. Tablet Predmet 4 mg - Take 1 tablet in the morning after food for the next 5 days, then stop.
+  2. Tablet Predmet 4 mg
+     Take 1 tablet in the morning after food for the next 5 days, then stop.
      അടുത്ത 5 ദിവസത്തേക്ക് ഭക്ഷണത്തിന് ശേഷം രാവിലെ 1 ഗുളിക കഴിച്ച് ശേഷം നിർത്തുക.
-- If a lab appointment, investigation schedule, paper/lab schedule, imaging, EEG, NCS, CT, MRI, blood test, or any investigation order is dictated, include it under Prescription > Advice line by line, even if it is also written under Orders. Do not omit investigation orders from the embedded prescription.
-- Do not repeat the same advice or investigation item in Prescription > Advice. If the same investigation is spoken more than once, include it only once.
+- If a lab appointment, investigation schedule, paper/lab schedule, imaging, EEG, NCS, CT, MRI, blood test, or any investigation order is dictated, include it under Advice / Instructions line by line. Do not create an Orders heading.
+- Do not repeat the same advice or investigation item in Advice / Instructions. If the same investigation is spoken more than once, include it only once.
 - Do not merge tapering steps into one paragraph. Do not duplicate the same step.
 - Do not include patient demographics inside the Prescription section.
 - Preserve dictated brand names exactly and do not convert them to generic names.
@@ -2248,7 +2278,8 @@ ${context}`;
                     <span>Review of Investigations</span>
                     <span>Current Medications</span>
                     <span>Diagnosis</span>
-                    <span>Orders</span>
+                    <span>Prescription</span>
+                    <span>Advice / Instructions</span>
                   </div>
                 </div>
                 <div class="ambient-toolbar">
@@ -3525,7 +3556,7 @@ ${context}`;
         return /^(date|prescription|rx|medications?|medicines?|drugs?|medications?\s*\/\s*advice)\s*:?$/i.test(line);
       }
       function isPrescriptionAdviceHeading(line) {
-        return /^(advice|instruction|instructions|follow[-\s]*up)\s*:?/i.test(line);
+        return /^(advice(?:\s*\/\s*instructions)?|instruction|instructions|follow[-\s]*up)\s*:?/i.test(line);
       }
       function isPrescriptionMedicineLine(line) {
         const cleaned = prescriptionInstructionText(line).toLowerCase();
@@ -3544,7 +3575,7 @@ ${context}`;
         let inAdvice = false;
         lines.forEach((line) => {
           if (isPrescriptionAdviceHeading(line)) {
-            const sameLine = line.replace(/^(advice|instruction|instructions|follow[-\s]*up)\s*:?\s*/i, "").trim();
+            const sameLine = line.replace(/^(advice(?:\s*\/\s*instructions)?|instruction|instructions|follow[-\s]*up)\s*:?\s*/i, "").trim();
             inAdvice = true;
             if (sameLine) adviceLines.push(sameLine);
             return;
@@ -5574,7 +5605,7 @@ ${context}`;
     var stopHeadings = [
       "Chief Complaints", "History of Present Illness", "History of Present Illness:",
       "Past Medical", "Allergies", "Examination", "Review of Investigations",
-      "Current Medications", "Diagnosis", "Orders", "Prescription", "Advice",
+      "Current Medications", "Diagnosis", "Orders", "Prescription", "Advice", "Advice / Instructions",
       "Medical Certificate", "Certificate", "Reply Letter", "Referral Letter", "Reply"
     ];
     var lines = String(source || "").split(/\r?\n/).map(function (line) { return line.trim(); });
