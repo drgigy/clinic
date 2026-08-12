@@ -44,7 +44,7 @@
       .login-error { min-height: 20px; color: var(--danger-ink); font-size: 13px; font-weight: 750; }
       .login-status { min-height: 20px; color: var(--muted); font-size: 13px; }
       .signed-in-user { overflow-wrap: anywhere; }
-      #recordSummaryBtn, .smart-chart-button { background: #dc2626 !important; color: #fff !important; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22) !important; }
+      #recordSummaryBtn, .smart-chart-button, #recordAddOnBtn { background: #dc2626 !important; color: #fff !important; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22) !important; }
       .app { min-height: 100vh; display: block; }
       .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(180px, auto) minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
       .nav-left { display: flex; align-items: end; gap: 8px; min-width: 0; }
@@ -1022,6 +1022,7 @@
         </div>
           <div class="record-actions">
           <button class="secondary" type="button" id="recordPrintPrescriptionBtn">Print Prescription</button>
+          <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
           <button class="secondary smart-chart-button" type="button" id="recordSummaryBtn" style="background:#dc2626;color:#fff;box-shadow:inset 0 0 0 2px #991b1b,0 1px 4px rgba(153,27,27,.22);">Smart Chart</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
@@ -1190,6 +1191,7 @@
       let ambientStopShouldProcess = false;
       let ambientState = "idle";
       let activeAmbientMode = "visit";
+      let activeAddOn = null;
       let ambientFloatPosition = null;
       let firebaseSyncStarted = false;
       let firebaseUnsubscribers = [];
@@ -1865,6 +1867,7 @@
       }
       function ambientModeLabel(mode = activeAmbientMode) {
         if (mode === "summary") return "Smart Chart";
+        if (mode === "addon") return "Add On";
         return ambientModes[mode] || ambientModes.visit;
       }
       function ambientFloatModeLabel(mode = activeAmbientMode) {
@@ -1872,7 +1875,8 @@
           visit: "Visit note",
           prescription: "Rx",
           certificate: "Certificate",
-          reply: "Letter"
+          reply: "Letter",
+          addon: "Add On"
         }[mode] || "Visit note";
       }
       function ambientPrompt(patient, mode = activeAmbientMode) {
@@ -1881,6 +1885,30 @@ Name: ${patient?.name || ""}
 ID: ${patient ? patientDisplayId(patient) : ""}
 Mobile: ${patient?.mobile || ""}
 Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
+        if (mode === "addon") {
+          return `You are a clinical review add-on assistant helping a doctor append a short dictated addendum to an existing OPD visit note.
+
+Correct spelling and grammar. Keep the original meaning exactly.
+Do not add, infer, assume, or hallucinate clinical information.
+Do not remove any dictated detail.
+Return plain text only. Do not return JSON. Do not use markdown fences.
+Do not create a full visit note. Do not include patient demographics.
+
+If the dictation contains review of investigations, scan results, lab results, MRI, CT, EEG, NCS, blood reports, or report review, use this heading:
+Review of Investigations:
+
+Under Review of Investigations, arrange investigations like the main visit-note template:
+- organize by test/report name and date when dictated
+- put each investigation/report as a separate numbered item
+- under each imaging/report item, place each finding on a separate line
+- for blood reports, include each value on a separate line with appropriate units
+
+If the dictation is plain review text without investigation/report review, do not add a heading. Return only a concise paragraph or short lines exactly reflecting the dictation.
+
+Never add clinical information that was not spoken.
+
+${context}`;
+        }
         if (mode === "prescription") {
           return `You are a clinical prescription assistant helping a doctor structure a dictated prescription.
 
@@ -2130,7 +2158,7 @@ ${context}`;
         dock.style.bottom = "auto";
       }
       function ambientDockVisible() {
-        return Boolean(draftMedicalRecord?.source === "ambient" && ["idle", "recording", "paused", "stopped", "processing"].includes(ambientState));
+        return Boolean((activeAddOn || draftMedicalRecord?.source === "ambient") && ["idle", "recording", "paused", "stopped", "processing"].includes(ambientState));
       }
       function renderAmbientDock() {
         const dock = $("#ambientDock");
@@ -2171,7 +2199,7 @@ ${context}`;
               <button class="ambient-round ambient-pause" type="button" data-ambient-pause="true" title="${paused ? "Resume" : "Pause"}" aria-label="${paused ? "Resume recording" : "Pause recording"}" ${idle || stopped || locked ? "hidden" : ""}>${paused ? "▶" : "Ⅱ"}</button>
               <button class="ambient-round ambient-stop" type="button" data-ambient-stop="true" title="Stop and process" aria-label="Stop and process" ${idle || locked ? "hidden" : ""}>■</button>
             </div>
-            <div class="ambient-float-mode" aria-label="WOYZ template">
+            <div class="ambient-float-mode" aria-label="WOYZ template" ${activeAddOn ? "hidden" : ""}>
               ${Object.entries(ambientModes).map(([value, label]) => `
                 <button class="ambient-mode ${value === activeAmbientMode ? "active" : ""}" type="button" data-ambient-mode="${value}" ${locked ? "disabled" : ""}>${ambientFloatModeLabel(value)}</button>
               `).join("")}
@@ -2187,6 +2215,7 @@ ${context}`;
       }
       function setAmbientButtons() {
         renderAmbientDock();
+        updateAddOnButtonVisibility();
         const starts = document.querySelectorAll("[data-ambient-start]");
         const pauses = document.querySelectorAll("[data-ambient-pause]");
         const stops = document.querySelectorAll("[data-ambient-stop]");
@@ -2214,6 +2243,27 @@ ${context}`;
           extend.disabled = ambientState === "processing" || ambientState === "ready";
         });
       }
+      function updateAddOnButtonVisibility() {
+        const button = $("#recordAddOnBtn");
+        if (!button) return;
+        const isSavedVisit = activeRecordView === "single" && Boolean(activeRecordId) && activeAmbientMode === "visit";
+        button.hidden = !isSavedVisit;
+        button.disabled = Boolean(activeAddOn && ["recording", "paused", "processing"].includes(ambientState));
+      }
+      function clearActiveAddOn(resetAudio = false) {
+        if (!activeAddOn) return;
+        activeAddOn = null;
+        if (activeAmbientMode === "addon") activeAmbientMode = "visit";
+        if (resetAudio) {
+          ambientChunks = [];
+          ambientAudioBlob = null;
+          ambientRemainingMs = 5 * 60 * 1000;
+          ambientState = "idle";
+          ambientStopShouldProcess = false;
+          stopAmbientTracks({ releaseMic: true });
+        }
+        setAmbientButtons();
+      }
       function setAmbientMode(mode) {
         if (!ambientModes[mode] || ambientState === "processing" || ambientState === "ready") return;
         activeAmbientMode = mode;
@@ -2224,6 +2274,29 @@ ${context}`;
         $("#recordStatus").textContent = `${ambientModeLabel(mode)} draft. Save when ready.`;
         setAmbientButtons();
         renderPreviousRecords();
+      }
+      function startRecordAddOn() {
+        const patient = activeRecordPatient();
+        if (!patient || activeRecordView !== "single" || !activeRecordId || activeAmbientMode !== "visit") {
+          alert("Select a saved visit note first.");
+          return;
+        }
+        persistCurrentRecordTab();
+        activeAddOn = {
+          patientId: patient.id,
+          recordId: activeRecordId,
+          originalHtml: activeRecordDocs.visit || $("#medicalNoteText")?.innerHTML || "",
+          previousMode: activeAmbientMode
+        };
+        activeAmbientMode = "addon";
+        ambientChunks = [];
+        ambientAudioBlob = null;
+        ambientRemainingMs = 5 * 60 * 1000;
+        ambientState = "idle";
+        ambientStopShouldProcess = false;
+        ambientFloatPosition = null;
+        setAmbientButtons();
+        setAmbientStatus("Add On ready. Press Space or mic to record.");
       }
       function beginAmbientFloatDrag(event) {
         const dock = $("#ambientDock");
@@ -2389,7 +2462,7 @@ ${context}`;
           updateAmbientCountdown();
           setAmbientButtons();
           startAmbientWave(ambientStream);
-          if (activeRecordView !== "all") renderAllMedicalEntries();
+          if (activeRecordView !== "all" && !activeAddOn) renderAllMedicalEntries();
         } catch (error) {
           console.error("Ambient recording failed", error);
           stopAmbientTracks({ releaseMic: true });
@@ -2509,6 +2582,21 @@ ${context}`;
           const processingMode = activeAmbientMode;
           const audioBase64 = await blobToBase64(ambientAudioBlob);
           const note = await requestAmbientGeminiNote(apiKey, patient, processingMode, audioBase64, ambientAudioBlob.type);
+          if (activeAddOn) {
+            const mergedHtml = mergeAddOnIntoVisitHtml(activeAddOn.originalHtml || activeRecordDocs.visit || $("#medicalNoteText")?.innerHTML || "", note);
+            activeRecordDocs.visit = mergedHtml;
+            $("#medicalNoteText").setAttribute("contenteditable", "true");
+            $("#medicalNoteText").innerHTML = mergedHtml;
+            $("#medicalNoteText").focus();
+            activeRecordDirty = true;
+            ambientState = "ready";
+            activeAmbientMode = activeAddOn.previousMode || "visit";
+            activeAddOn = null;
+            $("#recordStatus").textContent = "Add On inserted. Review and Save.";
+            setAmbientButtons();
+            renderPreviousRecords();
+            return;
+          }
           activeRecordDocs.visit = plainTextToHtml(note);
           if (draftMedicalRecord) updateDraftContent(draftMedicalRecord, note, processingMode);
           activeRecordDirty = true;
@@ -2608,6 +2696,7 @@ ${context}`;
         const patient = activeRecordPatient();
         const draft = draftId ? draftRecordById(draftId) : activeDraftForPatient(patient);
         if (!draft) return;
+        clearActiveAddOn(true);
         activeRecordView = "draft";
         activeRecordId = draft.id;
         activeRecordDate = draft.date;
@@ -2728,6 +2817,7 @@ ${context}`;
       function createNewMedicalEntry(source = "typed") {
         const patient = activeRecordPatient();
         if (!patient) return;
+        clearActiveAddOn(true);
         captureActiveDraft();
         const existingDraft = patientDraftRecords(patient)[0];
         if (existingDraft && source !== "ambient") {
@@ -2791,6 +2881,62 @@ ${context}`;
         const container = document.createElement("div");
         container.innerHTML = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
         return container.innerText || container.textContent || "";
+      }
+      function isVisitSectionHeading(line) {
+        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|review note|review dictation)\s*:?\s*$/i.test(String(line || "").trim());
+      }
+      function findVisitHeadingIndex(lines, pattern) {
+        return lines.findIndex((line) => pattern.test(String(line || "").trim()));
+      }
+      function nextVisitHeadingIndex(lines, startIndex) {
+        for (let index = startIndex + 1; index < lines.length; index += 1) {
+          if (isVisitSectionHeading(lines[index])) return index;
+        }
+        return lines.length;
+      }
+      function compactVisitLines(lines) {
+        const cleaned = [];
+        lines.forEach((line) => {
+          const value = String(line || "").trim();
+          if (!value && !cleaned[cleaned.length - 1]) return;
+          cleaned.push(value);
+        });
+        while (cleaned.length && !cleaned[0]) cleaned.shift();
+        while (cleaned.length && !cleaned[cleaned.length - 1]) cleaned.pop();
+        return cleaned;
+      }
+      function addOnInvestigationLines(text) {
+        const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const reviewIndex = findVisitHeadingIndex(lines, /^review of investigations\s*:?\s*$/i);
+        if (reviewIndex < 0) return [];
+        const endIndex = nextVisitHeadingIndex(lines, reviewIndex);
+        return lines.slice(reviewIndex + 1, endIndex).filter(Boolean);
+      }
+      function mergeAddOnIntoVisitHtml(existingHtml, addOnText) {
+        const existingLines = compactVisitLines(htmlToPlainText(existingHtml || "").split(/\r?\n/));
+        const investigationLines = addOnInvestigationLines(addOnText);
+        const insertionLines = investigationLines.length
+          ? investigationLines
+          : compactVisitLines(String(addOnText || "").split(/\r?\n/));
+        if (!insertionLines.length) return existingHtml || "";
+        const lines = existingLines.length ? [...existingLines] : [];
+        if (investigationLines.length) {
+          const reviewIndex = findVisitHeadingIndex(lines, /^review of investigations\s*:?\s*$/i);
+          if (reviewIndex >= 0) {
+            lines.splice(nextVisitHeadingIndex(lines, reviewIndex), 0, "", ...insertionLines, "");
+          } else {
+            const examIndex = findVisitHeadingIndex(lines, /^examination findings?\s*:?\s*$/i);
+            const hpiIndex = findVisitHeadingIndex(lines, /^history of present illness\s*:?\s*$/i);
+            const insertAfter = examIndex >= 0 ? nextVisitHeadingIndex(lines, examIndex) : hpiIndex >= 0 ? nextVisitHeadingIndex(lines, hpiIndex) : lines.length;
+            lines.splice(insertAfter, 0, "", "Review of Investigations:", ...insertionLines, "");
+          }
+          return plainTextToHtml(compactVisitLines(lines).join("\n"));
+        }
+        const reviewNoteLines = ["Review Note:", ...insertionLines];
+        const hpiIndex = findVisitHeadingIndex(lines, /^history of present illness\s*:?\s*$/i);
+        const insertAt = hpiIndex >= 0 ? nextVisitHeadingIndex(lines, hpiIndex) : lines.length;
+        lines.splice(insertAt, 0, "", ...reviewNoteLines, "");
+        return plainTextToHtml(compactVisitLines(lines).join("\n"));
       }
       function cleanSummaryLine(value) {
         return String(value || "")
@@ -3239,6 +3385,7 @@ ${context}`;
         const patient = activeRecordPatient();
         if (!patient) return;
         persistCurrentRecordTab();
+        clearActiveAddOn(true);
         const records = treatmentSummarySourceRecords(patient);
         if (!records.length) {
           alert("No saved visit notes found for Smart Chart.");
@@ -3938,6 +4085,7 @@ ${context}`;
       function renderAllMedicalEntries() {
         const patient = activeRecordPatient();
         if (!patient) return;
+        clearActiveAddOn(true);
         captureActiveDraft();
         const rows = patientMedicalRecords(patient);
         activeRecordView = "all";
@@ -4073,6 +4221,7 @@ ${context}`;
       function openMedicalRecord(patientId, recordId = "") {
         const patient = patients.find((item) => item.id === patientId);
         if (!patient) return;
+        if (activeAddOn && activeAddOn.recordId !== recordId) clearActiveAddOn(true);
         captureActiveDraft();
         activeRecordPatientId = patient.id;
         const patientRecords = patientMedicalRecords(patient);
@@ -4119,6 +4268,7 @@ ${context}`;
       }
       function closeMedicalRecordScreen() {
         captureActiveDraft();
+        clearActiveAddOn(true);
         stopAmbientTracks({ releaseMic: true });
         draftMedicalRecord = null;
         extraDraftMedicalRecords = [];
@@ -5372,6 +5522,7 @@ ${context}`;
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
         if (button.id === "recordPrintPrescriptionBtn") printPrescriptionFromVisitNote();
+        if (button.id === "recordAddOnBtn") startRecordAddOn();
         if (button.id === "recordSummaryBtn") showSmartChart();
         if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
         if (button.id === "closeRecordDiagnosisBtn") closeRecordDiagnosisModal();
@@ -5471,7 +5622,7 @@ ${context}`;
       });
       document.addEventListener("keydown", async (event) => {
         const recordOpen = $("#medicalRecordScreen").classList.contains("open");
-        const ambientDraftActive = draftMedicalRecord?.source === "ambient";
+        const ambientDraftActive = draftMedicalRecord?.source === "ambient" || activeAddOn;
         if (!recordOpen || !ambientDraftActive) return;
         if (ambientState === "ready") return;
         if (event.code === "Space") {
