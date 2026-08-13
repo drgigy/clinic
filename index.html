@@ -1886,7 +1886,7 @@ ID: ${patient ? patientDisplayId(patient) : ""}
 Mobile: ${patient?.mobile || ""}
 Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
         if (mode === "addon") {
-          return `You are a clinical review add-on assistant helping a doctor append a short dictated addendum to an existing OPD visit note.
+          return `You are a clinical review add-on assistant helping a doctor create a separate review draft note after an OPD consultation.
 
 Correct spelling and grammar. Keep the original meaning exactly.
 Do not add, infer, assume, or hallucinate clinical information.
@@ -1894,6 +1894,16 @@ Do not remove any dictated detail.
 Return plain text only. Do not return JSON. Do not use markdown fences.
 Do not create a full visit note. Do not include patient demographics.
 
+Use only these headings, in this order, and omit a heading only if there is no dictated content for that section:
+
+Review Note:
+
+Allergies:
+
+Review of Investigations:
+
+Plain review text should go under Review Note.
+If allergies or allergens are mentioned, put them under Allergies.
 If the dictation contains review of investigations, scan results, lab results, MRI, CT, EEG, NCS, blood reports, or report review, use this heading:
 Review of Investigations:
 
@@ -1903,7 +1913,7 @@ Under Review of Investigations, arrange investigations like the main visit-note 
 - under each imaging/report item, place each finding on a separate line
 - for blood reports, include each value on a separate line with appropriate units
 
-If the dictation is plain review text without investigation/report review, do not add a heading. Return only a concise paragraph or short lines exactly reflecting the dictation.
+Do not create Chief Complaints, History of Present Illness, Examination, Diagnosis, Prescription, Advice, or Orders headings.
 
 Never add clinical information that was not spoken.
 
@@ -2281,11 +2291,18 @@ ${context}`;
           alert("Select a saved visit note first.");
           return;
         }
+        if (draftMedicalRecord?.source === "ambient") {
+          alert("Please save or discard the current WOYZ draft before starting Add On.");
+          return;
+        }
         persistCurrentRecordTab();
+        const createdAt = new Date().toISOString();
+        const reviewDraft = createDraftMedicalRecord(patient, "ambient", "addon", createdAt);
+        draftMedicalRecord = reviewDraft;
         activeAddOn = {
           patientId: patient.id,
           recordId: activeRecordId,
-          originalHtml: activeRecordDocs.visit || $("#medicalNoteText")?.innerHTML || "",
+          draftId: reviewDraft.id,
           previousMode: activeAmbientMode
         };
         activeAmbientMode = "addon";
@@ -2295,6 +2312,8 @@ ${context}`;
         ambientState = "idle";
         ambientStopShouldProcess = false;
         ambientFloatPosition = null;
+        $("#recordStatus").textContent = "Add On draft. Press Space or mic to record.";
+        renderPreviousRecords();
         setAmbientButtons();
         setAmbientStatus("Add On ready. Press Space or mic to record.");
       }
@@ -2566,6 +2585,12 @@ ${context}`;
         draft.source = "ambient";
         draft.updatedAt = new Date().toISOString();
       }
+      function formatAddOnReviewText(text) {
+        const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        if (!lines.length) return "Review Note:";
+        const hasReviewNote = lines.some((line) => /^review note\s*:?\s*$/i.test(line));
+        return hasReviewNote ? lines.join("\n") : ["Review Note:", ...lines].join("\n");
+      }
       async function processAmbientAudio() {
         const apiKey = readStore(geminiApiKeyStore, "").trim();
         if (!apiKey) {
@@ -2583,18 +2608,19 @@ ${context}`;
           const audioBase64 = await blobToBase64(ambientAudioBlob);
           const note = await requestAmbientGeminiNote(apiKey, patient, processingMode, audioBase64, ambientAudioBlob.type);
           if (activeAddOn) {
-            const mergedHtml = mergeAddOnIntoVisitHtml(activeAddOn.originalHtml || activeRecordDocs.visit || $("#medicalNoteText")?.innerHTML || "", note);
-            activeRecordDocs.visit = mergedHtml;
-            $("#medicalNoteText").setAttribute("contenteditable", "true");
-            $("#medicalNoteText").innerHTML = mergedHtml;
-            $("#medicalNoteText").focus();
+            const reviewText = formatAddOnReviewText(note);
+            const reviewDraft = draftRecordById(activeAddOn.draftId) || draftMedicalRecord;
+            if (reviewDraft) updateDraftContent(reviewDraft, reviewText, "addon");
             activeRecordDirty = true;
             ambientState = "ready";
-            activeAmbientMode = activeAddOn.previousMode || "visit";
+            const draftId = reviewDraft?.id || activeAddOn.draftId;
             activeAddOn = null;
-            $("#recordStatus").textContent = "Add On inserted. Review and Save.";
-            setAmbientButtons();
-            renderPreviousRecords();
+            activeAmbientMode = "addon";
+            if (draftId) {
+              openDraftMedicalEntry(draftId);
+              showAmbientResult(reviewText);
+            }
+            $("#recordStatus").textContent = "Add On draft ready. Review and save.";
             return;
           }
           activeRecordDocs.visit = plainTextToHtml(note);
@@ -2881,62 +2907,6 @@ ${context}`;
         const container = document.createElement("div");
         container.innerHTML = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
         return container.innerText || container.textContent || "";
-      }
-      function isVisitSectionHeading(line) {
-        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|review note|review dictation)\s*:?\s*$/i.test(String(line || "").trim());
-      }
-      function findVisitHeadingIndex(lines, pattern) {
-        return lines.findIndex((line) => pattern.test(String(line || "").trim()));
-      }
-      function nextVisitHeadingIndex(lines, startIndex) {
-        for (let index = startIndex + 1; index < lines.length; index += 1) {
-          if (isVisitSectionHeading(lines[index])) return index;
-        }
-        return lines.length;
-      }
-      function compactVisitLines(lines) {
-        const cleaned = [];
-        lines.forEach((line) => {
-          const value = String(line || "").trim();
-          if (!value && !cleaned[cleaned.length - 1]) return;
-          cleaned.push(value);
-        });
-        while (cleaned.length && !cleaned[0]) cleaned.shift();
-        while (cleaned.length && !cleaned[cleaned.length - 1]) cleaned.pop();
-        return cleaned;
-      }
-      function addOnInvestigationLines(text) {
-        const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-        const reviewIndex = findVisitHeadingIndex(lines, /^review of investigations\s*:?\s*$/i);
-        if (reviewIndex < 0) return [];
-        const endIndex = nextVisitHeadingIndex(lines, reviewIndex);
-        return lines.slice(reviewIndex + 1, endIndex).filter(Boolean);
-      }
-      function mergeAddOnIntoVisitHtml(existingHtml, addOnText) {
-        const existingLines = compactVisitLines(htmlToPlainText(existingHtml || "").split(/\r?\n/));
-        const investigationLines = addOnInvestigationLines(addOnText);
-        const insertionLines = investigationLines.length
-          ? investigationLines
-          : compactVisitLines(String(addOnText || "").split(/\r?\n/));
-        if (!insertionLines.length) return existingHtml || "";
-        const lines = existingLines.length ? [...existingLines] : [];
-        if (investigationLines.length) {
-          const reviewIndex = findVisitHeadingIndex(lines, /^review of investigations\s*:?\s*$/i);
-          if (reviewIndex >= 0) {
-            lines.splice(nextVisitHeadingIndex(lines, reviewIndex), 0, "", ...insertionLines, "");
-          } else {
-            const examIndex = findVisitHeadingIndex(lines, /^examination findings?\s*:?\s*$/i);
-            const hpiIndex = findVisitHeadingIndex(lines, /^history of present illness\s*:?\s*$/i);
-            const insertAfter = examIndex >= 0 ? nextVisitHeadingIndex(lines, examIndex) : hpiIndex >= 0 ? nextVisitHeadingIndex(lines, hpiIndex) : lines.length;
-            lines.splice(insertAfter, 0, "", "Review of Investigations:", ...insertionLines, "");
-          }
-          return plainTextToHtml(compactVisitLines(lines).join("\n"));
-        }
-        const reviewNoteLines = ["Review Note:", ...insertionLines];
-        const hpiIndex = findVisitHeadingIndex(lines, /^history of present illness\s*:?\s*$/i);
-        const insertAt = hpiIndex >= 0 ? nextVisitHeadingIndex(lines, hpiIndex) : lines.length;
-        lines.splice(insertAt, 0, "", ...reviewNoteLines, "");
-        return plainTextToHtml(compactVisitLines(lines).join("\n"));
       }
       function cleanSummaryLine(value) {
         return String(value || "")
