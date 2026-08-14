@@ -253,7 +253,7 @@
         50% { height: 26px; }
       }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
-      .medical-textarea b { font-weight: 900; }
+      .medical-textarea b, .medical-textarea strong, .timeline-note-body strong { font-weight: 900; color: var(--ink); }
       .ambient-panel { height: 100%; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; display: grid; place-items: center; padding: 26px; text-align: center; }
       .ambient-panel.result { display: block; padding: 0; border: 0; background: transparent; }
       .ambient-stage { display: grid; place-items: center; min-height: 0; width: min(780px, 100%); }
@@ -4085,7 +4085,7 @@ ${context}`;
           const recordKind = record.recordKind || "visit";
           const bodyHtml = recordKind === "summary"
             ? formattedTreatmentSummaryHtml(record.docs?.visit || record.noteHtml || record.note || "")
-            : (record.docs?.visit || record.noteHtml || plainTextToHtml(record.note || ""));
+            : timelineRecordBody(record);
           return `
             <section class="timeline-entry" id="entry-${record.id}">
               <h2>${record.source === "ambient" ? `${ambientModeLabel(recordKind)} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</h2>
