@@ -2732,6 +2732,7 @@ ${context}`;
         activeRecordType = "visit";
         activeRecordDocs = { visit: draft.docs?.visit || draft.noteHtml || (draft.note ? plainTextToHtml(draft.note) : "") };
         if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
+        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(activeRecordDocs.visit);
         $("#recordPatientName").textContent = draft.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${draft.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${draft.mobile || patient.mobile || "-"}`;
@@ -2901,12 +2902,23 @@ ${context}`;
         if (activeRecordView === "draft") captureActiveDraft();
       }
       function plainTextToHtml(value) {
-        return escapeHtml(value).replace(/\n/g, "<br>");
+        return String(value || "").split(/\r?\n/).map((line) => {
+          const escaped = escapeHtml(line);
+          return isVisitNoteHeadingLine(line) ? `<strong>${escaped}</strong>` : escaped;
+        }).join("<br>");
       }
       function htmlToPlainText(value) {
         const container = document.createElement("div");
         container.innerHTML = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
         return container.innerText || container.textContent || "";
+      }
+      function isVisitNoteHeadingLine(value) {
+        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|review note)\s*:$/i.test(String(value || "").trim());
+      }
+      function boldVisitNoteHeadingsHtml(value) {
+        const source = String(value || "");
+        if (!source) return source;
+        return plainTextToHtml(htmlToPlainText(source));
       }
       function cleanSummaryLine(value) {
         return String(value || "")
@@ -3001,8 +3013,8 @@ ${context}`;
       }
       function timelineRecordBody(record) {
         const html = record.docs?.visit || record.noteHtml || "";
-        if (html) return html;
-        return escapeHtml(record.note || "").replace(/\n/g, "<br>");
+        if (html) return boldVisitNoteHeadingsHtml(html);
+        return plainTextToHtml(record.note || "");
       }
       function treatmentTimelineHtml(records) {
         return `<div class="treatment-summary-print treatment-timeline-print">${records.map((record) => `
@@ -4222,6 +4234,7 @@ ${context}`;
           visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
         if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
+        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(activeRecordDocs.visit);
         activeRecordType = "visit";
         $("#medicalNoteText").setAttribute("contenteditable", "true");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
