@@ -3689,6 +3689,7 @@ ${context}`;
       }
       function isPrescriptionMedicineLine(line) {
         const cleaned = prescriptionInstructionText(line).toLowerCase();
+        if (/^(take|use|apply|instill|inject|continue)\b/i.test(cleaned)) return false;
         return /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray|neb|nebulization)\b/i.test(cleaned)
           || /\b(mg|mcg|g|ml|iu|units?)\b/i.test(cleaned);
       }
