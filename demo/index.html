@@ -558,10 +558,8 @@
         <h1>Clinic WOYZ Demo</h1>
         <p>Demo mode uses local sample patients, prescriptions, Smart Chart labs, and accounts only.</p>
         <form id="loginForm" autocomplete="off">
-          <label>Demo user<input id="loginEmail" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" /></label>
-          <label>Demo password<input id="loginPassword" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" /></label>
           <div class="login-error" id="loginError" role="alert"></div>
-          <div class="login-status" id="loginStatus">Checking secure access...</div>
+          <div class="login-status" id="loginStatus">Demo mode active. No sign-in required.</div>
           <button class="primary" id="loginButton" type="submit">Enter demo</button>
         </form>
       </div>
@@ -628,7 +626,7 @@
             </div>
             <form id="patientForm">
               <div class="patient-search">
-                <label>Search previous patient<input id="patientSearch" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="demoPatientLookup" placeholder="Name, mobile number, or ID" /></label>
+                <label>Search previous patient<input id="patientSearch" type="text" inputmode="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="patient_lookup_demo_2600" data-lpignore="true" data-1p-ignore="true" readonly placeholder="Name, mobile number, or ID" /></label>
                 <div class="search-results" id="patientSearchResults"></div>
               </div>
               <label>Patient name<input id="name" required autocomplete="off" /></label>
@@ -735,7 +733,7 @@
             <div class="doctor-search-panel" id="doctorSearchPanel" hidden>
               <label for="doctorPatientSearch">Search previous patient</label>
               <div class="doctor-search-row">
-                <input id="doctorPatientSearch" type="search" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="demoDoctorPatientLookup" placeholder="Name, mobile number, or UHID" />
+                <input id="doctorPatientSearch" type="text" inputmode="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="doctor_patient_lookup_demo_2600" data-lpignore="true" data-1p-ignore="true" readonly placeholder="Name, mobile number, or UHID" />
                 <button class="secondary" id="clearDoctorSearch" type="button">Clear</button>
               </div>
               <div class="doctor-search-results" id="doctorPatientSearchResults"></div>
@@ -5756,6 +5754,7 @@ ${context}`;
       });
       document.addEventListener("focusin", (event) => {
         if (event.target.id === "patientSearch" || event.target.id === "doctorPatientSearch") {
+          event.target.removeAttribute("readonly");
           if (isDemoEmailAutofill(event.target.value)) {
             event.target.value = "";
             if (event.target.id === "doctorPatientSearch") doctorSearchQuery = "";
@@ -5765,6 +5764,7 @@ ${context}`;
         }
       });
       document.addEventListener("pointerdown", (event) => {
+        if (event.target.id === "patientSearch" || event.target.id === "doctorPatientSearch") event.target.removeAttribute("readonly");
         beginAmbientFloatDrag(event);
         if (!event.target.closest("#homeMenu")) toggleHomeMenu(false);
       });
