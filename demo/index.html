@@ -559,9 +559,9 @@
       <div class="login-card">
         <h1>Clinic WOYZ Demo</h1>
         <p>Demo mode uses local sample patients, prescriptions, Smart Chart labs, and accounts only.</p>
-        <form id="loginForm">
-          <label>Email address<input id="loginEmail" type="email" required autocomplete="username" /></label>
-          <label>Password<input id="loginPassword" type="password" required autocomplete="current-password" /></label>
+        <form id="loginForm" autocomplete="off">
+          <label>Demo user<input id="loginEmail" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" /></label>
+          <label>Demo password<input id="loginPassword" type="text" autocomplete="off" data-lpignore="true" data-1p-ignore="true" /></label>
           <div class="login-error" id="loginError" role="alert"></div>
           <div class="login-status" id="loginStatus">Checking secure access...</div>
           <button class="primary" id="loginButton" type="submit">Enter demo</button>
@@ -630,7 +630,7 @@
             </div>
             <form id="patientForm">
               <div class="patient-search">
-                <label>Search previous patient<input id="patientSearch" autocomplete="off" placeholder="Name, mobile number, or ID" /></label>
+                <label>Search previous patient<input id="patientSearch" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="demoPatientLookup" placeholder="Name, mobile number, or ID" /></label>
                 <div class="search-results" id="patientSearchResults"></div>
               </div>
               <label>Patient name<input id="name" required autocomplete="off" /></label>
@@ -737,7 +737,7 @@
             <div class="doctor-search-panel" id="doctorSearchPanel" hidden>
               <label for="doctorPatientSearch">Search previous patient</label>
               <div class="doctor-search-row">
-                <input id="doctorPatientSearch" type="search" autocomplete="off" placeholder="Name, mobile number, or UHID" />
+                <input id="doctorPatientSearch" type="search" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="demoDoctorPatientLookup" placeholder="Name, mobile number, or UHID" />
                 <button class="secondary" id="clearDoctorSearch" type="button">Clear</button>
               </div>
               <div class="doctor-search-results" id="doctorPatientSearchResults"></div>
@@ -5661,10 +5661,29 @@ ${context}`;
       window.addEventListener("beforeunload", () => {
         stopAmbientTracks({ releaseMic: true });
       });
+      function clearDemoAutofilledSearches() {
+        const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+        const patientSearch = $("#patientSearch");
+        if (patientSearch && looksLikeEmail(patientSearch.value)) {
+          patientSearch.value = "";
+          $("#patientSearchResults").innerHTML = "";
+          reusedPatientUhid = "";
+        }
+        const doctorSearch = $("#doctorPatientSearch");
+        if (doctorSearch && looksLikeEmail(doctorSearch.value)) {
+          doctorSearch.value = "";
+          doctorSearchQuery = "";
+          $("#doctorPatientSearchResults").innerHTML = "";
+        }
+      }
       document.body.classList.remove("auth-locked");
       $("#signedInUser").textContent = "Demo mode: local sample data only";
       $("#loginStatus").textContent = "Demo mode active. No sign-in required.";
       startDemoLocalSync();
+      clearDemoAutofilledSearches();
+      window.addEventListener("pageshow", clearDemoAutofilledSearches);
+      setTimeout(clearDemoAutofilledSearches, 100);
+      setTimeout(clearDemoAutofilledSearches, 500);
       document.addEventListener("blur", (event) => { if (event.target.dataset.amount) render(); }, true);
       $("#geminiApiKey").value = readStore(geminiApiKeyStore, "");
       $("#clinicName").innerHTML = clinicNameHtml();
