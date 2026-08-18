@@ -151,10 +151,8 @@
       .priority.routine { background: #e8f3f1; color: #115e59; }
       .consult-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
       .consult-title { min-width: 0; }
-      .doctor-consult-head { position: relative; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; min-height: 40px; }
+      .doctor-consult-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 0; min-height: 40px; }
       .doctor-consult-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
-      .doctor-test-centre { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; min-height: 34px; width: min(280px, 32%); pointer-events: none; }
-      .doctor-test-centre .selected-test-pill { pointer-events: auto; }
       .doctor-patient-row { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; align-items: center; }
       .row-number { width: 34px; height: 34px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); font-size: 14px; font-weight: 900; }
       .patient-seen-note { background: #ecfdf5; border-color: #b6ead0; }
@@ -1247,8 +1245,9 @@
         }).join("<br>");
       }
       function demoSeedData() {
+        const demoSeedVersion = "2026-08-18-demo-notes-labs-v2";
         const seeded = readStore(`${demoStoragePrefix}seeded.v1`, "");
-        if (seeded) return;
+        if (seeded === demoSeedVersion) return;
         const demoPatients = [
           { id: "demo-p001", patientId: "260001", date: "2026-08-18", name: "ANITA RAO", age: "46", sex: "Female", mobile: "9000001001", comments: ["Demo patient"], customDiagnosis: "Iron deficiency anemia", visitType: "Review", mode: "Clinic", diagnosis: "Pain", attendance: "Came", callbackStatus: "", tests: ["MRI", "Nerve test"], consultAmount: "600", consultPayMode: "GPay", testAmount: "2500", testPayMode: "Card" },
           { id: "demo-p002", patientId: "260002", date: "2026-08-18", name: "RAVI NAIR", age: "62", sex: "Male", mobile: "9000001002", comments: ["Demo patient"], customDiagnosis: "Diabetes with neuropathy", visitType: "First", mode: "Clinic", diagnosis: "Pain", attendance: "Came", callbackStatus: "", tests: ["EEG"], consultAmount: "700", consultPayMode: "Cash", testAmount: "1200", testPayMode: "GPay" },
@@ -1270,8 +1269,63 @@
               "History of Present Illness:",
               "Patient reviewed with tiredness and reduced exercise tolerance.",
               "",
-              "Review of Investigations:",
-              "Blood report - 12/03/2026: Hemoglobin 9.2 g/dL, ESR 32 mm/hr, Vitamin B12 210 pg/mL, TSH 3.1 mIU/L.",
+	              "Review of Investigations:",
+	              "Blood report - 18/01/2026: Hemoglobin 8.7 g/dL, ESR 38 mm/hr, Vitamin B12 180 pg/mL, TSH 3.6 mIU/L.",
+	              "CBC impression: Microcytic hypochromic anemia pattern.",
+	              "",
+	              "Diagnosis:",
+	              "Iron deficiency anemia under evaluation.",
+	              "",
+	              "Prescription:",
+	              "1. Tablet Ferrous sulfate 100 mg",
+	              "Take 1 tablet at night after food for 1 month.",
+	              "",
+	              "Advice / Instructions:",
+	              "Start iron rich diet and bring previous blood reports."
+	            ]) }
+	          },
+	          {
+	            id: "demo-r001b",
+	            patientId: "demo-p001",
+	            date: "2026-02-10",
+	            createdAt: "2026-02-10T10:05:00",
+	            updatedAt: "2026-02-10T10:05:00",
+	            recordKind: "visit",
+	            source: "ambient",
+	            docs: { visit: demoVisitHtml("Visit", [
+	              "Chief Complaints:",
+	              "Follow-up for anemia and leg cramps.",
+	              "",
+	              "History of Present Illness:",
+	              "Patient reports mild improvement in fatigue after diet correction.",
+	              "",
+	              "Review of Investigations:",
+	              "Blood report - 10/02/2026: Hemoglobin 8.9 g/dL, ESR 36 mm/hr, Vitamin B12 195 pg/mL, TSH 3.4 mIU/L.",
+	              "",
+	              "Diagnosis:",
+	              "Iron deficiency anemia.",
+	              "",
+	              "Advice / Instructions:",
+	              "Continue hematinic treatment and repeat CBC."
+	            ]) }
+	          },
+	          {
+	            id: "demo-r001a",
+	            patientId: "demo-p001",
+	            date: "2026-01-18",
+	            createdAt: "2026-01-18T10:30:00",
+	            updatedAt: "2026-01-18T10:30:00",
+	            recordKind: "visit",
+	            source: "ambient",
+	            docs: { visit: demoVisitHtml("Visit", [
+	              "Chief Complaints:",
+	              "Fatigue and intermittent leg cramps.",
+	              "",
+	              "History of Present Illness:",
+	              "Patient reviewed with tiredness and reduced exercise tolerance.",
+	              "",
+	              "Review of Investigations:",
+	              "Blood report - 12/03/2026: Hemoglobin 9.2 g/dL, ESR 32 mm/hr, Vitamin B12 210 pg/mL, TSH 3.1 mIU/L.",
               "",
               "Diagnosis:",
               "Iron deficiency anemia.",
@@ -1284,8 +1338,8 @@
               "Repeat CBC after 1 month."
             ]) }
           },
-          {
-            id: "demo-r002",
+	          {
+	            id: "demo-r002",
             patientId: "demo-p001",
             date: "2026-05-16",
             createdAt: "2026-05-16T11:20:00",
@@ -1306,7 +1360,29 @@
               "Advice / Instructions:",
               "Continue iron rich diet."
             ]) }
-          },
+	          },
+	          {
+	            id: "demo-r002b",
+	            patientId: "demo-p001",
+	            date: "2026-06-18",
+	            createdAt: "2026-06-18T11:00:00",
+	            updatedAt: "2026-06-18T11:00:00",
+	            recordKind: "visit",
+	            source: "ambient",
+	            docs: { visit: demoVisitHtml("Visit", [
+	              "Chief Complaints:",
+	              "Anemia follow-up. Energy level better.",
+	              "",
+	              "Review of Investigations:",
+	              "Blood report - 18/06/2026: Hemoglobin 11.0 g/dL, ESR 18 mm/hr, Vitamin B12 360 pg/mL, TSH 2.5 mIU/L.",
+	              "",
+	              "Diagnosis:",
+	              "Improving iron deficiency anemia.",
+	              "",
+	              "Advice / Instructions:",
+	              "Continue maintenance iron and review with repeat blood report."
+	            ]) }
+	          },
           {
             id: "demo-r003",
             patientId: "demo-p001",
@@ -1334,8 +1410,8 @@
               "Physiotherapy and review if weakness develops."
             ]) }
           },
-          {
-            id: "demo-r004",
+	          {
+	            id: "demo-r004",
             patientId: "demo-p002",
             date: "2026-08-18",
             createdAt: "2026-08-18T12:10:00",
@@ -1346,9 +1422,11 @@
               "Chief Complaints:",
               "Burning sensation in both feet.",
               "",
-              "Review of Investigations:",
-              "Blood report - 10/06/2026: Fasting blood sugar 162 mg/dL, HbA1c 8.4 %, Creatinine 1.0 mg/dL.",
-              "Blood report - 18/08/2026: Fasting blood sugar 128 mg/dL, HbA1c 7.2 %, Creatinine 1.1 mg/dL.",
+	              "Review of Investigations:",
+	              "Blood report - 12/04/2026: Fasting blood sugar 184 mg/dL, HbA1c 8.9 %, Creatinine 0.9 mg/dL.",
+	              "Blood report - 20/07/2026: Fasting blood sugar 146 mg/dL, HbA1c 7.8 %, Creatinine 1.0 mg/dL.",
+	              "Blood report - 10/06/2026: Fasting blood sugar 162 mg/dL, HbA1c 8.4 %, Creatinine 1.0 mg/dL.",
+	              "Blood report - 18/08/2026: Fasting blood sugar 128 mg/dL, HbA1c 7.2 %, Creatinine 1.1 mg/dL.",
               "NCS - 18/08/2026: Findings suggest mild distal sensory neuropathy.",
               "",
               "Diagnosis:",
@@ -1359,10 +1437,41 @@
               "Take 1 tablet at night for 1 month.",
               "",
               "Advice / Instructions:",
-              "Optimize diabetic control and foot care."
-            ]) }
-          }
-        ];
+	              "Optimize diabetic control and foot care."
+	            ]) }
+	          },
+	          {
+	            id: "demo-r005",
+	            patientId: "demo-p003",
+	            date: "2026-08-17",
+	            createdAt: "2026-08-17T16:30:00",
+	            updatedAt: "2026-08-17T16:30:00",
+	            recordKind: "visit",
+	            source: "ambient",
+	            docs: { visit: demoVisitHtml("Visit", [
+	              "Chief Complaints:",
+	              "Recurrent migraine, 3 to 4 episodes per month.",
+	              "",
+	              "History of Present Illness:",
+	              "Headache is unilateral, throbbing, associated with nausea and light sensitivity. No red flag symptoms reported.",
+	              "",
+	              "Review of Investigations:",
+	              "MRI Brain - 05/05/2026: No focal intracranial lesion. No acute infarct or bleed.",
+	              "Blood report - 05/05/2026: Hemoglobin 12.6 g/dL, TSH 2.1 mIU/L, Vitamin B12 310 pg/mL.",
+	              "Blood report - 17/08/2026: Hemoglobin 12.9 g/dL, TSH 1.9 mIU/L, Vitamin B12 390 pg/mL.",
+	              "",
+	              "Diagnosis:",
+	              "Migraine without aura.",
+	              "",
+	              "Prescription:",
+	              "1. Tablet Propranolol 20 mg",
+	              "Take 1 tablet at night for 1 month.",
+	              "",
+	              "Advice / Instructions:",
+	              "Maintain headache diary and avoid sleep deprivation."
+	            ]) }
+	          }
+	        ];
         const demoAccounts = [
           { id: "demo-a001", date: "2026-08-18", type: "Other Income", amount: "1500", mode: "GPay", bank: "Demo Clinic Bank", note: "Demo physiotherapy referral income" },
           { id: "demo-a002", date: "2026-08-18", type: "Expense", amount: "2200", mode: "Cash", bank: "Stationery", note: "Demo prescription paper and forms" },
@@ -1379,7 +1488,7 @@
         writeStore(clinicNameStore, demoClinicName);
         writeStore(phoneKey, "919000001111");
         writeStore(patientCommentsStore, JSON.stringify(["Demo patient", "VIP", "Follow-up needed"]));
-        writeStore(`${demoStoragePrefix}seeded.v1`, "true");
+	        writeStore(`${demoStoragePrefix}seeded.v1`, demoSeedVersion);
       }
       function parsePatients() { try { const value = JSON.parse(readStore(storeKey, "[]")); return Array.isArray(value) ? value : []; } catch { return []; } }
       demoSeedData();
@@ -1708,8 +1817,16 @@
         });
         return [...byKey.values()];
       }
+      function isDemoEmailAutofill(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+      }
       function renderPatientSearch() {
-        const queryText = ($("#patientSearch")?.value || "").trim().toLowerCase();
+        const input = $("#patientSearch");
+        if (input && isDemoEmailAutofill(input.value)) {
+          input.value = "";
+          reusedPatientUhid = "";
+        }
+        const queryText = (input?.value || "").trim().toLowerCase();
         const box = $("#patientSearchResults");
         if (!box) return;
         if (queryText.length < 2) {
@@ -4439,6 +4556,10 @@ ${context}`;
         if (document.activeElement !== input && input.value !== doctorSearchQuery) {
           input.value = doctorSearchQuery;
         }
+        if (isDemoEmailAutofill(input.value) || isDemoEmailAutofill(doctorSearchQuery)) {
+          input.value = "";
+          doctorSearchQuery = "";
+        }
         const query = doctorSearchQuery.trim().toLowerCase();
         if (!query) {
           results.innerHTML = "";
@@ -4474,10 +4595,8 @@ ${context}`;
               <span class="row-number">${index + 1}</span>
               <div class="consult-head doctor-consult-head">
                 <div class="consult-title"><b>${doctorPatientLine(p)}</b></div>
-                <div class="doctor-test-centre">
-                  ${selectedTests.map((test) => `<span class="selected-test-pill">${test}</span>`).join("")}
-                </div>
                 <div class="doctor-consult-meta">
+                  ${selectedTests.map((test) => `<span class="selected-test-pill">${test}</span>`).join("")}
                   ${patientCommentsHtml(p)}
                   ${diagnosis ? `<span class="doctor-detail-pill diagnosis-pill">${escapeHtml(diagnosis)}</span>` : ""}
                   <span class="doctor-detail-pill">${doctorAbbreviation(p.visitType)}</span>
@@ -5391,7 +5510,8 @@ ${context}`;
           doctorSearchQuery = "";
           const doctorSearchInput = $("#doctorPatientSearch");
           if (doctorSearchInput) doctorSearchInput.value = "";
-          renderDoctorPatientSearch();
+          const doctorSearchResults = $("#doctorPatientSearchResults");
+          if (doctorSearchResults) doctorSearchResults.innerHTML = "";
           return;
         }
         if (button.dataset.doctorOpenPatient) {
@@ -5615,6 +5735,7 @@ ${context}`;
       });
       document.addEventListener("input", (event) => {
         if (event.target.id === "doctorPatientSearch") {
+          if (isDemoEmailAutofill(event.target.value)) event.target.value = "";
           doctorSearchQuery = event.target.value;
           renderDoctorPatientSearch();
           return;
@@ -5626,8 +5747,22 @@ ${context}`;
           const row = event.target.closest("[data-neuro-source-row]");
           if (row) row.querySelector("[data-neuro-total]").value = Number(row.querySelector("[data-neuro-ncs]").value || 0) + Number(row.querySelector("[data-neuro-eeg]").value || 0);
         }
-        if (event.target.id === "patientSearch") { reusedPatientUhid = ""; renderPatientSearch(); }
+        if (event.target.id === "patientSearch") {
+          if (isDemoEmailAutofill(event.target.value)) event.target.value = "";
+          reusedPatientUhid = "";
+          renderPatientSearch();
+        }
         if (event.target.closest("#medicalRecordScreen")) setRecordDirty();
+      });
+      document.addEventListener("focusin", (event) => {
+        if (event.target.id === "patientSearch" || event.target.id === "doctorPatientSearch") {
+          if (isDemoEmailAutofill(event.target.value)) {
+            event.target.value = "";
+            if (event.target.id === "doctorPatientSearch") doctorSearchQuery = "";
+            if (event.target.id === "patientSearch") reusedPatientUhid = "";
+            clearDemoAutofilledSearches();
+          }
+        }
       });
       document.addEventListener("pointerdown", (event) => {
         beginAmbientFloatDrag(event);
@@ -5662,15 +5797,14 @@ ${context}`;
         stopAmbientTracks({ releaseMic: true });
       });
       function clearDemoAutofilledSearches() {
-        const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
         const patientSearch = $("#patientSearch");
-        if (patientSearch && looksLikeEmail(patientSearch.value)) {
+        if (patientSearch && isDemoEmailAutofill(patientSearch.value)) {
           patientSearch.value = "";
           $("#patientSearchResults").innerHTML = "";
           reusedPatientUhid = "";
         }
         const doctorSearch = $("#doctorPatientSearch");
-        if (doctorSearch && looksLikeEmail(doctorSearch.value)) {
+        if (doctorSearch && isDemoEmailAutofill(doctorSearch.value)) {
           doctorSearch.value = "";
           doctorSearchQuery = "";
           $("#doctorPatientSearchResults").innerHTML = "";
