@@ -360,14 +360,14 @@
       .smart-chart-actions { display: flex; justify-content: flex-end; gap: 8px; }
       .smart-chart-section { display: grid; gap: 8px; break-inside: avoid; }
       .smart-chart-section h3 { font-size: 16px; font-weight: 900; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
-      .smart-chart-graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
-      .blood-chart { border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); }
-      .blood-chart-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 0; font-size: 13px; font-weight: 900; }
+      .smart-chart-graphs { display: grid; grid-template-columns: 1fr; gap: 10px; }
+      .blood-chart { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); }
+      .blood-chart-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 15px; font-weight: 900; }
       .blood-chart-unit { color: var(--muted); font-weight: 750; }
-      .blood-chart svg { width: 100%; height: 96px; display: block; overflow: visible; }
-      .blood-chart-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 8px; border-top: 1px solid #edf2f5; margin-top: 3px; padding-top: 5px; font-size: 11px; line-height: 1.25; }
-      .blood-chart-value-row { display: flex; justify-content: space-between; gap: 7px; min-width: 0; }
-      .blood-chart-date { color: var(--muted); font-weight: 750; white-space: nowrap; }
+      .blood-chart svg { width: 100%; height: 210px; display: block; overflow: visible; }
+      .blood-chart-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; border-top: 1px solid #edf2f5; margin-top: 8px; padding-top: 8px; font-size: 12px; line-height: 1.25; }
+      .blood-chart-value-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; border: 1px solid #edf2f5; border-radius: 6px; padding: 7px 9px; background: #fbfdfe; }
+      .blood-chart-date { color: var(--muted); font-weight: 850; white-space: nowrap; }
       .blood-chart-number { color: #991b1b; font-weight: 900; white-space: nowrap; }
       .smart-result-list { display: grid; gap: 8px; }
       .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
@@ -3338,6 +3338,7 @@ ${context}`;
         const seen = new Set();
         records.forEach((record) => {
           let section = "";
+          let currentBloodDate = null;
           smartChartLines(record).forEach((line) => {
             const cleaned = cleanSummaryLine(line);
             if (!cleaned) return;
@@ -3351,22 +3352,25 @@ ${context}`;
             }
             if (isSmartChartStopHeading(cleaned)) {
               section = "";
+              currentBloodDate = null;
               return;
             }
+            const lineDate = smartChartParsedDate(cleaned);
+            if (lineDate && /\b(blood reports?|blood tests?|labs?|laboratory|cbc|rft|lft|tft)\b/i.test(cleaned)) currentBloodDate = lineDate;
             smartChartSentencePieces(cleaned).forEach((piece) => {
               const stripHeading = piece.replace(/^(blood reports?|blood tests?|labs?|laboratory results?|investigations?|review of investigations)\s*:?\s*/i, "").trim();
               if (!stripHeading) return;
               bloodTestPatterns().forEach(([label, pattern]) => {
                 pattern.lastIndex = 0;
                 [...stripHeading.matchAll(pattern)].forEach((match) => {
-                  const value = Number(match[1]);
-                  if (!Number.isFinite(value)) return;
-                  const unit = match[2] || "";
-                  const key = `${recordTimestamp(record)}__${label.toLowerCase()}__${value}__${unit.toLowerCase()}`;
-	                  if (seen.has(key)) return;
-	                  seen.add(key);
-	                  const dateInfo = smartChartResultDate(record, stripHeading);
-	                  rows.push({
+	                  const value = Number(match[1]);
+	                  if (!Number.isFinite(value)) return;
+	                  const unit = match[2] || "";
+	                  const dateInfo = smartChartParsedDate(stripHeading) || currentBloodDate || smartChartResultDate(record, stripHeading);
+	                  const key = `${dateInfo.sortDate}__${label.toLowerCase()}__${value}__${unit.toLowerCase()}`;
+		                  if (seen.has(key)) return;
+		                  seen.add(key);
+		                  rows.push({
 	                    date: dateInfo.sortDate,
 	                    label: dateInfo.label,
 	                    test: label,
@@ -3456,11 +3460,13 @@ ${context}`;
         const chartMin = min - padding;
         const chartMax = max + padding;
         const range = chartMax - chartMin || 1;
-        const width = 300;
-        const height = 92;
-        const pad = 22;
-        const xFor = (index) => series.points.length === 1 ? width / 2 : pad + (index * (width - pad * 2)) / (series.points.length - 1);
-        const yFor = (value) => height - pad - ((value - chartMin) * (height - pad * 2)) / range;
+        const width = 760;
+        const height = 210;
+        const padX = 54;
+        const padTop = 24;
+        const padBottom = 42;
+        const xFor = (index) => series.points.length === 1 ? width / 2 : padX + (index * (width - padX * 2)) / (series.points.length - 1);
+        const yFor = (value) => height - padBottom - ((value - chartMin) * (height - padTop - padBottom)) / range;
         const coordinates = series.points.map((point, index) => ({ ...point, x: xFor(index), y: yFor(point.value) }));
         const polyline = coordinates.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
         const unit = series.points.find((point) => point.unit)?.unit || "";
@@ -3476,17 +3482,18 @@ ${context}`;
               ${guideValues.map((value) => {
                 const y = yFor(value);
                 return `
-                  <line x1="${pad}" y1="${y.toFixed(1)}" x2="${width - pad}" y2="${y.toFixed(1)}" stroke="#edf2f5" stroke-width="1" />
-                  <text x="${pad - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#627489" font-size="10" font-weight="750">${escapeHtml(Number(value.toFixed(1)))}</text>
+                  <line x1="${padX}" y1="${y.toFixed(1)}" x2="${width - padX}" y2="${y.toFixed(1)}" stroke="#edf2f5" stroke-width="1" />
+                  <text x="${padX - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#627489" font-size="13" font-weight="750">${escapeHtml(Number(value.toFixed(1)))}</text>
                 `;
               }).join("")}
-              <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#d9e4ea" stroke-width="1.4" />
-              <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" stroke="#d9e4ea" stroke-width="1.4" />
-              ${coordinates.length > 1 ? `<polyline points="${polyline}" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />` : ""}
+              <line x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}" stroke="#d9e4ea" stroke-width="1.6" />
+              <line x1="${padX}" y1="${padTop}" x2="${padX}" y2="${height - padBottom}" stroke="#d9e4ea" stroke-width="1.6" />
+              ${coordinates.length > 1 ? `<polyline points="${polyline}" fill="none" stroke="#dc2626" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />` : ""}
               ${coordinates.map((point) => `
                 <g>
-                  <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5" fill="#fff" stroke="#dc2626" stroke-width="3" />
-                  <text x="${point.x.toFixed(1)}" y="${Math.max(12, point.y - 9).toFixed(1)}" text-anchor="middle" fill="#991b1b" font-size="10" font-weight="900">${escapeHtml(point.value)}</text>
+                  <circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="7" fill="#fff" stroke="#dc2626" stroke-width="4" />
+                  <text x="${point.x.toFixed(1)}" y="${Math.max(16, point.y - 13).toFixed(1)}" text-anchor="middle" fill="#991b1b" font-size="15" font-weight="900">${escapeHtml(point.value)}</text>
+                  <text x="${point.x.toFixed(1)}" y="${height - 13}" text-anchor="middle" fill="#627489" font-size="12" font-weight="850">${escapeHtml(point.label || "")}</text>
                 </g>
               `).join("")}
             </svg>
@@ -3550,7 +3557,7 @@ ${context}`;
         $("#recordDeleteBtn").hidden = true;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
-        $("#recordStatus").textContent = "Smart Chart is editable. Use Print / Save PDF for patient copy.";
+        $("#recordStatus").textContent = "";
         renderPreviousRecords();
       }
       function cleanCredentialsHtml(value) {
