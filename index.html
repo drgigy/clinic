@@ -3614,9 +3614,20 @@ ${context}`;
       }
       function cleanPrescriptionMedicine(line) {
         const source = line
-          .replace(/^\d+[\).\s-]+/, "")
+          .replace(/^(?!\d+\s*(?:mg|mcg|g|ml|iu|units?|drops?)\b)\d+[\).\s-]+/, "")
           .replace(/^[*•-]\s*/, "")
           .trim();
+        if (/^(syp|syrup)\b/i.test(source)) {
+          const syrupName = source
+            .replace(/\b(take|use|give|administer)\b[\s\S]*$/i, "")
+            .replace(/\b\d+(?:\.\d+)?\s*ml\b(?=[\s\S]*\b(?:morning|noon|afternoon|evening|night|bedtime|daily|twice|thrice|for)\b)[\s\S]*$/i, "")
+            .replace(/\bsyp\b/ig, "Syrup")
+            .replace(/\bsyrup\b/ig, "Syrup")
+            .replace(/\s{2,}/g, " ")
+            .replace(/[:;,.\s-]+$/g, "")
+            .trim();
+          if (syrupName) return syrupName;
+        }
         const parts = splitPrescriptionParts(line);
         if (parts.length > 1 && /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\b/i.test(parts[0])) {
           return parts[0].replace(/\btab\b/ig, "Tablet").replace(/\btablet\b/ig, "Tablet").replace(/\s{2,}/g, " ").trim();
