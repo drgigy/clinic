@@ -3670,7 +3670,7 @@ ${context}`;
       }
       function prescriptionInstructionText(line) {
         return line
-          .replace(/^\d+[\).\s-]+/, "")
+          .replace(/^(?!\d+\s*(?:mg|mcg|g|ml|iu|units?|drops?)\b)\d+[\).\s-]+/, "")
           .replace(/^[*•-]\s*/, "")
           .trim();
       }
@@ -3702,6 +3702,8 @@ ${context}`;
       function isPrescriptionMedicineLine(line) {
         const cleaned = prescriptionInstructionText(line).toLowerCase();
         if (/^(take|use|apply|instill|inject|continue)\b/i.test(cleaned)) return false;
+        if (/^(?:\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|drops?)\b|(?:one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:tablet|tab|capsule|cap|ml|drops?))\b/i.test(cleaned)) return false;
+        if (/\b(?:nasal\s+spray|oral\s+spray|inhaler|rotacap|respule|nebulization|ointment|cream|gel|patch|drops?)\b/i.test(cleaned)) return true;
         return /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray|neb|nebulization)\b/i.test(cleaned)
           || /\b(mg|mcg|g|ml|iu|units?)\b/i.test(cleaned);
       }
