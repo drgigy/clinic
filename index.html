@@ -386,6 +386,10 @@
       .smart-empty { color: var(--muted); font-size: 13px; font-weight: 750; }
       .smart-disclaimer { border-top: 1px solid var(--line); padding-top: 6px; color: #526273; font-size: 10px; line-height: 1.35; }
       .smart-disclaimer strong { color: #334454; }
+      .document-template { border: 1px dashed var(--line); border-radius: 8px; background: #f8fbfc; color: #506174; padding: 18px; line-height: 1.45; }
+      .document-template h2 { margin: 0 0 12px; color: var(--ink); font-size: 20px; font-weight: 900; }
+      .document-template .template-note { margin: 0 0 14px; color: var(--muted); font-size: 14px; font-weight: 800; }
+      .document-template pre { margin: 0; white-space: pre-wrap; font: inherit; }
       .treatment-summary-print { font-size: 15px; line-height: 1.45; }
       .summary-visit { margin: 0 0 18px; }
       .summary-date { font-size: 17px; font-weight: 900 !important; margin: 0 0 8px; }
@@ -2287,6 +2291,48 @@ ${context}`;
         setAmbientButtons();
         renderPreviousRecords();
       }
+      function documentTemplateHtml(mode) {
+        const templates = {
+          prescription: {
+            title: "Prescription Template",
+            body: `1. Tablet Medicine name dose
+Take 1 tablet in the morning and 1 tablet at night for 1 month.
+Malayalam instruction line.
+
+Advice / Instructions:
+- Follow up after review period.`
+          },
+          reply: {
+            title: "Reply Letter Template",
+            body: `Dear Dr. ______,
+
+Thank you for referring ______ for evaluation.
+
+Clinical summary and relevant findings will appear here.
+
+Plan / advice will appear here.
+
+Regards,`
+          },
+          certificate: {
+            title: "Certificate Template",
+            body: `To Whom It May Concern,
+
+This is to certify that ______.
+
+The purpose / rest period / fitness details will appear here when dictated.`
+          }
+        };
+        const template = templates[mode];
+        if (!template) return "";
+        return `
+          <div class="document-template" data-document-template="${escapeHtml(mode)}" contenteditable="false">
+            <h2>${escapeHtml(template.title)}</h2>
+            <p class="template-note">Dictate using WOYZ. The generated document will replace this template.</p>
+            <pre>${escapeHtml(template.body)}</pre>
+          </div>
+        `;
+      }
       function startDocumentDraft(mode) {
         const patient = activeRecordPatient();
         if (!patient || !["prescription", "reply", "certificate"].includes(mode)) return;
@@ -2321,7 +2367,7 @@ ${context}`;
           $("#recordDeleteBtn").title = "Discard draft";
           $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
           $("#medicalNoteText").setAttribute("contenteditable", "true");
-          $("#medicalNoteText").innerHTML = "";
+          $("#medicalNoteText").innerHTML = documentTemplateHtml(mode);
           renderPreviousRecords();
         }
         ambientFloatPosition = null;
@@ -2465,12 +2511,15 @@ ${context}`;
         if (dirty) setRecordDirty();
         setAmbientButtons();
       }
+      function hasDocumentTemplatePlaceholder() {
+        return Boolean($("#medicalNoteText")?.querySelector("[data-document-template]"));
+      }
       function persistAmbientNote() {
         const textarea = ambientTextarea();
-        const text = textarea ? textarea.value : htmlToPlainText($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "");
+        const text = hasDocumentTemplatePlaceholder() ? "" : (textarea ? textarea.value : htmlToPlainText($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || ""));
         activeRecordDocs.visit = activeAmbientMode === "summary"
           ? formattedTreatmentSummaryHtml(text || $("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "")
-          : textarea ? plainTextToHtml(text) : ($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "");
+          : text ? (textarea ? plainTextToHtml(text) : ($("#medicalNoteText")?.innerHTML || activeRecordDocs.visit || "")) : "";
         if (draftMedicalRecord && activeRecordId === draftMedicalRecord.id && activeRecordView === "draft") {
           draftMedicalRecord.note = text;
           draftMedicalRecord.noteHtml = activeRecordDocs.visit;
@@ -2745,7 +2794,7 @@ ${context}`;
             activeRecordDocs.visit = activeAmbientMode === "summary" ? formattedTreatmentSummaryHtml(text) : plainTextToHtml(text);
             draft.note = text;
             draft.noteHtml = activeRecordDocs.visit;
-          } else if ($("#medicalNoteText")?.querySelector(".ambient-panel") && ambientState !== "ready") {
+          } else if (($("#medicalNoteText")?.querySelector(".ambient-panel") && ambientState !== "ready") || hasDocumentTemplatePlaceholder()) {
             activeRecordDocs.visit = draft.docs?.visit || draft.noteHtml || "";
           } else {
             activeRecordDocs.visit = activeAmbientMode === "summary" ? formattedTreatmentSummaryHtml($("#medicalNoteText").innerHTML) : $("#medicalNoteText").innerHTML;
@@ -4180,6 +4229,10 @@ ${context}`;
       function printActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return;
+        if (activeRecordSource === "ambient" && hasDocumentTemplatePlaceholder()) {
+          alert("Please dictate or type the document before printing.");
+          return;
+        }
         if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
         const isPrescriptionPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && activeAmbientMode === "prescription";
         const metaText = activeRecordView === "smart"
@@ -4218,6 +4271,10 @@ ${context}`;
           activeRecordDocs = { visit: fallbackDraft.docs?.visit || fallbackDraft.noteHtml || (fallbackDraft.note ? plainTextToHtml(fallbackDraft.note) : "") };
         }
         if (!activeRecordId) return;
+        if (activeRecordSource === "ambient" && hasDocumentTemplatePlaceholder()) {
+          alert("Please dictate or type the document before saving.");
+          return;
+        }
         persistCurrentRecordTab();
         const details = collectRecordDetails();
         Object.assign(patient, {
