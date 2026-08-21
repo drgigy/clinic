@@ -166,6 +166,9 @@
       .selected-test-pill { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: #f7fafb; color: #334454; font-size: 13px; font-weight: 800; }
       .doctor-detail-pill { border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; background: #f7fafb; color: #334454; font-size: 13px; font-weight: 900; line-height: 1; white-space: nowrap; }
       .doctor-detail-pill.diagnosis-pill { background: #eef7f4; color: var(--green-dark); border-color: #bfe3dc; }
+      .whatsapp-patient-btn { min-height: 34px; padding: 0 12px; border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #16a34a; color: #fff; border: 1px solid #15803d; font-size: 13px; font-weight: 900; line-height: 1; text-decoration: none; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), 0 1px 4px rgba(21, 128, 61, .24); }
+      .whatsapp-patient-btn.tele { background: #0f9f6e; border-color: #047857; box-shadow: inset 0 0 0 2px rgba(255,255,255,.12), 0 1px 5px rgba(4, 120, 87, .28); }
+      .whatsapp-patient-btn:hover { color: #fff; filter: brightness(.96); }
       .comment-pill { display: inline-flex; align-items: center; min-height: 28px; border-radius: 999px; padding: 0 9px; background: #fff7ed; color: #9a3412; font-size: 12px; font-weight: 900; white-space: nowrap; }
       .comment-choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
       .comment-choice-row .choice { min-width: 118px; }
@@ -4565,6 +4568,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
                   <span class="doctor-detail-pill">${doctorAbbreviation(p.visitType)}</span>
                   <span class="doctor-detail-pill">${doctorAbbreviation(p.mode)}</span>
                   ${status}
+                  ${patientWhatsAppButton(p)}
                   <button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button>
                 </div>
               </div>
@@ -5293,6 +5297,20 @@ The purpose / rest period / fitness details will appear here when dictated.`
       function whatsAppUrl(message) {
         const phone = $("#doctorPhone").value.replace(/\D/g, "");
         return phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}` : "#";
+      }
+      function patientWhatsAppNumber(patient) {
+        const digits = String(patient?.mobile || "").replace(/\D/g, "");
+        if (!digits) return "";
+        if (digits.length === 10) return `91${digits}`;
+        return digits;
+      }
+      function patientWhatsAppButton(patient) {
+        const phone = patientWhatsAppNumber(patient);
+        if (!phone) return "";
+        const tele = patient.mode === "Teleconsultation";
+        const message = `Hello ${patient.name || ""}, this is from Dr Gigy's clinic.`.trim();
+        const href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        return `<a class="whatsapp-patient-btn ${tele ? "tele" : ""}" href="${href}" target="_blank" rel="noopener" title="Open WhatsApp chat" aria-label="Open WhatsApp chat for ${escapeHtml(patient.name || "patient")}">WhatsApp</a>`;
       }
       function renderMessages() {
         const list = listMessage(), daily = dailyMessage(), monthly = monthlyMessage();
