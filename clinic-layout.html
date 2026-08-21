@@ -1021,7 +1021,9 @@
           </div>
         </div>
           <div class="record-actions">
-          <button class="secondary" type="button" id="recordPrintPrescriptionBtn">Print Prescription</button>
+          <button class="secondary" type="button" id="recordPrescriptionBtn">Prescription</button>
+          <button class="secondary" type="button" id="recordReplyBtn">Reply Letter</button>
+          <button class="secondary" type="button" id="recordCertificateBtn">Certificate</button>
           <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
           <button class="secondary smart-chart-button" type="button" id="recordSummaryBtn" style="background:#dc2626;color:#fff;box-shadow:inset 0 0 0 2px #991b1b,0 1px 4px rgba(153,27,27,.22);">Smart Chart</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
@@ -2284,6 +2286,53 @@ ${context}`;
         $("#recordStatus").textContent = `${ambientModeLabel(mode)} draft. Save when ready.`;
         setAmbientButtons();
         renderPreviousRecords();
+      }
+      function startDocumentDraft(mode) {
+        const patient = activeRecordPatient();
+        if (!patient || !["prescription", "reply", "certificate"].includes(mode)) return;
+        clearActiveAddOn(true);
+        captureActiveDraft();
+        const existingDraft = activeDraftForPatient(patient);
+        const existingText = htmlToPlainText(existingDraft?.noteHtml || existingDraft?.note || existingDraft?.docs?.visit || "").trim();
+        if (existingDraft?.source === "ambient" && existingText && existingDraft.recordKind !== mode) {
+          alert(`Please save or discard the current ${ambientModeLabel(existingDraft.recordKind)} draft first.`);
+          return;
+        }
+        if (existingDraft?.source === "ambient") {
+          existingDraft.recordKind = mode;
+          existingDraft.updatedAt = new Date().toISOString();
+          activeAmbientMode = mode;
+          openDraftMedicalEntry(existingDraft.id);
+        } else {
+          const createdAt = new Date().toISOString();
+          const draft = createDraftMedicalRecord(patient, "ambient", mode, createdAt);
+          draftMedicalRecord = draft;
+          resetAmbientState();
+          activeAmbientMode = mode;
+          activeRecordView = "draft";
+          activeRecordId = draft.id;
+          activeRecordDate = draft.date;
+          activeRecordCreatedAt = createdAt;
+          activeRecordSource = "ambient";
+          activeRecordType = "visit";
+          activeRecordDocs = { visit: "" };
+          $("#recordVisitDate").textContent = `${dateTimeLabel(createdAt)} - draft`;
+          $("#recordDeleteBtn").hidden = false;
+          $("#recordDeleteBtn").title = "Discard draft";
+          $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
+          $("#medicalNoteText").setAttribute("contenteditable", "true");
+          $("#medicalNoteText").innerHTML = "";
+          renderPreviousRecords();
+        }
+        ambientFloatPosition = null;
+        ambientChunks = [];
+        ambientAudioBlob = null;
+        ambientRemainingMs = 5 * 60 * 1000;
+        ambientState = "idle";
+        ambientStopShouldProcess = false;
+        $("#recordStatus").textContent = `${ambientModeLabel(mode)} draft. Press Space or mic to record.`;
+        setAmbientButtons();
+        setAmbientStatus(`${ambientModeLabel(mode)} ready. Press Space or mic to record.`);
       }
       function startRecordAddOn() {
         const patient = activeRecordPatient();
@@ -5530,7 +5579,9 @@ ${context}`;
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
-        if (button.id === "recordPrintPrescriptionBtn") printPrescriptionFromVisitNote();
+        if (button.id === "recordPrescriptionBtn") startDocumentDraft("prescription");
+        if (button.id === "recordReplyBtn") startDocumentDraft("reply");
+        if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
         if (button.id === "recordSummaryBtn") showSmartChart();
         if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
@@ -5886,35 +5937,8 @@ ${context}`;
     printWindow.document.close();
   }
 
-  function addButton(label, type) {
-    var existing = Array.from(document.querySelectorAll("button")).find(function (button) {
-      return textOf(button).toLowerCase() === label.toLowerCase();
-    });
-    if (existing) return;
-
-    var prescriptionButton = Array.from(document.querySelectorAll("button")).find(function (button) {
-      return textOf(button).toLowerCase() === "print prescription";
-    });
-    if (!prescriptionButton || !prescriptionButton.parentNode) return;
-
-    var button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label;
-    button.className = prescriptionButton.className;
-    button.addEventListener("click", function () { openPrintWindow(type); });
-    prescriptionButton.parentNode.insertBefore(button, prescriptionButton.nextSibling);
-  }
-
-  function installButtons() {
-    addButton("Print Certificate", "certificate");
-    addButton("Print Reply", "reply");
-  }
-
   window.printCertificate = function () { openPrintWindow("certificate"); };
   window.printReply = function () { openPrintWindow("reply"); };
-  document.addEventListener("DOMContentLoaded", installButtons);
-  installButtons();
-  new MutationObserver(installButtons).observe(document.documentElement, { childList: true, subtree: true });
 })();
 </script>
 </body>
