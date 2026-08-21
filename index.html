@@ -5791,6 +5791,12 @@ ${context}`;
       if (titlePattern.test(cleaned.slice(0, 5).join(" "))) {
         return cleaned.slice(1).join("\n").trim();
       }
+      if (type === "reply") {
+        var replyFallback = cleaned.filter(function (line) {
+          return !/^(Reply Letter ready|Letter ready|Reply ready|Review and save|Saved|Saved note|Unsaved changes)\b/i.test(line);
+        }).join("\n").trim();
+        if (/^(dear|to\s+|respected|sir|madam)\b/i.test(replyFallback) || replyFallback.length > 40) return replyFallback;
+      }
       return "";
     }
 
