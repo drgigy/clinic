@@ -1903,26 +1903,45 @@ Do not remove any dictated detail.
 Return plain text only. Do not return JSON. Do not use markdown fences.
 Do not create a full visit note. Do not include patient demographics.
 
-Use only these headings, in this order, and omit a heading only if there is no dictated content for that section:
+	Use only these headings, in this order, and omit a heading only if there is no dictated content for that section:
+	
+	Review Note:
+	
+	Allergies:
+	
+	Review of Investigations:
 
-Review Note:
+	Prescription:
 
-Allergies:
+	Advice / Instructions:
+	
+	Plain review text should go under Review Note.
+	If allergies or allergens are mentioned, put them under Allergies.
+	If the dictation contains review of investigations, scan results, lab results, MRI, CT, EEG, NCS, blood reports, or report review, use this heading:
+	Review of Investigations:
+	
+	Under Review of Investigations, arrange investigations like the main visit-note template:
+	- organize by test/report name and date when dictated
+	- put each investigation/report as a separate numbered item
+	- under each imaging/report item, place each finding on a separate line
+	- for blood reports, include each value on a separate line with appropriate standard units when units are absent
+	- for common blood values, add conventional units when not dictated, such as Hemoglobin g/dL, platelet count /cmm or lakh/cmm as dictated, WBC /cmm, ESR mm/hr, RBS/FBS/PPBS mg/dL, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, HbA1c %
+	
+	If medicines are newly advised, changed, explicitly continued, or prescribed during the add-on review, use this heading:
+	Prescription:
 
-Review of Investigations:
+	Under Prescription:
+	- use a numbered list
+	- put one medicine per number
+	- preserve the dictated brand name, dose, route, frequency, food timing, and duration exactly
+	- if the medicine name is spoken without Tablet/Syrup prefix, still keep it as a separate numbered medicine if an instruction follows
+	- write patient instructions below each medicine as clean sentences
+	- do not merge a second medicine into the previous medicine instruction
 
-Plain review text should go under Review Note.
-If allergies or allergens are mentioned, put them under Allergies.
-If the dictation contains review of investigations, scan results, lab results, MRI, CT, EEG, NCS, blood reports, or report review, use this heading:
-Review of Investigations:
+	If non-medicine advice, follow-up, review timing, precautions, certificates, referrals, or investigation orders are dictated, put them under Advice / Instructions.
+	If the doctor dictates the word "orders", route medicines to Prescription and non-medicine items to Advice / Instructions. Do not create an Orders heading.
 
-Under Review of Investigations, arrange investigations like the main visit-note template:
-- organize by test/report name and date when dictated
-- put each investigation/report as a separate numbered item
-- under each imaging/report item, place each finding on a separate line
-- for blood reports, include each value on a separate line with appropriate units
-
-Do not create Chief Complaints, History of Present Illness, Examination, Diagnosis, Prescription, Advice, or Orders headings.
+	Do not create Chief Complaints, History of Present Illness, Examination, Diagnosis, Current Medications, or Orders headings.
 
 Never add clinical information that was not spoken.
 
@@ -4063,20 +4082,31 @@ The purpose / rest period / fitness details will appear here when dictated.`
         }
         return plainTextToHtml(extracted.join("\n").trim());
       }
+      function recordPrescriptionSourceHtml(record) {
+        return record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "");
+      }
+      function latestPrescriptionSourceForPatient(patient) {
+        return patientMedicalRecords(patient)
+          .map((record) => ({
+            record,
+            html: recordPrescriptionSourceHtml(record),
+            kind: record.recordKind || "visit"
+          }))
+          .filter((item) => !["certificate", "reply", "summary"].includes(item.kind))
+          .find((item) => item.html && extractPrescriptionFromVisitHtml(item.html))?.html || "";
+      }
       function printPrescriptionFromVisitNote() {
         const patient = activeRecordPatient();
         if (!patient) return;
         let sourceHtml = "";
-        if (["single", "draft"].includes(activeRecordView) && activeAmbientMode === "visit") {
+        if (["single", "draft"].includes(activeRecordView) && ["visit", "addon"].includes(activeAmbientMode)) {
           persistCurrentRecordTab();
           sourceHtml = activeRecordDocs.visit || $("#medicalNoteText").innerHTML;
         } else {
-          const latestVisitRecord = patientMedicalRecords(patient)
-            .find((record) => (record.recordKind || "visit") === "visit");
-          sourceHtml = latestVisitRecord?.docs?.visit || latestVisitRecord?.noteHtml || (latestVisitRecord?.note ? plainTextToHtml(latestVisitRecord.note) : "");
+          sourceHtml = latestPrescriptionSourceForPatient(patient);
         }
         if (!sourceHtml) {
-          alert("No saved visit note found for prescription printing.");
+          alert("No visit or add-on note with a prescription section found for printing.");
           return;
         }
         const prescriptionHtml = extractPrescriptionFromVisitHtml(sourceHtml);
