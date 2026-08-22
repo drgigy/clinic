@@ -4072,6 +4072,14 @@ The purpose / rest period / fitness details will appear here when dictated.`
         document.body.classList.add("print-medical", "print-prescription");
         window.print();
       }
+      function handlePrescriptionButton() {
+        const isVisitNote = ["single", "draft"].includes(activeRecordView) && activeAmbientMode === "visit";
+        if (isVisitNote) {
+          printPrescriptionFromVisitNote();
+          return;
+        }
+        startDocumentDraft("prescription");
+      }
       function openAddPatientModal() {
         renderCommentSelects();
         setSelectedPatientComments("patientComments", []);
@@ -5654,7 +5662,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
-        if (button.id === "recordPrescriptionBtn") startDocumentDraft("prescription");
+        if (button.id === "recordPrescriptionBtn") handlePrescriptionButton();
         if (button.id === "recordReplyBtn") startDocumentDraft("reply");
         if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
