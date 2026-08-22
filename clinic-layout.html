@@ -475,7 +475,7 @@
         body.print-medical .prescription-signature { margin-top: 4cm; }
         body.print-medical.print-prescription .medical-print-content { padding: 0 !important; font-size: 13px; line-height: 1.35; }
         body.print-medical.print-prescription .prescription-sheet { min-height: 297mm; background: #fff; color: #111; overflow: hidden; }
-        body.print-medical.print-prescription .prescription-banner { min-height: 26mm; background: #fff; color: #111; margin-bottom: 5mm; padding: 6mm 10mm 6mm 7mm; box-sizing: border-box; display: flex; align-items: center; border-top: 2px solid #111; border-bottom: 1.5px solid #111; border-left: 5px solid #111; }
+        body.print-medical.print-prescription .prescription-banner { min-height: 26mm; background: #eef2f4 !important; color: #111; margin-bottom: 5mm; padding: 6mm 10mm 6mm 10mm; box-sizing: border-box; display: flex; align-items: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body.print-medical.print-prescription .prescription-banner .medical-signature { margin: 0; font-size: 12px; line-height: 1.25; }
         body.print-medical.print-prescription .prescription-banner .medical-signature strong { font-size: 19px; font-weight: 900 !important; }
         body.print-medical.print-prescription .prescription-content { margin: 0 10mm 8mm; }
@@ -2711,6 +2711,102 @@ The purpose / rest period / fitness details will appear here when dictated.`
         const hasReviewNote = lines.some((line) => /^review note\s*:?\s*$/i.test(line));
         return hasReviewNote ? lines.join("\n") : ["Review Note:", ...lines].join("\n");
       }
+      function addOnSectionName(line) {
+        const match = String(line || "").trim().match(/^(review note|allergies|review of investigations|prescription|advice\s*\/\s*instructions)\s*:?\s*$/i);
+        if (!match) return "";
+        return {
+          "review note": "Review Note",
+          allergies: "Allergies",
+          "review of investigations": "Review of Investigations",
+          prescription: "Prescription",
+          "advice / instructions": "Advice / Instructions"
+        }[match[1].toLowerCase().replace(/\s*\/\s*/, " / ")] || "";
+      }
+      function addOnSentenceList(text) {
+        return String(text || "").match(/[^.!?]+[.!?]?/g)?.map((sentence) => sentence.trim()).filter(Boolean) || [];
+      }
+      function isAddOnPrescriptionSentence(sentence) {
+        const text = String(sentence || "").trim();
+        if (!text) return false;
+        const hasMedicine = /\b(tab|tablet|cap|capsule|syp|syrup|inj|injection|spray|ointment|cream|gel)\s+[A-Z0-9][A-Za-z0-9+./ -]*/i.test(text)
+          || /\b[A-Z][A-Za-z0-9+./-]+\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%)\b/.test(text);
+        if (!hasMedicine) return false;
+        return /\b(patient\s+(?:takes|is taking|was advised|was asked)|doctor\s+advised|advised\s+to|start|continue|take|give|use|prescribed)\b/i.test(text);
+      }
+      function addOnMedicineMatches(sentence) {
+        const text = String(sentence || "");
+        const pattern = /\b(?:(?:tab|tablet|cap|capsule|syp|syrup|inj|injection|spray|ointment|cream|gel)\s+[A-Z0-9][A-Za-z0-9+./-]*(?:\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%))?|[A-Z][A-Za-z0-9+./-]+\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%))\b/ig;
+        const matches = [...text.matchAll(pattern)].map((match) => ({
+          text: match[0].replace(/\btab\b/ig, "Tablet").replace(/\btablet\b/ig, "Tablet").replace(/\bsyp\b/ig, "Syrup").trim(),
+          index: match.index || 0,
+          end: (match.index || 0) + match[0].length
+        }));
+        return matches.filter((match, index) => !matches.some((other, otherIndex) => otherIndex !== index && match.index >= other.index && match.end <= other.end));
+      }
+      function addOnInstructionFromSentence(sentence, matches) {
+        if (!matches.length) return "";
+        let instruction = String(sentence || "").slice(matches[matches.length - 1].end);
+        instruction = instruction
+          .replace(/^[\s,;:.-]*(and|to|for|with)?\s*/i, "")
+          .replace(/\bthen\s*$/i, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!instruction) return "";
+        if (!/^(take|use|give|apply|instill|inject|continue|start|administer)\b/i.test(instruction)) {
+          instruction = `Take ${instruction}`;
+        }
+        return instruction.replace(/\.$/, "") + ".";
+      }
+      function addOnPrescriptionItemsFromSentence(sentence) {
+        const matches = addOnMedicineMatches(sentence);
+        if (!matches.length) return [prescriptionInstructionText(sentence)];
+        const instruction = addOnInstructionFromSentence(sentence, matches);
+        return matches.map((match) => instruction ? `${match.text}\n${instruction}` : match.text);
+      }
+      function autoStructureAddOnReviewText(text) {
+        const orderedSections = ["Review Note", "Allergies", "Review of Investigations", "Prescription", "Advice / Instructions"];
+        const sections = Object.fromEntries(orderedSections.map((section) => [section, []]));
+        let current = "Review Note";
+        formatAddOnReviewText(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line) => {
+          const heading = addOnSectionName(line);
+          if (heading) {
+            current = heading;
+            return;
+          }
+          sections[current].push(line);
+        });
+        const existingPrescription = sections.Prescription.some((line) => line.trim());
+        if (!existingPrescription) {
+          const reviewText = sections["Review Note"].join(" ");
+          const reviewSentences = addOnSentenceList(reviewText);
+          const keepSentences = [];
+          const prescriptionItems = [];
+          reviewSentences.forEach((sentence) => {
+            if (isAddOnPrescriptionSentence(sentence)) {
+              prescriptionItems.push(...addOnPrescriptionItemsFromSentence(sentence));
+            } else {
+              keepSentences.push(sentence);
+            }
+          });
+          if (prescriptionItems.length) {
+            sections["Review Note"] = keepSentences.length ? [keepSentences.join(" ")] : [];
+            sections.Prescription = prescriptionItems.map((item, index) => `${index + 1}. ${item}`);
+          }
+        }
+        const lines = [];
+        orderedSections.forEach((section) => {
+          const content = sections[section].filter((line) => line && line.trim());
+          if (!content.length) return;
+          lines.push(`${section}:`, ...content);
+        });
+        return lines.join("\n").trim() || "Review Note:";
+      }
+      function addOnRecordHtml(record) {
+        const html = record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "");
+        if ((record?.recordKind || "visit") !== "addon") return html;
+        const text = htmlToPlainText(html);
+        return plainTextToHtml(autoStructureAddOnReviewText(text));
+      }
       async function structureAddOnReviewText(apiKey, text) {
         const source = String(text || "").trim();
         if (!source) return source;
@@ -2767,7 +2863,7 @@ ${source}`);
             } catch (error) {
               console.warn("Add On structuring failed", error);
             }
-            const reviewText = formatAddOnReviewText(structuredNote);
+            const reviewText = autoStructureAddOnReviewText(structuredNote);
             const reviewDraft = draftRecordById(activeAddOn.draftId) || draftMedicalRecord;
             if (reviewDraft) updateDraftContent(reviewDraft, reviewText, "addon");
             activeRecordDirty = true;
@@ -3171,7 +3267,7 @@ ${source}`);
           .sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
       }
       function timelineRecordBody(record) {
-        const html = record.docs?.visit || record.noteHtml || "";
+        const html = addOnRecordHtml(record) || record.docs?.visit || record.noteHtml || "";
         if (html) return boldVisitNoteHeadingsHtml(html);
         return plainTextToHtml(record.note || "");
       }
@@ -4122,7 +4218,7 @@ ${source}`);
         return plainTextToHtml(extracted.join("\n").trim());
       }
       function recordPrescriptionSourceHtml(record) {
-        return record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "");
+        return addOnRecordHtml(record) || record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "");
       }
       function latestPrescriptionSourceForPatient(patient) {
         return patientMedicalRecords(patient)
@@ -4454,7 +4550,7 @@ ${source}`);
         $("#recordPatientMobile").textContent = `Mobile: ${record?.mobile || patient.mobile || "-"}`;
         $("#recordVisitDate").textContent = dateTimeLabel(activeRecordCreatedAt);
         activeRecordDocs = {
-          visit: record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
+          visit: addOnRecordHtml(record) || record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
         if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
         else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(activeRecordDocs.visit);
@@ -6061,7 +6157,7 @@ ${source}`);
       "*{box-sizing:border-box;}" +
       "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#111;margin:0;background:#fff;font-size:14px;line-height:1.45;}" +
       ".sheet{width:210mm;min-height:297mm;margin:0 auto;background:#fff;overflow:hidden;}" +
-      ".doctor-header{background:#eef2f4;padding:12mm 18mm 8mm;margin:0 0 10mm;}" +
+      ".doctor-header{background:#eef2f4!important;padding:12mm 18mm 8mm;margin:0 0 10mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;}" +
       ".doctor-header strong{display:block;font-size:21px;line-height:1.2;margin-bottom:3px;font-weight:900;}" +
       ".doctor-header div{font-size:13px;line-height:1.3;}" +
       ".content{padding:0 18mm 18mm;}" +
@@ -6072,7 +6168,7 @@ ${source}`);
       ".body p{margin:0 0 4mm;}" +
       ".signature{margin-top:22mm;font-weight:900;break-inside:avoid;}" +
       ".signature span{display:block;font-weight:400;line-height:1.35;}" +
-      "@media print{body{background:#fff;}.sheet{margin:0;width:210mm;min-height:297mm;}}" +
+      "@media print{body{background:#fff;}.sheet{margin:0;width:210mm;min-height:297mm;}.doctor-header{background:#eef2f4!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}}" +
       "</style></head><body><div class='sheet'>" +
       "<div class='doctor-header'><strong>" + escapeHtml(doctorHeader[0]) + "</strong>" +
       "<div>" + escapeHtml(doctorHeader[1]) + "</div>" +
