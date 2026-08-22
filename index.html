@@ -4058,12 +4058,20 @@ The purpose / rest period / fitness details will appear here when dictated.`
       function printPrescriptionFromVisitNote() {
         const patient = activeRecordPatient();
         if (!patient) return;
-        if (!["single", "draft"].includes(activeRecordView)) {
-          alert("Please select one visit note first, then print prescription.");
+        let sourceHtml = "";
+        if (["single", "draft"].includes(activeRecordView) && activeAmbientMode === "visit") {
+          persistCurrentRecordTab();
+          sourceHtml = activeRecordDocs.visit || $("#medicalNoteText").innerHTML;
+        } else {
+          const latestVisitRecord = patientMedicalRecords(patient)
+            .find((record) => (record.recordKind || "visit") === "visit");
+          sourceHtml = latestVisitRecord?.docs?.visit || latestVisitRecord?.noteHtml || (latestVisitRecord?.note ? plainTextToHtml(latestVisitRecord.note) : "");
+        }
+        if (!sourceHtml) {
+          alert("No saved visit note found for prescription printing.");
           return;
         }
-        persistCurrentRecordTab();
-        const prescriptionHtml = extractPrescriptionFromVisitHtml(activeRecordDocs.visit || $("#medicalNoteText").innerHTML);
+        const prescriptionHtml = extractPrescriptionFromVisitHtml(sourceHtml);
         if (!prescriptionHtml) {
           alert("No prescription section found in this visit note.");
           return;
@@ -4073,12 +4081,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         window.print();
       }
       function handlePrescriptionButton() {
-        const isVisitNote = ["single", "draft"].includes(activeRecordView) && activeAmbientMode === "visit";
-        if (isVisitNote) {
-          printPrescriptionFromVisitNote();
-          return;
-        }
-        startDocumentDraft("prescription");
+        printPrescriptionFromVisitNote();
       }
       function openAddPatientModal() {
         renderCommentSelects();
