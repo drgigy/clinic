@@ -3819,6 +3819,14 @@ The purpose / rest period / fitness details will appear here when dictated.`
         return /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray|neb|nebulization)\b/i.test(cleaned)
           || /\b(mg|mcg|g|ml|iu|units?)\b/i.test(cleaned);
       }
+      function isBarePrescriptionMedicineName(line, nextLine = "") {
+        const cleaned = prescriptionInstructionText(line);
+        if (!cleaned || hasMalayalamText(cleaned) || isPrescriptionSectionHeading(cleaned) || isPrescriptionAdviceHeading(cleaned)) return false;
+        if (isPrescriptionAdviceLine(cleaned) || /^(take|use|apply|instill|inject|continue|review|follow)\b/i.test(cleaned)) return false;
+        if (!/^(take|use|give|administer|apply|instill|inject)\b/i.test(prescriptionInstructionText(nextLine))) return false;
+        const words = cleaned.split(/\s+/).filter(Boolean);
+        return words.length <= 5 && /^[A-Za-z0-9][A-Za-z0-9\s.+/-]*$/.test(cleaned);
+      }
       function isPrescriptionAdviceLine(line) {
         const cleaned = prescriptionInstructionText(line).toLowerCase();
         if (!cleaned) return false;
@@ -3829,7 +3837,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         const medicineItems = [];
         const adviceLines = [];
         let inAdvice = false;
-        lines.forEach((line) => {
+        lines.forEach((line, index) => {
           if (isPrescriptionAdviceHeading(line)) {
             const sameLine = line.replace(/^(advice(?:\s*\/\s*instructions)?|instruction|instructions|follow[-\s]*up)\s*:?\s*/i, "").trim();
             inAdvice = true;
@@ -3847,7 +3855,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
             medicineItems[medicineItems.length - 1].malayalam.push(cleaned);
             return;
           }
-          if (isPrescriptionMedicineLine(line) || !medicineItems.length) {
+          if (isPrescriptionMedicineLine(line) || isBarePrescriptionMedicineName(line, lines[index + 1]) || !medicineItems.length) {
             medicineItems.push({ line, extra: [], malayalam: [] });
             return;
           }
