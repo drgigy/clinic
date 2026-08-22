@@ -2711,6 +2711,38 @@ The purpose / rest period / fitness details will appear here when dictated.`
         const hasReviewNote = lines.some((line) => /^review note\s*:?\s*$/i.test(line));
         return hasReviewNote ? lines.join("\n") : ["Review Note:", ...lines].join("\n");
       }
+      async function structureAddOnReviewText(apiKey, text) {
+        const source = String(text || "").trim();
+        if (!source) return source;
+        return requestGeminiText(apiKey, `Restructure this add-on clinical review note into clean printable sections.
+
+Use only these headings, in this order, and omit headings with no content:
+
+Review Note:
+Allergies:
+Review of Investigations:
+Prescription:
+Advice / Instructions:
+
+Rules:
+- Preserve every dictated clinical detail. Do not add, infer, assume, or delete clinical information.
+- Keep plain review narrative under Review Note.
+- Move allergy/allergen information under Allergies.
+- Move MRI, CT, EEG, NCS, ECG, scan, imaging, blood reports, lab values, and report-review content under Review of Investigations.
+- Under Review of Investigations, number each investigation/report separately.
+- For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L.
+- Move newly advised, changed, explicitly continued, or prescribed medicines under Prescription.
+- Under Prescription, use a numbered list with one medicine per number.
+- Preserve brand names, dose, route, food timing, frequency, SOS/as-needed instructions, and duration exactly as present.
+- If a medicine is mentioned without Tablet/Syrup prefix, keep it as a separate numbered medicine if it has a dose or instruction.
+- Do not merge one medicine into another medicine's instruction.
+- Move follow-up, review timing, lifestyle instructions, referrals, precautions, and investigation orders under Advice / Instructions.
+- Do not create an Orders heading.
+- Return plain text only. No markdown.
+
+Add-on note to restructure:
+${source}`);
+      }
       async function processAmbientAudio() {
         const apiKey = readStore(geminiApiKeyStore, "").trim();
         if (!apiKey) {
@@ -2728,7 +2760,14 @@ The purpose / rest period / fitness details will appear here when dictated.`
           const audioBase64 = await blobToBase64(ambientAudioBlob);
           const note = await requestAmbientGeminiNote(apiKey, patient, processingMode, audioBase64, ambientAudioBlob.type);
           if (activeAddOn) {
-            const reviewText = formatAddOnReviewText(note);
+            let structuredNote = note;
+            try {
+              setAmbientStatus("Organising add-on note...");
+              structuredNote = await structureAddOnReviewText(apiKey, note);
+            } catch (error) {
+              console.warn("Add On structuring failed", error);
+            }
+            const reviewText = formatAddOnReviewText(structuredNote);
             const reviewDraft = draftRecordById(activeAddOn.draftId) || draftMedicalRecord;
             if (reviewDraft) updateDraftContent(reviewDraft, reviewText, "addon");
             activeRecordDirty = true;
