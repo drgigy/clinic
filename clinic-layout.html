@@ -4190,7 +4190,11 @@ ${source}`);
         const startIndex = lines.findIndex((line) => /^(prescription|rx|medications?\s*\/\s*advice)\s*:?\s*/i.test(line));
         const fallbackIndex = lines.findIndex((line) => /^orders\s*:?\s*$/i.test(line));
         const index = startIndex >= 0 ? startIndex : fallbackIndex;
-        if (index < 0) return "";
+        if (index < 0) {
+          const hasPrescriptionLine = lines.some((line) => /^(?:\d+[\).\s-]+)?(?:tablet|tab|capsule|cap|syrup|syp|injection|inj|spray|drops?|ointment|cream|gel)\b/i.test(line));
+          const hasClinicalHeading = lines.some((line) => /^(chief complaints?|history of present illness|past medical or surgical history|examination findings?|review of investigations|diagnosis)(?:\s*:|\s*$)/i.test(line));
+          return hasPrescriptionLine && !hasClinicalHeading ? plainTextToHtml(lines.join("\n").trim()) : "";
+        }
         const headingPattern = /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|orders|prescription|rx)(?:\s*:|\s*$)/i;
         const collectSection = (sectionIndex, stripPattern) => {
           const collected = [];
@@ -4228,13 +4232,16 @@ ${source}`);
             kind: record.recordKind || "visit"
           }))
           .filter((item) => !["certificate", "reply", "summary"].includes(item.kind))
-          .find((item) => item.html && extractPrescriptionFromVisitHtml(item.html))?.html || "";
+          .find((item) => item.html && (item.kind === "prescription" || extractPrescriptionFromVisitHtml(item.html)))?.html || "";
       }
       function printPrescriptionFromVisitNote() {
         const patient = activeRecordPatient();
         if (!patient) return;
         let sourceHtml = "";
-        if (["single", "draft"].includes(activeRecordView) && ["visit", "addon"].includes(activeAmbientMode)) {
+        const selectedPrescriptionDocument = ["single", "draft"].includes(activeRecordView)
+          && activeRecordSource === "ambient"
+          && activeAmbientMode === "prescription";
+        if (["single", "draft"].includes(activeRecordView) && ["visit", "addon", "prescription"].includes(activeAmbientMode)) {
           persistCurrentRecordTab();
           sourceHtml = activeRecordDocs.visit || $("#medicalNoteText").innerHTML;
         } else {
@@ -4244,7 +4251,9 @@ ${source}`);
           alert("No visit or add-on note with a prescription section found for printing.");
           return;
         }
-        const prescriptionHtml = extractPrescriptionFromVisitHtml(sourceHtml);
+        const prescriptionHtml = selectedPrescriptionDocument
+          ? stripDuplicateDocumentTitle(sourceHtml, ambientModeLabel("prescription"))
+          : extractPrescriptionFromVisitHtml(sourceHtml);
         if (!prescriptionHtml) {
           alert("No prescription section found in this visit note.");
           return;
