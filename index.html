@@ -1930,13 +1930,19 @@ Do not create a full visit note. Do not include patient demographics.
 	If medicines are newly advised, changed, explicitly continued, or prescribed during the add-on review, use this heading:
 	Prescription:
 
-	Under Prescription:
-	- use a numbered list
-	- put one medicine per number
-	- preserve the dictated brand name, dose, route, frequency, food timing, and duration exactly
-	- if the medicine name is spoken without Tablet/Syrup prefix, still keep it as a separate numbered medicine if an instruction follows
-	- write patient instructions below each medicine as clean sentences
-	- do not merge a second medicine into the previous medicine instruction
+		Under Prescription:
+		- use a numbered list
+		- put one medicine per number
+		- preserve the dictated brand name, dose, route, frequency, food timing, and duration exactly
+		- if the medicine name is spoken without Tablet/Syrup prefix, still keep it as a separate numbered medicine if an instruction follows
+		- write patient instructions below each medicine as clean English and Malayalam sentences
+		- use exactly this compact format for each medicine:
+		  1. Tablet/Cap/Syrup/Inj brand name dose
+		     Clear English patient instruction with timing, duration, and food/administration instruction, without repeating the medicine name.
+		     Malayalam patient instruction for the same medicine, without repeating the medicine name.
+		- do not write the word "Malayalam" before the Malayalam text; put the Malayalam instruction directly below the English instruction
+		- do not translate medicine brand names into Malayalam; keep medicine names and doses in English in the numbered medicine line only
+		- do not merge a second medicine into the previous medicine instruction
 
 	If non-medicine advice, follow-up, review timing, precautions, certificates, referrals, or investigation orders are dictated, put them under Advice / Instructions.
 	If the doctor dictates the word "orders", route medicines to Prescription and non-medicine items to Advice / Instructions. Do not create an Orders heading.
@@ -2840,6 +2846,10 @@ Rules:
 - Under Prescription, use a numbered list with one medicine per number.
 - Preserve brand names, dose, route, food timing, frequency, SOS/as-needed instructions, and duration exactly as present.
 - If a medicine is mentioned without Tablet/Syrup prefix, keep it as a separate numbered medicine if it has a dose or instruction.
+- For every prescription medicine, write the medicine name once as the numbered line, then an English patient instruction line, then a Malayalam patient instruction line.
+- The English and Malayalam instruction lines must not repeat the medicine name.
+- Do not write the word "Malayalam" before the Malayalam text.
+- Do not translate medicine brand names into Malayalam. Keep medicine names and doses in English in the numbered medicine line only.
 - Do not merge one medicine into another medicine's instruction.
 - Move follow-up, review timing, lifestyle instructions, referrals, precautions, and investigation orders under Advice / Instructions.
 - Do not create an Orders heading.
@@ -3900,7 +3910,7 @@ ${source}`);
         if (nameDoseMatch) return nameDoseMatch[1].replace(/\btab\b/ig, "Tablet").replace(/\btablet\b/ig, "Tablet").replace(/\s{2,}/g, " ").trim();
         const duration = prescriptionDuration(line);
         return source
-          .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:more\s+)?(?:day|days|week|weeks|month|months|year|years)\b/ig, "")
+          .replace(/\b(?:for\s+)?(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:more\s+)?(?:day|days|week|weeks|month|months|year|years)\b/ig, "")
           .replace(/\b(?:for|x)\s+\d+\s*(?:days?|weeks?|months?|years?)\b/ig, "")
           .replace(/\b\d+\s*(?:days?|weeks?|months?|years?)\b/ig, "")
           .replace(/\b(before food|after food|with food|without food|empty stomach|on an empty stomach|before breakfast|after breakfast|before lunch|after lunch|before dinner|after dinner)\b/ig, "")
@@ -3908,7 +3918,8 @@ ${source}`);
           .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:tablet|tab|capsule|cap|syrup|injection|inj)\b/ig, "")
           .replace(/\b(?:in the )?(morning|noon|afternoon|evening|night|bedtime)\b/ig, "")
           .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:in\s+the)?\b/ig, "")
-          .replace(/\b(orally|oral|by mouth|once daily|twice daily|thrice daily|daily)\b/ig, "")
+          .replace(/\b(orally|oral|by mouth|once daily|twice daily|thrice daily|once|twice|thrice|daily)\b/ig, "")
+          .replace(/\b(for|to|from|after|before|with)\b\s*[.,;:]*$/ig, "")
           .replace(/\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/ig, "")
           .replace(/\s*[—-]\s*(?:continue|for\s+\d+\s*(?:days?|weeks?|months?|years?)|x\s+\d+\s*(?:days?|weeks?|months?|years?)).*$/i, "")
           .replace(duration, "")
