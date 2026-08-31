@@ -1198,6 +1198,7 @@
       let ambientRemainingMs = 5 * 60 * 1000;
       let ambientLastTickAt = 0;
       let ambientStopShouldProcess = false;
+      let ambientStarting = false;
       let ambientState = "idle";
       let activeAmbientMode = "visit";
       let activeAddOn = null;
@@ -1801,8 +1802,7 @@
         return ambientStream;
       }
       function stopAmbientTracks({ releaseMic = false } = {}) {
-        if (ambientTimer) clearInterval(ambientTimer);
-        ambientTimer = null;
+        stopAmbientTimer();
         stopAmbientWave();
         if (releaseMic && ambientStream) {
           ambientStream.getTracks().forEach((track) => track.stop());
@@ -2552,11 +2552,21 @@ The purpose / rest period / fitness details will appear here when dictated.`
         return text;
       }
       function tickAmbientTimer() {
+        if (ambientState !== "recording") return;
         const now = Date.now();
         ambientRemainingMs = Math.max(0, ambientRemainingMs - (now - ambientLastTickAt));
         ambientLastTickAt = now;
         updateAmbientCountdown();
         if (ambientRemainingMs <= 0) stopAmbientRecording(false);
+      }
+      function stopAmbientTimer() {
+        if (ambientTimer) clearInterval(ambientTimer);
+        ambientTimer = null;
+      }
+      function startAmbientTimer() {
+        stopAmbientTimer();
+        ambientLastTickAt = Date.now();
+        ambientTimer = setInterval(tickAmbientTimer, 500);
       }
       async function startAmbientRecording(append = false) {
         if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
@@ -2567,8 +2577,9 @@ The purpose / rest period / fitness details will appear here when dictated.`
           pauseResumeAmbientRecording();
           return;
         }
-        if (ambientState === "recording" || ambientState === "processing") return;
+        if (ambientStarting || ambientState === "recording" || ambientState === "processing") return;
         if (ambientRemainingMs <= 0) ambientRemainingMs = 5 * 60 * 1000;
+        ambientStarting = true;
         try {
           if (!append) {
             ambientChunks = [];
@@ -2595,8 +2606,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
           ambientRecorder.start();
           ambientState = "recording";
           ambientStartedAt = Date.now();
-          ambientLastTickAt = Date.now();
-          ambientTimer = setInterval(tickAmbientTimer, 500);
+          startAmbientTimer();
           setAmbientStatus("Recording in progress...", true);
           updateAmbientCountdown();
           setAmbientButtons();
@@ -2608,6 +2618,8 @@ The purpose / rest period / fitness details will appear here when dictated.`
           ambientState = ambientAudioBlob ? "stopped" : "idle";
           setAmbientButtons();
           alert("Could not start microphone. Please allow microphone permission and try again.");
+        } finally {
+          ambientStarting = false;
         }
       }
       function pauseResumeAmbientRecording() {
@@ -2615,8 +2627,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         if (ambientRecorder.state === "recording") {
           ambientRecorder.pause();
           tickAmbientTimer();
-          if (ambientTimer) clearInterval(ambientTimer);
-          ambientTimer = null;
+          stopAmbientTimer();
           ambientState = "paused";
           setAmbientStatus("Paused");
           setAmbientButtons();
@@ -2626,8 +2637,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         if (ambientRecorder.state === "paused") {
           ambientRecorder.resume();
           ambientState = "recording";
-          ambientLastTickAt = Date.now();
-          ambientTimer = setInterval(tickAmbientTimer, 500);
+          startAmbientTimer();
           setAmbientStatus("Recording in progress...", true);
           setAmbientButtons();
           if (ambientStream) startAmbientWave(ambientStream);
@@ -2640,8 +2650,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
           return;
         }
         tickAmbientTimer();
-        if (ambientTimer) clearInterval(ambientTimer);
-        ambientTimer = null;
+        stopAmbientTimer();
         if (shouldProcess) {
           ambientState = "processing";
         } else {
