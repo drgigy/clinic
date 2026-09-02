@@ -1920,12 +1920,13 @@ Do not create a full visit note. Do not include patient demographics.
 	If the dictation contains review of investigations, scan results, lab results, MRI, CT, EEG, NCS, blood reports, or report review, use this heading:
 	Review of Investigations:
 	
-	Under Review of Investigations, arrange investigations like the main visit-note template:
-	- organize by test/report name and date when dictated
-	- put each investigation/report as a separate numbered item
-	- under each imaging/report item, place each finding on a separate line
-	- for blood reports, include each value on a separate line with appropriate standard units when units are absent
-	- for common blood values, add conventional units when not dictated, such as Hemoglobin g/dL, platelet count /cmm or lakh/cmm as dictated, WBC /cmm, ESR mm/hr, RBS/FBS/PPBS mg/dL, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, HbA1c %
+		Under Review of Investigations, arrange investigations like the main visit-note template:
+		- organize by test/report name and date when dictated
+		- put each investigation/report as a separate numbered item
+		- under each imaging/report item, place each finding on a separate line
+		- for blood reports, include each value on a separate line with appropriate standard units when units are absent
+		- for common blood values, add conventional units when not dictated, such as Hemoglobin g/dL, platelet count /cmm or lakh/cmm as dictated, WBC /cmm, ESR mm/hr, RBS/FBS/PPBS mg/dL, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, HbA1c %
+		- if investigations are advised or ordered, put each investigation as a separate numbered item under Advice / Instructions; do not keep multiple investigations in one paragraph
 	
 	If medicines are newly advised, changed, explicitly continued, or prescribed during the add-on review, use this heading:
 	Prescription:
@@ -1933,6 +1934,7 @@ Do not create a full visit note. Do not include patient demographics.
 		Under Prescription:
 		- use a numbered list
 		- put one medicine per number
+		- always write tablet medicines as "Tablet", not "Tab"
 		- preserve the dictated brand name, dose, route, frequency, food timing, and duration exactly
 		- if the medicine name is spoken without Tablet/Syrup prefix, still keep it as a separate numbered medicine if an instruction follows
 		- write patient instructions below each medicine as clean English and Malayalam sentences
@@ -1944,7 +1946,7 @@ Do not create a full visit note. Do not include patient demographics.
 		- do not translate medicine brand names into Malayalam; keep medicine names and doses in English in the numbered medicine line only
 		- do not merge a second medicine into the previous medicine instruction
 
-	If non-medicine advice, follow-up, review timing, precautions, certificates, referrals, or investigation orders are dictated, put them under Advice / Instructions.
+	If non-medicine advice, follow-up, review timing, precautions, certificates, referrals, or investigation orders are dictated, put them under Advice / Instructions as a numbered list, one instruction/investigation per number.
 	If the doctor dictates the word "orders", route medicines to Prescription and non-medicine items to Advice / Instructions. Do not create an Orders heading.
 
 	Do not create Chief Complaints, History of Present Illness, Examination, Diagnosis, Current Medications, or Orders headings.
@@ -1993,10 +1995,11 @@ If the medicine strength is fixed and the doctor dictates tablet counts, use:
 2. Tablet Predmet 4 mg
    Take 1 tablet in the morning after food for the next 5 days, then stop.
 Do not merge tapering steps into one long paragraph.
-If general advice, investigations, review plans, follow-up advice, precautions, certificates, or non-medicine instructions are dictated, place them after the prescription under:
-Advice / Instructions:
-If investigations are advised under Advice, place each investigation on its own separate line as a simple bullet point. Do not combine multiple investigations in one sentence.
-If the doctor dictates the word "orders", do not create an Orders heading. Route medicine orders into the numbered prescription list, and route non-medicine orders into Advice / Instructions.
+	If general advice, investigations, review plans, follow-up advice, precautions, certificates, or non-medicine instructions are dictated, place them after the prescription under:
+	Advice / Instructions:
+	Under Advice / Instructions, use a numbered list, one advice/investigation item per number.
+	If investigations are advised under Advice, place each investigation on its own separate numbered line. Do not combine multiple investigations in one sentence.
+	If the doctor dictates the word "orders", do not create an Orders heading. Route medicine orders into the numbered prescription list, and route non-medicine orders into Advice / Instructions.
 
 Never add clinical information that was not spoken.
 
@@ -2080,7 +2083,7 @@ Formatting rules:
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
 - Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
-- Advice / Instructions: include investigations, lab tests, imaging, EEG/NCS, scans, review plans, follow-up advice, precautions, certificates, and other non-medicine orders line by line.
+- Advice / Instructions: include investigations, lab tests, imaging, EEG/NCS, scans, review plans, follow-up advice, precautions, certificates, and other non-medicine orders as a numbered list, one item per number.
 - Dictated "orders" rule: medicines go under Prescription; everything else goes under Advice / Instructions. Do not duplicate the same dictated order in both sections.
 - Inside Prescription, use exactly this compact format for each medicine:
   1. Tablet/Cap/Syrup/Inj brand name dose
@@ -2127,6 +2130,7 @@ Formatting rules:
      Take 1 tablet in the morning after food for the next 5 days, then stop.
      അടുത്ത 5 ദിവസത്തേക്ക് ഭക്ഷണത്തിന് ശേഷം രാവിലെ 1 ഗുളിക കഴിച്ച് ശേഷം നിർത്തുക.
 - If a lab appointment, investigation schedule, paper/lab schedule, imaging, EEG, NCS, CT, MRI, blood test, or any investigation order is dictated, include it under Advice / Instructions line by line. Do not create an Orders heading.
+- Under Advice / Instructions, use a numbered list. Put each investigation order or advice item as a separate number.
 - Do not repeat the same advice or investigation item in Advice / Instructions. If the same investigation is spoken more than once, include it only once.
 - Do not merge tapering steps into one paragraph. Do not duplicate the same step.
 - Do not include patient demographics inside the Prescription section.
@@ -2844,6 +2848,7 @@ Rules:
 - For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L.
 - Move newly advised, changed, explicitly continued, or prescribed medicines under Prescription.
 - Under Prescription, use a numbered list with one medicine per number.
+- Always write tablet medicines as "Tablet", not "Tab".
 - Preserve brand names, dose, route, food timing, frequency, SOS/as-needed instructions, and duration exactly as present.
 - If a medicine is mentioned without Tablet/Syrup prefix, keep it as a separate numbered medicine if it has a dose or instruction.
 - For every prescription medicine, write the medicine name once as the numbered line, then an English patient instruction line, then a Malayalam patient instruction line.
@@ -2852,6 +2857,8 @@ Rules:
 - Do not translate medicine brand names into Malayalam. Keep medicine names and doses in English in the numbered medicine line only.
 - Do not merge one medicine into another medicine's instruction.
 - Move follow-up, review timing, lifestyle instructions, referrals, precautions, and investigation orders under Advice / Instructions.
+- Under Advice / Instructions, use a numbered list with one advice item or investigation order per number.
+- If multiple investigations are advised or ordered, split them into separate numbered lines.
 - Do not create an Orders heading.
 - Return plain text only. No markdown.
 
@@ -3175,8 +3182,37 @@ ${source}`);
         activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
         if (activeRecordView === "draft") captureActiveDraft();
       }
+      function normalizeDisplayNoteText(value) {
+        const lines = String(value || "").split(/\r?\n/);
+        const output = [];
+        let inAdvice = false;
+        let adviceIndex = 1;
+        lines.forEach((rawLine) => {
+          const line = rawLine.trim();
+          if (!line) {
+            output.push(rawLine);
+            return;
+          }
+          if (isVisitNoteHeadingLine(line)) {
+            inAdvice = /^advice(?:\s*\/\s*instructions)?\s*:$/i.test(line);
+            adviceIndex = 1;
+            output.push(line);
+            return;
+          }
+          if (inAdvice) {
+            const cleaned = line
+              .replace(/^[*•-]\s*/, "")
+              .replace(/^\d+[\).\s-]+/, "")
+              .trim();
+            output.push(cleaned ? `${adviceIndex++}. ${cleaned}` : rawLine);
+            return;
+          }
+          output.push(rawLine);
+        });
+        return output.join("\n");
+      }
       function plainTextToHtml(value) {
-        return String(value || "").split(/\r?\n/).map((line) => {
+        return normalizeDisplayNoteText(value).split(/\r?\n/).map((line) => {
           const escaped = escapeHtml(line);
           return isVisitNoteHeadingLine(line) ? `<strong>${escaped}</strong>` : escaped;
         }).join("<br>");
@@ -4005,7 +4041,7 @@ ${source}`);
         const cleaned = prescriptionInstructionText(line).toLowerCase();
         if (!cleaned) return false;
         if (/^[*•-]\s*/.test(line) && !isPrescriptionMedicineLine(line)) return true;
-        return /^(advice|continue|review|follow\s*up|follow-up|return|come\s+for|repeat|avoid|physiotherapy|exercise|investigation|investigations|blood\s+test|cbc|rft|lft|tft|hba1c|urine|ecg|eeg|ncs|mri|ct|x-?ray|scan)\b/i.test(cleaned);
+        return /^(advice|review|follow\s*up|follow-up|return|come\s+for|repeat|avoid|physiotherapy|exercise|investigation|investigations|blood\s+test|cbc|rft|lft|tft|hba1c|urine|ecg|eeg|ncs|mri|ct|x-?ray|scan)\b/i.test(cleaned);
       }
       function splitPrescriptionLines(lines) {
         const medicineItems = [];
@@ -4019,12 +4055,15 @@ ${source}`);
             return;
           }
           if (/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(line)) return;
-          if (inAdvice || isPrescriptionAdviceLine(line)) {
+          if (inAdvice) {
             adviceLines.push(line);
-            inAdvice = true;
             return;
           }
           const cleaned = prescriptionInstructionText(line);
+          if (isPrescriptionAdviceLine(line) && (!medicineItems.length || !/^(take|use|apply|instill|inject|continue|administer)\b/i.test(cleaned))) {
+            adviceLines.push(cleaned);
+            return;
+          }
           if (hasMalayalamText(cleaned) && medicineItems.length) {
             medicineItems[medicineItems.length - 1].malayalam.push(cleaned);
             return;
