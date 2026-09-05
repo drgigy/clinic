@@ -374,6 +374,8 @@
       .blood-chart-value-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; border: 1px solid #edf2f5; border-radius: 6px; padding: 7px 9px; background: #fbfdfe; }
       .blood-chart-date { color: var(--muted); font-weight: 850; white-space: nowrap; }
       .blood-chart-number { color: #991b1b; font-weight: 900; white-space: nowrap; }
+      .vital-matrix { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); overflow-x: auto; }
+      .vital-matrix svg { min-width: 720px; width: 100%; height: auto; display: block; }
       .smart-result-list { display: grid; gap: 8px; }
       .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
       .smart-result-date { color: var(--muted); font-size: 13px; font-weight: 900; }
@@ -3717,6 +3719,73 @@ ${source}`);
           .map(([label, points]) => ({ label, points: points.sort((a, b) => new Date(a.date) - new Date(b.date)) }))
           .filter((item) => item.points.length);
       }
+      function smartChartVitalMatrixHtml(rows) {
+        const dateEntries = [...new Map(rows.map((row) => {
+          const dayKey = String(row.date || "").slice(0, 10);
+          return [dayKey, { key: dayKey, label: smartChartShortDateLabel(dayKey || row.date), date: row.date }];
+        })).values()].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const vitalLabels = ["BP", "Pulse rate", "Oxygen saturation", "Height", "Weight", "BMI"];
+        const valueByDate = new Map();
+        rows.forEach((row) => {
+          const dayKey = String(row.date || "").slice(0, 10);
+          const bucket = valueByDate.get(dayKey) || {};
+          if (row.test === "BP systolic") bucket.bpSystolic = row.value;
+          else if (row.test === "BP diastolic") bucket.bpDiastolic = row.value;
+          else bucket[row.test] = `${row.value}${row.unit ? ` ${row.unit}` : ""}`;
+          valueByDate.set(dayKey, bucket);
+        });
+        const valueFor = (vital, dayKey) => {
+          const bucket = valueByDate.get(dayKey) || {};
+          if (vital === "BP") {
+            return bucket.bpSystolic && bucket.bpDiastolic ? `${bucket.bpSystolic}/${bucket.bpDiastolic}` : "";
+          }
+          return bucket[vital] || "";
+        };
+        const visibleVitals = vitalLabels.filter((vital) => dateEntries.some((date) => valueFor(vital, date.key)));
+        if (!visibleVitals.length || !dateEntries.length) return "";
+        const width = Math.max(760, 150 + dateEntries.length * 120);
+        const rowHeight = 52;
+        const padLeft = 138;
+        const padTop = 46;
+        const padRight = 62;
+        const padBottom = 34;
+        const height = padTop + visibleVitals.length * rowHeight + padBottom;
+        const usableWidth = width - padLeft - padRight;
+        const xFor = (index) => dateEntries.length === 1 ? padLeft + usableWidth / 2 : padLeft + (index * usableWidth) / (dateEntries.length - 1);
+        return `
+          <article class="vital-matrix">
+            <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Vitals across visits">
+              <rect x="0" y="0" width="${width}" height="${height}" rx="8" fill="#fff" />
+              ${dateEntries.map((date, index) => {
+                const x = xFor(index);
+                return `
+                  <line x1="${x.toFixed(1)}" y1="${padTop - 8}" x2="${x.toFixed(1)}" y2="${height - padBottom}" stroke="#edf2f5" stroke-width="1" />
+                  <text x="${x.toFixed(1)}" y="24" text-anchor="middle" fill="#334454" font-size="13" font-weight="900">${escapeHtml(date.label)}</text>
+                `;
+              }).join("")}
+              ${visibleVitals.map((vital, rowIndex) => {
+                const y = padTop + rowIndex * rowHeight + rowHeight / 2;
+                return `
+                  <line x1="${padLeft - 8}" y1="${(y + rowHeight / 2 - 6).toFixed(1)}" x2="${width - padRight}" y2="${(y + rowHeight / 2 - 6).toFixed(1)}" stroke="#edf2f5" stroke-width="1" />
+                  <text x="${padLeft - 16}" y="${(y + 5).toFixed(1)}" text-anchor="end" fill="#17222b" font-size="14" font-weight="900">${escapeHtml(vital)}</text>
+                  ${dateEntries.map((date, index) => {
+                    const value = valueFor(vital, date.key);
+                    if (!value) return "";
+                    const x = xFor(index);
+                    return `
+                      <g>
+                        <rect x="${(x - 38).toFixed(1)}" y="${(y - 16).toFixed(1)}" width="76" height="32" rx="16" fill="#f7fafb" stroke="#d9e4ea" />
+                        <circle cx="${x.toFixed(1)}" cy="${(y - 16).toFixed(1)}" r="4" fill="#dc2626" />
+                        <text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" text-anchor="middle" fill="#991b1b" font-size="13" font-weight="900">${escapeHtml(value)}</text>
+                      </g>
+                    `;
+                  }).join("")}
+                `;
+              }).join("")}
+            </svg>
+          </article>
+        `;
+      }
       function smartChartBloodSeries(records) {
         const series = new Map();
         smartChartBloodRows(records).forEach((row) => {
@@ -3791,7 +3860,7 @@ ${source}`);
         `;
       }
       function smartChartHtml(patient, records) {
-        const vitalSeries = smartChartVitalSeries(records);
+        const vitalRows = smartChartVitalRows(records);
         const bloodSeries = smartChartBloodSeries(records);
         return `
           <div class="smart-chart-view">
@@ -3808,10 +3877,10 @@ ${source}`);
             <div class="smart-chart-actions">
               <button class="primary" type="button" data-print-smart-chart="true">Print / Save PDF</button>
             </div>
-            ${vitalSeries.length ? `
+            ${vitalRows.length ? `
               <section class="smart-chart-section">
                 <h3>Vitals Across Visits</h3>
-                <div class="smart-chart-graphs">${vitalSeries.map(bloodChartHtml).join("")}</div>
+                ${smartChartVitalMatrixHtml(vitalRows)}
               </section>
             ` : ""}
             ${bloodSeries.length ? `
