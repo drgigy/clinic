@@ -376,6 +376,8 @@
       .blood-chart-number { color: #991b1b; font-weight: 900; white-space: nowrap; }
       .vital-matrix { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); overflow-x: auto; }
       .vital-matrix svg { min-width: 720px; width: 100%; height: auto; display: block; }
+      .patient-snapshot-card { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); }
+      .patient-snapshot-card .timeline-note-body { font-size: 14px; line-height: 1.45; }
       .smart-result-list { display: grid; gap: 8px; }
       .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
       .smart-result-date { color: var(--muted); font-size: 13px; font-weight: 900; }
@@ -1034,7 +1036,6 @@
           <button class="secondary" type="button" id="recordReplyBtn">Reply Letter</button>
           <button class="secondary" type="button" id="recordCertificateBtn">Certificate</button>
           <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
-          <button class="secondary" type="button" id="recordSnapshotBtn">Snapshot</button>
           <button class="secondary smart-chart-button" type="button" id="recordSummaryBtn" style="background:#dc2626;color:#fff;box-shadow:inset 0 0 0 2px #991b1b,0 1px 4px rgba(153,27,27,.22);">Smart Chart</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
@@ -3860,6 +3861,7 @@ ${source}`);
         `;
       }
       function smartChartHtml(patient, records) {
+        const snapshotText = patientSnapshotBodyText(patientSnapshotText(patient, records));
         const vitalRows = smartChartVitalRows(records);
         const bloodSeries = smartChartBloodSeries(records);
         return `
@@ -3877,6 +3879,12 @@ ${source}`);
             <div class="smart-chart-actions">
               <button class="primary" type="button" data-print-smart-chart="true">Print / Save PDF</button>
             </div>
+            <section class="smart-chart-section">
+              <h3>Patient Snapshot</h3>
+              <article class="patient-snapshot-card">
+                <div class="timeline-note-body">${plainTextToHtml(snapshotText)}</div>
+              </article>
+            </section>
             ${vitalRows.length ? `
               <section class="smart-chart-section">
                 <h3>Vitals Across Visits</h3>
@@ -3997,6 +4005,9 @@ ${bulletList(medicines)}
 Pending / Follow-up:
 ${bulletList(advice)}`;
       }
+      function patientSnapshotBodyText(snapshotText) {
+        return String(snapshotText || "").replace(/^Patient Snapshot:\s*/i, "").trim();
+      }
       function patientSnapshotHtml(patient, snapshotText) {
         return `
           <div class="smart-chart-view patient-snapshot-view">
@@ -4011,7 +4022,7 @@ ${bulletList(advice)}`;
               </div>
             </div>
             <div class="smart-disclaimer">Doctor-only local snapshot from saved notes. Verify with original records.</div>
-            <div class="timeline-note-body">${plainTextToHtml(snapshotText)}</div>
+            <div class="timeline-note-body">${plainTextToHtml(patientSnapshotBodyText(snapshotText))}</div>
           </div>
         `;
       }
@@ -6267,7 +6278,6 @@ ${bulletList(advice)}`;
         if (button.id === "recordReplyBtn") startDocumentDraft("reply");
         if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
-        if (button.id === "recordSnapshotBtn") await showPatientSnapshot();
         if (button.id === "recordSummaryBtn") showSmartChart();
         if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
         if (button.id === "closeRecordDiagnosisBtn") closeRecordDiagnosisModal();
