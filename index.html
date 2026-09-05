@@ -3656,6 +3656,67 @@ ${source}`);
           ["AST", /\b(?:ast|sgot)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig]
         ];
       }
+      function smartChartVitalPatterns() {
+        return [
+          ["BP systolic", /\b(?:bp|blood pressure)\b\s*[:=\-]?\s*(\d{2,3})\s*\/\s*(\d{2,3})(?:\s*(mmhg))?/ig, "mmHg", 1],
+          ["BP diastolic", /\b(?:bp|blood pressure)\b\s*[:=\-]?\s*(\d{2,3})\s*\/\s*(\d{2,3})(?:\s*(mmhg))?/ig, "mmHg", 2],
+          ["Pulse rate", /\b(?:pulse|pulse rate|pr|heart rate|hr)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*(?:\/min|bpm|beats\/min|per minute))?/ig, "bpm", 1],
+          ["Oxygen saturation", /\b(?:spo2|sp[ .-]?o2|oxygen saturation|saturation)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*%|\s*percent)?/ig, "%", 1],
+          ["Weight", /\b(?:weight|wt)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(kg|kgs|kilogram|kilograms))?/ig, "kg", 1],
+          ["Height", /\b(?:height|ht)\b\s*[:=\-]?\s*(\d{2,3}(?:\.\d+)?)(?:\s*(cm|cms|centimeter|centimeters))?/ig, "cm", 1],
+          ["BMI", /\b(?:bmi|body mass index)\b\s*[:=\-]?\s*(\d{1,2}(?:\.\d+)?)(?:\s*(kg\/?m2|kg\/?m²))?/ig, "kg/m2", 1]
+        ];
+      }
+      function smartChartVitalRows(records) {
+        const rows = [];
+        const seen = new Set();
+        records.forEach((record) => {
+          smartChartLines(record).forEach((line) => {
+            const cleaned = cleanSummaryLine(line);
+            if (!cleaned) return;
+            smartChartSentencePieces(cleaned).forEach((piece) => {
+              const dateInfo = smartChartParsedDate(piece) || smartChartResultDate(record, piece);
+              smartChartVitalPatterns().forEach(([label, pattern, defaultUnit, groupIndex]) => {
+                pattern.lastIndex = 0;
+                [...piece.matchAll(pattern)].forEach((match) => {
+                  const value = Number(match[groupIndex]);
+                  if (!Number.isFinite(value)) return;
+                  if (label === "Oxygen saturation" && value > 100) return;
+                  if ((label === "Height" || label === "Weight") && value <= 0) return;
+                  const unit = match[3] || defaultUnit;
+                  const key = `${dateInfo.sortDate}__${label.toLowerCase()}__${value}__${unit.toLowerCase()}`;
+                  if (seen.has(key)) return;
+                  seen.add(key);
+                  rows.push({
+                    date: dateInfo.sortDate,
+                    label: dateInfo.label,
+                    test: label,
+                    value,
+                    unit
+                  });
+                });
+              });
+            });
+          });
+        });
+        return rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+      }
+      function smartChartVitalSeries(records) {
+        const series = new Map();
+        smartChartVitalRows(records).forEach((row) => {
+          const points = series.get(row.test) || [];
+          points.push({
+            value: row.value,
+            unit: row.unit || "",
+            date: row.date,
+            label: row.label
+          });
+          series.set(row.test, points);
+        });
+        return [...series.entries()]
+          .map(([label, points]) => ({ label, points: points.sort((a, b) => new Date(a.date) - new Date(b.date)) }))
+          .filter((item) => item.points.length);
+      }
       function smartChartBloodSeries(records) {
         const series = new Map();
         smartChartBloodRows(records).forEach((row) => {
@@ -3730,6 +3791,7 @@ ${source}`);
         `;
       }
       function smartChartHtml(patient, records) {
+        const vitalSeries = smartChartVitalSeries(records);
         const bloodSeries = smartChartBloodSeries(records);
         return `
           <div class="smart-chart-view">
@@ -3746,12 +3808,19 @@ ${source}`);
             <div class="smart-chart-actions">
               <button class="primary" type="button" data-print-smart-chart="true">Print / Save PDF</button>
             </div>
+            ${vitalSeries.length ? `
+              <section class="smart-chart-section">
+                <h3>Vitals Across Visits</h3>
+                <div class="smart-chart-graphs">${vitalSeries.map(bloodChartHtml).join("")}</div>
+              </section>
+            ` : ""}
             ${bloodSeries.length ? `
               <section class="smart-chart-section">
+                <h3>Lab Values Across Visits</h3>
                 <div class="smart-chart-graphs">${bloodSeries.map(bloodChartHtml).join("")}</div>
               </section>
             ` : ""}
-            <div class="smart-disclaimer">Reference only. Verify with original reports.</div>
+            <div class="smart-disclaimer">Reference only. Verify with original reports and recorded vitals.</div>
           </div>
         `;
       }
