@@ -3755,50 +3755,109 @@ ${source}`);
           </div>
         `;
       }
-      function patientSnapshotRecordText(record) {
-        const body = htmlToPlainText(timelineRecordBody(record)).trim();
-        if (!body) return "";
-        const kind = record.source === "ambient" ? ambientModeLabel(record.recordKind || "visit") : "Visit note";
-        return `Date: ${dateTimeLabel(recordTimestamp(record))}\nType: ${kind}\n${body}`;
+      function patientSnapshotLine(value) {
+        return String(value || "")
+          .replace(/^[*•-]\s*/, "")
+          .replace(/^\d+[\).\s-]+/, "")
+          .replace(/\s+/g, " ")
+          .trim();
       }
-      function patientSnapshotPrompt(patient, records) {
-        const recordText = records.map(patientSnapshotRecordText).filter(Boolean).join("\n\n---\n\n");
-        return `Create a concise doctor-only patient snapshot from the following saved clinic records.
+      function patientSnapshotSectionName(value) {
+        const line = String(value || "").trim().replace(/\s*:$/, "").toLowerCase();
+        if (/^allerg/.test(line)) return "allergies";
+        if (/^diagnosis/.test(line)) return "diagnosis";
+        if (/^(review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?)$/.test(line)) return "investigations";
+        if (/^(current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?)$/.test(line)) return "medicines";
+        if (/^(advice|advice\s*\/\s*instructions|instructions|follow up|follow-up|plan)$/.test(line)) return "advice";
+        if (/^(chief complaints?|history of present illness|review note)$/.test(line)) return "course";
+        return "";
+      }
+      function patientSnapshotSectionMatch(value) {
+        const line = String(value || "").trim();
+        const match = line.match(/^(allerg(?:y|ies)|diagnosis|review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?|current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?|advice|advice\s*\/\s*instructions|instructions|follow up|follow-up|plan|chief complaints?|history of present illness|review note)\s*:?\s*(.*)$/i);
+        if (!match) return { section: "", rest: "" };
+        return { section: patientSnapshotSectionName(match[1]), rest: match[2] || "" };
+      }
+      function patientSnapshotSections(record) {
+        const sections = { allergies: [], diagnosis: [], investigations: [], medicines: [], advice: [], course: [] };
+        let current = "";
+        htmlToPlainText(timelineRecordBody(record)).split(/\r?\n/).forEach((rawLine) => {
+          const { section, rest } = patientSnapshotSectionMatch(rawLine);
+          if (section) {
+            current = section;
+            const sameLine = patientSnapshotLine(rest);
+            if (sameLine) sections[current].push(sameLine);
+            return;
+          }
+          const line = patientSnapshotLine(rawLine);
+          if (!line || !current) return;
+          if (/^(nil|none|no known allergies?|no allergy|not known)$/i.test(line) && current !== "allergies") return;
+          sections[current].push(line);
+        });
+        return sections;
+      }
+      function pushSnapshotUnique(target, value, limit = 8) {
+        const line = patientSnapshotLine(value);
+        if (!line || target.length >= limit) return;
+        if (target.some((item) => item.toLowerCase() === line.toLowerCase())) return;
+        target.push(line);
+      }
+      function patientSnapshotText(patient, records) {
+        const chronological = [...records].sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
+        const newestFirst = [...chronological].reverse();
+        const allergies = [];
+        const diagnosis = [];
+        const investigations = [];
+        const course = [];
+        const medicines = [];
+        const advice = [];
+        const timeline = [];
+        const registeredDiagnosis = doctorDiagnosis(patient) || (patient.diagnosis && patient.diagnosis !== "Others" ? patient.diagnosis : "");
+        pushSnapshotUnique(diagnosis, registeredDiagnosis, 6);
+        newestFirst.forEach((record) => {
+          const sections = patientSnapshotSections(record);
+          sections.allergies.forEach((line) => pushSnapshotUnique(allergies, line, 5));
+          sections.diagnosis.forEach((line) => pushSnapshotUnique(diagnosis, line, 6));
+          sections.investigations.forEach((line) => pushSnapshotUnique(investigations, line, 8));
+          sections.course.forEach((line) => pushSnapshotUnique(course, line, 6));
+          sections.medicines.forEach((line) => pushSnapshotUnique(medicines, line, 10));
+          sections.advice.forEach((line) => pushSnapshotUnique(advice, line, 8));
+        });
+        chronological.forEach((record) => {
+          const sections = patientSnapshotSections(record);
+          const highlights = [];
+          [...sections.diagnosis, ...sections.investigations, ...sections.medicines, ...sections.advice]
+            .slice(0, 3)
+            .forEach((line) => pushSnapshotUnique(highlights, line, 3));
+          if (highlights.length) timeline.push(`${smartChartShortDateLabel(recordTimestamp(record))}: ${highlights.join("; ")}`);
+        });
+        const bulletList = (items, fallback = "Not clearly documented.") => {
+          const lines = items.filter(Boolean).slice(0, 10);
+          return lines.length ? lines.map((line) => `- ${line}`).join("\n") : `- ${fallback}`;
+        };
+        return `Patient Snapshot:
+- Locally generated from saved notes only. No AI/Gemini used.
 
-Patient:
-Name: ${patient.name || ""}
-ID: ${patientDisplayId(patient)}
-Age/Sex: ${patient.age || ""} / ${patient.sex || ""}
-Mobile: ${patient.mobile || ""}
-Registered diagnosis/main symptom: ${doctorDiagnosis(patient) || patient.diagnosis || ""}
-Patient comments/tags: ${(patient.comments || []).join(", ")}
-
-Records:
-${recordText}
-
-Return plain text only. No markdown table.
-Keep it short enough to scan during a consultation.
-Use exactly these headings in this order:
-Patient Snapshot:
 Allergies:
-Diagnosis / Problem List:
-Recent Course:
-Important Investigations:
-Treatment Timeline:
-Current / Recent Medicines:
-Pending / Follow-up:
+${bulletList(allergies, "No documented allergy found in available notes.")}
 
-Rules:
-- Allergies must be shown near the top. If no allergy is documented, write "No documented allergy found in available notes."
-- Use bullet points under each heading.
-- Preserve important dates where useful.
-- Use only information explicitly documented in the saved notes.
-- Do not infer, assume, expand, or add clinical details.
-- Do not convert possibilities, provisional impressions, or patient-reported concerns into confirmed diagnoses.
-- If a diagnosis, allergy, medicine, investigation result, or follow-up plan is unclear, write "Not clearly documented."
-- Keep uncertain items out of the main summary unless they are clinically important, and label them as "unclear".
-- Do not invent diagnosis, allergy, medicines, investigation results, or follow-up advice.
-- This is for internal doctor review only, not for patient printing.`;
+Diagnosis / Problem List:
+${bulletList(diagnosis)}
+
+Recent Course:
+${bulletList(course)}
+
+Important Investigations:
+${bulletList(investigations)}
+
+Treatment Timeline:
+${bulletList(timeline.slice(-8))}
+
+Current / Recent Medicines:
+${bulletList(medicines)}
+
+Pending / Follow-up:
+${bulletList(advice)}`;
       }
       function patientSnapshotHtml(patient, snapshotText) {
         return `
@@ -3813,7 +3872,7 @@ Rules:
                 </div>
               </div>
             </div>
-            <div class="smart-disclaimer">Doctor-only AI snapshot. Verify with original records.</div>
+            <div class="smart-disclaimer">Doctor-only local snapshot from saved notes. Verify with original records.</div>
             <div class="timeline-note-body">${plainTextToHtml(snapshotText)}</div>
           </div>
         `;
@@ -3828,11 +3887,6 @@ Rules:
           alert("No saved visit notes found for Snapshot.");
           return;
         }
-        const apiKey = readStore(geminiApiKeyStore, "").trim();
-        if (!apiKey) {
-          alert("Add Gemini API key in Settings first.");
-          return;
-        }
         activeRecordView = "snapshot";
         activeRecordId = "";
         activeRecordDate = "";
@@ -3842,21 +3896,13 @@ Rules:
         activeRecordDirty = false;
         $("#recordVisitDate").textContent = "Snapshot";
         $("#medicalNoteText").setAttribute("contenteditable", "false");
-        $("#medicalNoteText").innerHTML = `<div class="ambient-stage processing"><div class="ambient-progress"><div class="ambient-progress-fill"></div></div><p>Creating patient snapshot...</p></div>`;
         $("#recordDeleteBtn").hidden = true;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
-        $("#recordStatus").textContent = "Generating doctor-only snapshot...";
+        const snapshot = patientSnapshotText(patient, records);
+        $("#medicalNoteText").innerHTML = patientSnapshotHtml(patient, snapshot);
+        $("#recordStatus").textContent = "Local snapshot ready. Verify with original records.";
         renderPreviousRecords();
-        try {
-          const snapshot = await requestGeminiText(apiKey, patientSnapshotPrompt(patient, records));
-          $("#medicalNoteText").innerHTML = patientSnapshotHtml(patient, snapshot);
-          $("#recordStatus").textContent = "Snapshot ready. Verify with original records.";
-        } catch (error) {
-          console.error(error);
-          $("#medicalNoteText").innerHTML = `<div class="empty">Could not create snapshot. ${escapeHtml(error.message || "Please try again.")}</div>`;
-          $("#recordStatus").textContent = "Snapshot failed.";
-        }
       }
       function showSmartChart() {
         const patient = activeRecordPatient();
