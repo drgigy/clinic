@@ -5082,7 +5082,7 @@ Rules:
       }
       function renderStats() {
         const summary = totals();
-        $("#todayBtn").textContent = weekdayLabel(todayKey);
+        $("#todayBtn").textContent = weekdayLabel(selectedDate);
         $("#todayLabel").textContent = dateLabel(selectedDate);
         $("#afterDateLabel").textContent = dateLabel(selectedDate);
         $("#monthLabel").textContent = monthLabel(selectedDate);
