@@ -3982,8 +3982,6 @@ ${source}`);
           return lines.length ? lines.map((line) => `- ${line}`).join("\n") : `- ${fallback}`;
         };
         return `Patient Snapshot:
-- Locally generated from saved notes only. No AI/Gemini used.
-
 Allergies:
 ${bulletList(allergies, "No documented allergy found in available notes.")}
 
