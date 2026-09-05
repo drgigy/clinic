@@ -1032,6 +1032,7 @@
           <button class="secondary" type="button" id="recordReplyBtn">Reply Letter</button>
           <button class="secondary" type="button" id="recordCertificateBtn">Certificate</button>
           <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
+          <button class="secondary" type="button" id="recordSnapshotBtn">Snapshot</button>
           <button class="secondary smart-chart-button" type="button" id="recordSummaryBtn" style="background:#dc2626;color:#fff;box-shadow:inset 0 0 0 2px #991b1b,0 1px 4px rgba(153,27,27,.22);">Smart Chart</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
@@ -3754,6 +3755,105 @@ ${source}`);
           </div>
         `;
       }
+      function patientSnapshotRecordText(record) {
+        const body = htmlToPlainText(timelineRecordBody(record)).trim();
+        if (!body) return "";
+        const kind = record.source === "ambient" ? ambientModeLabel(record.recordKind || "visit") : "Visit note";
+        return `Date: ${dateTimeLabel(recordTimestamp(record))}\nType: ${kind}\n${body}`;
+      }
+      function patientSnapshotPrompt(patient, records) {
+        const recordText = records.map(patientSnapshotRecordText).filter(Boolean).join("\n\n---\n\n");
+        return `Create a concise doctor-only patient snapshot from the following saved clinic records.
+
+Patient:
+Name: ${patient.name || ""}
+ID: ${patientDisplayId(patient)}
+Age/Sex: ${patient.age || ""} / ${patient.sex || ""}
+Mobile: ${patient.mobile || ""}
+Registered diagnosis/main symptom: ${doctorDiagnosis(patient) || patient.diagnosis || ""}
+Patient comments/tags: ${(patient.comments || []).join(", ")}
+
+Records:
+${recordText}
+
+Return plain text only. No markdown table.
+Keep it short enough to scan during a consultation.
+Use exactly these headings in this order:
+Patient Snapshot:
+Allergies:
+Diagnosis / Problem List:
+Recent Course:
+Important Investigations:
+Treatment Timeline:
+Current / Recent Medicines:
+Pending / Follow-up:
+
+Rules:
+- Allergies must be shown near the top. If no allergy is documented, write "No documented allergy found in available notes."
+- Use bullet points under each heading.
+- Preserve important dates where useful.
+- Mention uncertainty if the notes are unclear.
+- Do not invent diagnosis, allergy, medicines, or investigation results.
+- This is for internal doctor review only, not for patient printing.`;
+      }
+      function patientSnapshotHtml(patient, snapshotText) {
+        return `
+          <div class="smart-chart-view patient-snapshot-view">
+            <div class="smart-chart-header">
+              <div>
+                <h1>${escapeHtml(patient.name || "Patient")} Snapshot</h1>
+                <div class="smart-patient-meta">
+                  <span>ID: ${escapeHtml(patientDisplayId(patient))}</span>
+                  <span>Age/Sex: ${escapeHtml(patient.age || "-")} / ${escapeHtml(patient.sex || "-")}</span>
+                  <span>Mobile: ${escapeHtml(patient.mobile || "-")}</span>
+                </div>
+              </div>
+            </div>
+            <div class="smart-disclaimer">Doctor-only AI snapshot. Verify with original records.</div>
+            <div class="timeline-note-body">${plainTextToHtml(snapshotText)}</div>
+          </div>
+        `;
+      }
+      async function showPatientSnapshot() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        persistCurrentRecordTab();
+        clearActiveAddOn(true);
+        const records = treatmentSummarySourceRecords(patient);
+        if (!records.length) {
+          alert("No saved visit notes found for Snapshot.");
+          return;
+        }
+        const apiKey = readStore(geminiApiKeyStore, "").trim();
+        if (!apiKey) {
+          alert("Add Gemini API key in Settings first.");
+          return;
+        }
+        activeRecordView = "snapshot";
+        activeRecordId = "";
+        activeRecordDate = "";
+        activeRecordCreatedAt = "";
+        activeRecordSource = "typed";
+        activeRecordDocs = {};
+        activeRecordDirty = false;
+        $("#recordVisitDate").textContent = "Snapshot";
+        $("#medicalNoteText").setAttribute("contenteditable", "false");
+        $("#medicalNoteText").innerHTML = `<div class="ambient-stage processing"><div class="ambient-progress"><div class="ambient-progress-fill"></div></div><p>Creating patient snapshot...</p></div>`;
+        $("#recordDeleteBtn").hidden = true;
+        $("#recordDeleteBtn").title = "Delete note";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
+        $("#recordStatus").textContent = "Generating doctor-only snapshot...";
+        renderPreviousRecords();
+        try {
+          const snapshot = await requestGeminiText(apiKey, patientSnapshotPrompt(patient, records));
+          $("#medicalNoteText").innerHTML = patientSnapshotHtml(patient, snapshot);
+          $("#recordStatus").textContent = "Snapshot ready. Verify with original records.";
+        } catch (error) {
+          console.error(error);
+          $("#medicalNoteText").innerHTML = `<div class="empty">Could not create snapshot. ${escapeHtml(error.message || "Please try again.")}</div>`;
+          $("#recordStatus").textContent = "Snapshot failed.";
+        }
+      }
       function showSmartChart() {
         const patient = activeRecordPatient();
         if (!patient) return;
@@ -4295,12 +4395,12 @@ ${source}`);
         const rawHtml = ["single", "draft"].includes(activeRecordView)
           ? (activeRecordDocs.visit || "No notes entered.")
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
-        if (activeRecordView === "smart") {
+        if (["smart", "snapshot"].includes(activeRecordView)) {
           const container = document.createElement("div");
           container.innerHTML = rawHtml;
           container.querySelectorAll(".smart-chart-actions, .smart-delete-btn").forEach((node) => node.remove());
           container.querySelectorAll("[contenteditable]").forEach((node) => node.removeAttribute("contenteditable"));
-          return container.innerHTML || "No investigation summary entered.";
+          return container.innerHTML || "No summary entered.";
         }
         if (activeRecordView !== "all" && activeAmbientMode === "summary") {
           return formattedTreatmentSummaryHtml(rawHtml);
@@ -4559,16 +4659,16 @@ ${source}`);
         }
         if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
         const isPrescriptionPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && activeAmbientMode === "prescription";
-        const metaText = activeRecordView === "smart"
+        const metaText = ["smart", "snapshot"].includes(activeRecordView)
           ? ""
           : activeRecordView === "all"
             ? `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | All entries`
             : `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`;
         const printContent = $("#medicalPrintContent");
-        printContent.classList.toggle("smart-print-content", activeRecordView === "smart");
+        printContent.classList.toggle("smart-print-content", ["smart", "snapshot"].includes(activeRecordView));
         printContent.innerHTML = isPrescriptionPrint
           ? activeMedicalPrintBody()
-          : activeRecordView === "smart"
+          : ["smart", "snapshot"].includes(activeRecordView)
             ? activeMedicalPrintBody()
           : `
             <h1>${patient.name}</h1>
@@ -4577,7 +4677,7 @@ ${source}`);
             ${medicalPrintFooter()}
           `;
         document.body.classList.toggle("print-prescription", isPrescriptionPrint);
-        document.body.classList.toggle("print-smart-chart", activeRecordView === "smart");
+        document.body.classList.toggle("print-smart-chart", ["smart", "snapshot"].includes(activeRecordView));
         document.body.classList.add("print-medical");
         window.print();
       }
@@ -5979,6 +6079,7 @@ ${source}`);
         if (button.id === "recordReplyBtn") startDocumentDraft("reply");
         if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
+        if (button.id === "recordSnapshotBtn") await showPatientSnapshot();
         if (button.id === "recordSummaryBtn") showSmartChart();
         if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
         if (button.id === "closeRecordDiagnosisBtn") closeRecordDiagnosisModal();
