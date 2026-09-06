@@ -4113,14 +4113,43 @@ ${source}`);
         if (target.some((item) => item.toLowerCase() === line.toLowerCase())) return;
         target.push(line);
       }
+      function compactSnapshotInstruction(value) {
+        let line = patientSnapshotLine(value).replace(/\.$/, "");
+        line = line
+          .replace(/^take\s+(?:one|1)\s+(?:tablet|capsule)\s+/i, "")
+          .replace(/^take\s+/i, "")
+          .replace(/^continue\s+taking\s+(?:this medicine|it)\s+/i, "continue ")
+          .replace(/^use\s+/i, "")
+          .replace(/\bafter food\b/i, "after food")
+          .replace(/\bon an empty stomach\b/i, "empty stomach")
+          .trim();
+        return line;
+      }
+      function patientSnapshotMedicineItems(lines) {
+        const output = [];
+        const seen = new Set();
+        for (let index = 0; index < lines.length; index += 1) {
+          const medicine = patientSnapshotLine(lines[index]);
+          if (!medicine || /^(take|use|apply|instill|inject|continue|administer)\b/i.test(medicine)) continue;
+          let instruction = "";
+          const nextLine = patientSnapshotLine(lines[index + 1] || "");
+          if (nextLine && !isPrescriptionMedicineLine(nextLine) && /^(take|use|apply|instill|inject|continue|administer)\b/i.test(nextLine)) {
+            instruction = compactSnapshotInstruction(nextLine);
+          }
+          const item = instruction ? `${medicine} - ${instruction}` : medicine;
+          const key = item.toLowerCase().replace(/^(tablet|tab|capsule|cap|injection|inj|syrup|syp)\s+/i, "");
+          if (seen.has(key)) continue;
+          seen.add(key);
+          output.push(item);
+        }
+        return output;
+      }
       function patientSnapshotText(patient, records) {
         const chronological = [...records].sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
         const newestFirst = [...chronological].reverse();
         const allergies = [];
-        const vitals = [];
         const diagnosis = [];
         const investigations = [];
-        const course = [];
         const medicines = [];
         const advice = [];
         const timeline = [];
@@ -4129,17 +4158,16 @@ ${source}`);
         newestFirst.forEach((record) => {
           const sections = patientSnapshotSections(record);
           sections.allergies.forEach((line) => pushSnapshotUnique(allergies, line, 5));
-          sections.vitals.forEach((line) => pushSnapshotUnique(vitals, line, 5));
           sections.diagnosis.forEach((line) => pushSnapshotUnique(diagnosis, line, 6));
           sections.investigations.forEach((line) => pushSnapshotUnique(investigations, line, 8));
-          sections.course.forEach((line) => pushSnapshotUnique(course, line, 6));
-          sections.medicines.forEach((line) => pushSnapshotUnique(medicines, line, 10));
+          patientSnapshotMedicineItems(sections.medicines).forEach((line) => pushSnapshotUnique(medicines, line, 10));
           sections.advice.forEach((line) => pushSnapshotUnique(advice, line, 8));
         });
         chronological.forEach((record) => {
           const sections = patientSnapshotSections(record);
           const highlights = [];
-          [...sections.diagnosis, ...sections.investigations, ...sections.medicines, ...sections.advice]
+          [...sections.diagnosis, ...sections.investigations, ...patientSnapshotMedicineItems(sections.medicines), ...sections.advice]
+            .filter((line) => !/^(take|use|apply|instill|inject|continue|administer)\b/i.test(patientSnapshotLine(line)))
             .slice(0, 3)
             .forEach((line) => pushSnapshotUnique(highlights, line, 3));
           if (highlights.length) timeline.push(`${smartChartShortDateLabel(recordTimestamp(record))}: ${highlights.join("; ")}`);
@@ -4150,28 +4178,22 @@ ${source}`);
         };
         return `Patient Snapshot:
 Allergies:
-${bulletList(allergies, "No documented allergy found in available notes.")}
+${bulletList(allergies, "Nil / not listed")}
 
-Vitals:
-${bulletList(vitals, "No vitals documented in Vitals section.")}
+Active Problems:
+${bulletList(diagnosis, "Not listed")}
 
-Diagnosis / Problem List:
-${bulletList(diagnosis)}
+Current Medicines:
+${bulletList(medicines, "Not listed")}
+
+Key Investigations:
+${bulletList(investigations, "Not listed")}
 
 Recent Course:
-${bulletList(course)}
-
-Important Investigations:
-${bulletList(investigations)}
-
-Treatment Timeline:
-${bulletList(timeline.slice(-8))}
-
-Current / Recent Medicines:
-${bulletList(medicines)}
+${bulletList(timeline.slice(-8), "Not listed")}
 
 Pending / Follow-up:
-${bulletList(advice)}`;
+${bulletList(advice, "Not listed")}`;
       }
       function patientSnapshotBodyText(snapshotText) {
         return String(snapshotText || "").replace(/^Patient Snapshot:\s*/i, "").trim();
