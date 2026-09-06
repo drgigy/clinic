@@ -2723,6 +2723,59 @@ The purpose / rest period / fitness details will appear here when dictated.`
         if (!text) throw new Error("Gemini did not return summary text.");
         return text;
       }
+      function firstVitalMatch(source, pattern, buildValue) {
+        pattern.lastIndex = 0;
+        const match = pattern.exec(source);
+        return match ? buildValue(match) : "";
+      }
+      function extractedVitalsLine(text) {
+        const source = htmlToPlainText(String(text || "")).replace(/\s+/g, " ");
+        const vitals = {};
+        vitals.bp = firstVitalMatch(source, /\b(?:bp|blood pressure)\b\s*[:=\-]?\s*(\d{2,3})\s*(?:\/|by|over)\s*(\d{2,3})(?:\s*mmhg)?/i, (match) => `BP ${match[1]}/${match[2]} mmHg`);
+        vitals.pulse = firstVitalMatch(source, /\b(?:pulse|pulse rate|pr|heart rate|hr)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*(?:\/min|bpm|beats\/min|per minute))?/i, (match) => `Pulse ${match[1]}/min`);
+        vitals.spo2 = firstVitalMatch(source, /\b(?:spo2|sp[ .-]?o2|oxygen saturation|saturation)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*%|\s*percent)?/i, (match) => {
+          const value = Number(match[1]);
+          return Number.isFinite(value) && value <= 100 ? `SpO2 ${value}%` : "";
+        });
+        const heightMatch = /\b(?:height|ht)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(cm|cms|centimeter|centimeters|m|meter|meters|metre|metres))?/i.exec(source);
+        if (heightMatch) {
+          const unit = heightMatch[2] || "cm";
+          let height = Number(heightMatch[1]);
+          if (Number.isFinite(height) && /^m(?:eter|etre|eters|etres)?$/i.test(unit)) height = Number((height * 100).toFixed(1));
+          if (Number.isFinite(height) && height >= 20) vitals.height = `Height ${height} cm`;
+        }
+        vitals.weight = firstVitalMatch(source, /\b(?:weight|wt)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(?:kg|kgs|kilogram|kilograms))?/i, (match) => {
+          const value = Number(match[1]);
+          return Number.isFinite(value) && value > 0 ? `Weight ${value} kg` : "";
+        });
+        vitals.bmi = firstVitalMatch(source, /\b(?:bmi|body mass index)\b\s*[:=\-]?\s*(\d{1,2}(?:\.\d+)?)(?:\s*(?:kg\/?m2|kg\/?m²))?/i, (match) => `BMI ${match[1]} kg/m2`);
+        if (!vitals.bmi && vitals.height && vitals.weight) {
+          const height = Number(vitals.height.match(/[\d.]+/)?.[0]);
+          const weight = Number(vitals.weight.match(/[\d.]+/)?.[0]);
+          if (Number.isFinite(height) && Number.isFinite(weight) && height > 0 && weight > 0) {
+            const bmi = Number((weight / ((height / 100) * (height / 100))).toFixed(1));
+            if (Number.isFinite(bmi)) vitals.bmi = `BMI ${bmi} kg/m2`;
+          }
+        }
+        return [vitals.bp, vitals.pulse, vitals.spo2, vitals.height, vitals.weight, vitals.bmi].filter(Boolean).join("; ");
+      }
+      function normalizeVitalsInNoteText(text) {
+        const source = /<\/?[a-z][\s\S]*>/i.test(String(text || "")) ? htmlToPlainText(text) : String(text || "");
+        const vitalsLine = extractedVitalsLine(source);
+        if (!vitalsLine) return source;
+        const lines = source.split(/\r?\n/);
+        const existingIndex = lines.findIndex((line) => /^vitals\s*:?\s*$/i.test(line.trim()));
+        if (existingIndex >= 0) {
+          const nextHeadingIndex = lines.findIndex((line, index) => index > existingIndex && isVisitNoteHeadingLine(line));
+          const sectionLines = lines.slice(existingIndex + 1, nextHeadingIndex >= 0 ? nextHeadingIndex : lines.length).map((line) => line.trim()).filter(Boolean);
+          if (!sectionLines.length) lines.splice(existingIndex + 1, 0, vitalsLine);
+          return lines.join("\n").trim();
+        }
+        const insertBeforeIndex = lines.findIndex((line) => /^(review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|instructions)\s*:?\s*$/i.test(line.trim()));
+        if (insertBeforeIndex >= 0) lines.splice(insertBeforeIndex, 0, "Vitals:", vitalsLine, "");
+        else lines.push("", "Vitals:", vitalsLine);
+        return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      }
       function updateDraftContent(draft, text, mode) {
         const noteHtml = plainTextToHtml(text);
         draft.note = text;
@@ -2901,7 +2954,7 @@ ${source}`);
             } catch (error) {
               console.warn("Add On structuring failed", error);
             }
-            const reviewText = autoStructureAddOnReviewText(structuredNote);
+            const reviewText = normalizeVitalsInNoteText(autoStructureAddOnReviewText(structuredNote));
             const reviewDraft = draftRecordById(activeAddOn.draftId) || draftMedicalRecord;
             if (reviewDraft) updateDraftContent(reviewDraft, reviewText, "addon");
             activeRecordDirty = true;
@@ -2916,13 +2969,14 @@ ${source}`);
             $("#recordStatus").textContent = "Add On draft ready. Review and save.";
             return;
           }
-          activeRecordDocs.visit = plainTextToHtml(note);
-          if (draftMedicalRecord) updateDraftContent(draftMedicalRecord, note, processingMode);
+          const finalNote = ["prescription", "certificate", "reply"].includes(processingMode) ? note : normalizeVitalsInNoteText(note);
+          activeRecordDocs.visit = plainTextToHtml(finalNote);
+          if (draftMedicalRecord) updateDraftContent(draftMedicalRecord, finalNote, processingMode);
           activeRecordDirty = true;
           if (draftMedicalRecord) {
             ambientState = "ready";
             openDraftMedicalEntry(draftMedicalRecord.id);
-            showAmbientResult(note);
+            showAmbientResult(finalNote);
             $("#recordStatus").textContent = `${ambientModeLabel(processingMode)} ready. Review and save.`;
           } else {
             ambientState = "ready";
@@ -3025,7 +3079,7 @@ ${source}`);
         activeRecordType = "visit";
         activeRecordDocs = { visit: draft.docs?.visit || draft.noteHtml || (draft.note ? plainTextToHtml(draft.note) : "") };
         if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
-        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(activeRecordDocs.visit);
+        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(activeRecordDocs.visit));
         $("#recordPatientName").textContent = draft.name || patient.name;
         $("#recordPatientId").textContent = `ID: ${draft.patientId || patientDisplayId(patient)}`;
         $("#recordPatientMobile").textContent = `Mobile: ${draft.mobile || patient.mobile || "-"}`;
@@ -5032,7 +5086,7 @@ ${bulletList(advice)}`;
           visit: addOnRecordHtml(record) || record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
         if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
-        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(activeRecordDocs.visit);
+        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(activeRecordDocs.visit));
         activeRecordType = "visit";
         $("#medicalNoteText").setAttribute("contenteditable", "true");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
