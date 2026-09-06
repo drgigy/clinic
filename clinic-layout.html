@@ -467,7 +467,9 @@
         body.print-medical .smart-editable { outline: 0; padding: 0; }
         body.print-medical .smart-chart-view { max-width: none; font-size: 12px; }
         body.print-medical .medical-print-content.smart-print-content { width: 100%; max-width: none; min-height: 0; margin: 0; padding: 7mm 7mm 9mm !important; }
-        body.print-medical .smart-chart-section { break-inside: avoid; page-break-inside: avoid; }
+        body.print-medical .smart-chart-section { break-inside: auto; page-break-inside: auto; }
+        body.print-medical .smart-chart-section h3 { break-after: avoid; page-break-after: avoid; }
+        body.print-medical .patient-snapshot-card { break-inside: auto; page-break-inside: auto; }
         body.print-medical .blood-chart { break-inside: avoid; page-break-inside: avoid; }
         body.print-medical .summary-visit { margin-bottom: 14px; break-inside: avoid; }
         body.print-medical .summary-date { font-size: 15px; font-weight: 900 !important; margin-bottom: 5px; }
