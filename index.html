@@ -359,8 +359,10 @@
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
       .smart-chart-view { display: grid; gap: 10px; max-width: none; margin: 0; }
-      .smart-chart-header { display: grid; grid-template-columns: 1fr; gap: 4px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+      .smart-chart-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
       .smart-chart-header h1 { font-size: 20px; font-weight: 950; margin: 0; }
+      .smart-chart-title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+      .smart-chart-title-label { color: var(--muted); font-size: 13px; font-weight: 900; white-space: nowrap; }
       .smart-chart-header p { color: var(--muted); font-size: 13px; font-weight: 750; }
       .smart-patient-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 5px; color: #334454; font-size: 13px; font-weight: 850; }
       .smart-chart-actions { display: flex; justify-content: flex-end; gap: 8px; }
@@ -4031,22 +4033,22 @@ ${source}`);
           <div class="smart-chart-view">
             <div class="smart-chart-header">
               <div>
-                <h1>${escapeHtml(patient.name || "Patient")}</h1>
+                <div class="smart-chart-title-row">
+                  <h1>${escapeHtml(patient.name || "Patient")}</h1>
+                  <span class="smart-chart-title-label">Smart Chart</span>
+                </div>
                 <div class="smart-patient-meta">
                   <span>ID: ${escapeHtml(patientDisplayId(patient))}</span>
                   <span>Age/Sex: ${escapeHtml(patient.age || "-")} / ${escapeHtml(patient.sex || "-")}</span>
                   <span>Mobile: ${escapeHtml(patient.mobile || "-")}</span>
                 </div>
               </div>
-            </div>
-            <div class="smart-chart-actions">
-              <button class="primary" type="button" data-print-smart-chart="true">Print / Save PDF</button>
+              <div class="smart-chart-actions">
+                <button class="primary" type="button" data-print-smart-chart="true">Print / Save PDF</button>
+              </div>
             </div>
             <section class="smart-chart-section">
-              <h3>Patient Snapshot</h3>
-              <article class="patient-snapshot-card">
-                <div class="timeline-note-body">${patientSnapshotBodyHtml(snapshotText)}</div>
-              </article>
+              ${patientSnapshotBodyHtml(snapshotText)}
             </section>
             ${vitalRows.length ? `
               <section class="smart-chart-section">
