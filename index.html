@@ -3391,7 +3391,7 @@ ${source}`);
       function isVisitNoteHeadingLine(value) {
         const line = String(value || "").trim();
         if (/^vitals\s*:/i.test(line)) return true;
-        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|instructions|review note)\s*:$/i.test(line);
+        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|instructions|review note|active problems?|current medicines?|key investigations?|recent course|pending\s*\/\s*follow-up)\s*:$/i.test(line);
       }
       function boldVisitNoteHeadingsHtml(value) {
         const source = String(value || "");
