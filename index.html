@@ -4125,15 +4125,21 @@ ${source}`);
           .trim();
         return line;
       }
+      function isSnapshotMedicineInstructionLine(value) {
+        const line = patientSnapshotLine(value);
+        return /^(take|use|apply|instill|inject|continue|administer)\b/i.test(line)
+          || /^(?:half|one|two|three|four|five|six|seven|eight|nine|ten|\d+(?:\/\d+)?)\s+(?:tablet|tab|capsule|cap)\b/i.test(line)
+          || /\b(?:morning|noon|afternoon|evening|night|bedtime|empty stomach|after food|before food|sos|as needed|when required)\b/i.test(line);
+      }
       function patientSnapshotMedicineItems(lines) {
         const output = [];
         const seen = new Set();
         for (let index = 0; index < lines.length; index += 1) {
           const medicine = patientSnapshotLine(lines[index]);
-          if (!medicine || /^(take|use|apply|instill|inject|continue|administer)\b/i.test(medicine)) continue;
+          if (!medicine || isSnapshotMedicineInstructionLine(medicine)) continue;
           let instruction = "";
           const nextLine = patientSnapshotLine(lines[index + 1] || "");
-          if (nextLine && !isPrescriptionMedicineLine(nextLine) && /^(take|use|apply|instill|inject|continue|administer)\b/i.test(nextLine)) {
+          if (nextLine && !isPrescriptionMedicineLine(nextLine) && isSnapshotMedicineInstructionLine(nextLine)) {
             instruction = compactSnapshotInstruction(nextLine);
           }
           const item = instruction ? `${medicine} - ${instruction}` : medicine;
