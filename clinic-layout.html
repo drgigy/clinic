@@ -2050,7 +2050,7 @@ Do not add, infer, assume, or hallucinate clinical information.
 If something is unclear, write it as unclear instead of guessing.
 Return a single plain text medical note only. Do not return JSON. Do not use markdown fences.
 
-Use these headings, in this order, but OMIT a heading completely if no information was dictated for that section:
+Use these headings, in this order. Include the Vitals heading every time, even if no vitals were dictated. For all other headings, omit the heading completely if no information was dictated for that section:
 
 Chief Complaints:
 
@@ -2762,18 +2762,23 @@ The purpose / rest period / fitness details will appear here when dictated.`
       function normalizeVitalsInNoteText(text) {
         const source = /<\/?[a-z][\s\S]*>/i.test(String(text || "")) ? htmlToPlainText(text) : String(text || "");
         const vitalsLine = extractedVitalsLine(source);
-        if (!vitalsLine) return source;
         const lines = source.split(/\r?\n/);
         const existingIndex = lines.findIndex((line) => /^vitals\s*:?\s*$/i.test(line.trim()));
         if (existingIndex >= 0) {
           const nextHeadingIndex = lines.findIndex((line, index) => index > existingIndex && isVisitNoteHeadingLine(line));
           const sectionLines = lines.slice(existingIndex + 1, nextHeadingIndex >= 0 ? nextHeadingIndex : lines.length).map((line) => line.trim()).filter(Boolean);
-          if (!sectionLines.length) lines.splice(existingIndex + 1, 0, vitalsLine);
+          if (vitalsLine && !sectionLines.length) lines.splice(existingIndex + 1, 0, vitalsLine);
           return lines.join("\n").trim();
         }
+        const vitalsBlock = vitalsLine ? ["Vitals:", vitalsLine, ""] : ["Vitals:", ""];
         const insertBeforeIndex = lines.findIndex((line) => /^(review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|instructions)\s*:?\s*$/i.test(line.trim()));
-        if (insertBeforeIndex >= 0) lines.splice(insertBeforeIndex, 0, "Vitals:", vitalsLine, "");
-        else lines.push("", "Vitals:", vitalsLine);
+        if (insertBeforeIndex >= 0) lines.splice(insertBeforeIndex, 0, ...vitalsBlock);
+        else {
+          const historyIndex = lines.findIndex((line) => /^history of present illness\s*:?\s*$/i.test(line.trim()));
+          const nextAfterHistoryIndex = historyIndex >= 0 ? lines.findIndex((line, index) => index > historyIndex && isVisitNoteHeadingLine(line)) : -1;
+          if (nextAfterHistoryIndex >= 0) lines.splice(nextAfterHistoryIndex, 0, ...vitalsBlock);
+          else lines.push("", ...vitalsBlock);
+        }
         return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
       }
       function updateDraftContent(draft, text, mode) {
@@ -2877,7 +2882,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         const lines = [];
         orderedSections.forEach((section) => {
           const content = sections[section].filter((line) => line && line.trim());
-          if (!content.length) return;
+          if (!content.length && section !== "Vitals") return;
           lines.push(`${section}:`, ...content);
         });
         return lines.join("\n").trim() || "Review Note:";
@@ -2893,7 +2898,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         if (!source) return source;
         return requestGeminiText(apiKey, `Restructure this add-on clinical review note into clean printable sections.
 
-Use only these headings, in this order, and omit headings with no content:
+Use only these headings, in this order. Include the Vitals heading every time, even if no vitals were dictated. For all other headings, omit headings with no content:
 
 Review Note:
 Allergies:
