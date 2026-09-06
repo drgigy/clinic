@@ -2086,7 +2086,7 @@ Formatting rules:
 - Past Medical or Surgical History: line by line.
 - Allergies: line by line.
 - Examination Findings: bullet points or separate lines.
-- Vitals: use one compact line if dictated, for example "BP 120/80 mmHg; Pulse 78/min; SpO2 98%; Height 170 cm; Weight 70 kg; BMI 24.2 kg/m2". Include only dictated vitals. If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
+- Vitals: always keep one compact line with these fields: "BP: ; Pulse rate: ; Oxygen saturation: ; Height: ; Weight: ; BMI:". Fill only dictated values, for example "BP: 120/80 mmHg; Pulse rate: 78/min; Oxygen saturation: 98%; Height: 170 cm; Weight: 70 kg; BMI: 24.2 kg/m2". If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
 - Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
@@ -2729,28 +2729,29 @@ The purpose / rest period / fitness details will appear here when dictated.`
         const match = pattern.exec(source);
         return match ? buildValue(match) : "";
       }
+      const EMPTY_VITALS_LINE = "BP: ; Pulse rate: ; Oxygen saturation: ; Height: ; Weight: ; BMI:";
       function extractedVitalsLine(text) {
         const source = vitalsSectionText(text).replace(/\s+/g, " ");
         if (!source) return "";
         const vitals = {};
-        vitals.bp = firstVitalMatch(source, /\b(?:bp|blood pressure)\b\s*[:=\-]?\s*(\d{2,3})\s*(?:\/|by|over)\s*(\d{2,3})(?:\s*mmhg)?/i, (match) => `BP ${match[1]}/${match[2]} mmHg`);
-        vitals.pulse = firstVitalMatch(source, /\b(?:pulse|pulse rate|pr|heart rate|hr)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*(?:\/min|bpm|beats\/min|per minute))?/i, (match) => `Pulse ${match[1]}/min`);
+        vitals.bp = firstVitalMatch(source, /\b(?:bp|blood pressure)\b\s*[:=\-]?\s*(\d{2,3})\s*(?:\/|by|over)\s*(\d{2,3})(?:\s*mmhg)?/i, (match) => `${match[1]}/${match[2]} mmHg`);
+        vitals.pulse = firstVitalMatch(source, /\b(?:pulse|pulse rate|pr|heart rate|hr)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*(?:\/min|bpm|beats\/min|per minute))?/i, (match) => `${match[1]}/min`);
         vitals.spo2 = firstVitalMatch(source, /\b(?:spo2|sp[ .-]?o2|oxygen saturation|saturation)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*%|\s*percent)?/i, (match) => {
           const value = Number(match[1]);
-          return Number.isFinite(value) && value <= 100 ? `SpO2 ${value}%` : "";
+          return Number.isFinite(value) && value <= 100 ? `${value}%` : "";
         });
         const heightMatch = /\b(?:height|ht)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(cm|cms|centimeter|centimeters|m|meter|meters|metre|metres))?/i.exec(source);
         if (heightMatch) {
           const unit = heightMatch[2] || "cm";
           let height = Number(heightMatch[1]);
           if (Number.isFinite(height) && /^m(?:eter|etre|eters|etres)?$/i.test(unit)) height = Number((height * 100).toFixed(1));
-          if (Number.isFinite(height) && height >= 20) vitals.height = `Height ${height} cm`;
+          if (Number.isFinite(height) && height >= 20) vitals.height = `${height} cm`;
         }
         vitals.weight = firstVitalMatch(source, /\b(?:weight|wt)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(?:kg|kgs|kilogram|kilograms))?/i, (match) => {
           const value = Number(match[1]);
-          return Number.isFinite(value) && value > 0 ? `Weight ${value} kg` : "";
+          return Number.isFinite(value) && value > 0 ? `${value} kg` : "";
         });
-        vitals.bmi = firstVitalMatch(source, /\b(?:bmi|body mass index)\b\s*[:=\-]?\s*(\d{1,2}(?:\.\d+)?)(?:\s*(?:kg\/?m2|kg\/?m²))?/i, (match) => `BMI ${match[1]} kg/m2`);
+        vitals.bmi = firstVitalMatch(source, /\b(?:bmi|body mass index)\b\s*[:=\-]?\s*(\d{1,2}(?:\.\d+)?)(?:\s*(?:kg\/?m2|kg\/?m²))?/i, (match) => `${match[1]} kg/m2`);
         if (!vitals.bmi && vitals.height && vitals.weight) {
           const height = Number(vitals.height.match(/[\d.]+/)?.[0]);
           const weight = Number(vitals.weight.match(/[\d.]+/)?.[0]);
@@ -2759,7 +2760,8 @@ The purpose / rest period / fitness details will appear here when dictated.`
             if (Number.isFinite(bmi)) vitals.bmi = `BMI ${bmi} kg/m2`;
           }
         }
-        return [vitals.bp, vitals.pulse, vitals.spo2, vitals.height, vitals.weight, vitals.bmi].filter(Boolean).join("; ");
+        if (vitals.bmi) vitals.bmi = vitals.bmi.replace(/^BMI\s+/i, "");
+        return `BP: ${vitals.bp || ""}; Pulse rate: ${vitals.pulse || ""}; Oxygen saturation: ${vitals.spo2 || ""}; Height: ${vitals.height || ""}; Weight: ${vitals.weight || ""}; BMI: ${vitals.bmi || ""}`;
       }
       function vitalsSectionText(text) {
         const source = /<\/?[a-z][\s\S]*>/i.test(String(text || "")) ? htmlToPlainText(text) : String(text || "");
@@ -2791,7 +2793,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
           const nextHeadingIndex = lines.findIndex((line, index) => index > existingIndex && isVisitNoteHeadingLine(line));
           lines.splice(existingIndex, (nextHeadingIndex >= 0 ? nextHeadingIndex : lines.length) - existingIndex);
         }
-        const vitalsRow = vitalsLine ? `Vitals: ${vitalsLine}` : "Vitals:";
+        const vitalsRow = `Vitals: ${vitalsLine || EMPTY_VITALS_LINE}`;
         lines.unshift(vitalsRow, "");
         return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
       }
@@ -2926,7 +2928,7 @@ Rules:
 - Keep plain review narrative under Review Note.
 - Move allergy/allergen information under Allergies.
 - Move BP, blood pressure, pulse, heart rate, SpO2, oxygen saturation, height, weight, and BMI under Vitals.
-- Under Vitals, use one compact line if dictated, for example "BP 120/80 mmHg; Pulse 78/min; SpO2 98%; Height 170 cm; Weight 70 kg; BMI 24.2 kg/m2". Include only dictated vitals. If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
+- Under Vitals, always keep one compact line with these fields: "BP: ; Pulse rate: ; Oxygen saturation: ; Height: ; Weight: ; BMI:". Fill only dictated values, for example "BP: 120/80 mmHg; Pulse rate: 78/min; Oxygen saturation: 98%; Height: 170 cm; Weight: 70 kg; BMI: 24.2 kg/m2". If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
 - Move MRI, CT, EEG, NCS, ECG, scan, imaging, blood reports, lab values, and report-review content under Review of Investigations.
 - Under Review of Investigations, number each investigation/report separately.
 - For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L.
@@ -4074,12 +4076,13 @@ ${source}`);
       function patientSnapshotSections(record) {
         const sections = { allergies: [], vitals: [], diagnosis: [], investigations: [], medicines: [], advice: [], course: [] };
         let current = "";
+        const isBlankVitalsLine = (line) => current === "vitals" && !/\d/.test(line);
         htmlToPlainText(timelineRecordBody(record)).split(/\r?\n/).forEach((rawLine) => {
           const { section, rest } = patientSnapshotSectionMatch(rawLine);
           if (section) {
             current = section;
             const sameLine = patientSnapshotLine(rest);
-            if (sameLine) sections[current].push(sameLine);
+            if (sameLine && !isBlankVitalsLine(sameLine)) sections[current].push(sameLine);
             return;
           }
           if (isVisitNoteHeadingLine(rawLine)) {
@@ -4089,6 +4092,7 @@ ${source}`);
           const line = patientSnapshotLine(rawLine);
           if (!line || !current) return;
           if (/^(nil|none|no known allergies?|no allergy|not known)$/i.test(line) && current !== "allergies") return;
+          if (isBlankVitalsLine(line)) return;
           sections[current].push(line);
         });
         return sections;
