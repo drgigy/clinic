@@ -3500,7 +3500,7 @@ ${source}`);
       }
       function smartChartLines(record) {
         return htmlToPlainText(timelineRecordBody(record))
-          .replace(/\b(Vitals|Investigations?|Review of investigations|Reports?|Blood reports?|Blood tests?|Medications?|Prescription|Rx|Advice|Diagnosis)\s*:/gi, "\n$1:")
+          .replace(/\b(Vitals|Investigations?|Review of investigations|Reports?|Blood reports?|Blood tests?|Medications?|Prescription|Rx|Advice\s*\/\s*Instructions|Advice|Diagnosis)\s*:/gi, "\n$1:")
           .split("\n")
           .map((line) => line.trim())
           .filter((line) => !/[\u0D00-\u0D7F]/.test(line))
@@ -4071,7 +4071,7 @@ ${source}`);
       }
       function patientSnapshotSectionMatch(value) {
         const line = String(value || "").trim();
-        const match = line.match(/^(allerg(?:y|ies)|vitals?|diagnosis|review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?|current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?|advice|advice\s*\/\s*instructions|instructions|follow up|follow-up|plan|chief complaints?|history of present illness|review note)\s*:?\s*(.*)$/i);
+        const match = line.match(/^(allerg(?:y|ies)|vitals?|diagnosis|review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?|current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?|advice\s*\/\s*instructions|advice|instructions|follow up|follow-up|plan|chief complaints?|history of present illness|review note)\s*:?\s*(.*)$/i);
         if (!match) return { section: "", rest: "" };
         return { section: patientSnapshotSectionName(match[1]), rest: match[2] || "" };
       }
