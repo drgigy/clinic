@@ -379,6 +379,12 @@
       .vital-matrix svg { min-width: 720px; width: 100%; height: auto; display: block; }
       .patient-snapshot-card { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; background: #fff; box-shadow: 0 1px 3px rgba(16, 32, 43, .05); }
       .patient-snapshot-card .timeline-note-body { font-size: 14px; line-height: 1.45; }
+      .patient-snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
+      .patient-snapshot-grid .patient-snapshot-card { min-height: 120px; }
+      .patient-snapshot-card h4 { font-size: 15px; font-weight: 900; margin: 0 0 8px; color: var(--ink); }
+      .patient-snapshot-card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+      .patient-snapshot-card li { line-height: 1.35; }
+      .patient-snapshot-empty { margin: 0; color: var(--muted); font-weight: 850; line-height: 1.35; }
       .smart-result-list { display: grid; gap: 8px; }
       .smart-result-row { display: grid; grid-template-columns: 140px 150px minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf2f5; break-inside: avoid; }
       .smart-result-date { color: var(--muted); font-size: 13px; font-weight: 900; }
@@ -4154,6 +4160,7 @@ ${source}`);
         const chronological = [...records].sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
         const newestFirst = [...chronological].reverse();
         const allergies = [];
+        const vitals = [];
         const diagnosis = [];
         const investigations = [];
         const medicines = [];
@@ -4164,6 +4171,7 @@ ${source}`);
         newestFirst.forEach((record) => {
           const sections = patientSnapshotSections(record);
           sections.allergies.forEach((line) => pushSnapshotUnique(allergies, line, 5));
+          sections.vitals.forEach((line) => pushSnapshotUnique(vitals, line, 5));
           sections.diagnosis.forEach((line) => pushSnapshotUnique(diagnosis, line, 6));
           sections.investigations.forEach((line) => pushSnapshotUnique(investigations, line, 8));
           patientSnapshotMedicineItems(sections.medicines).forEach((line) => pushSnapshotUnique(medicines, line, 10));
@@ -4184,32 +4192,55 @@ ${source}`);
         };
         return `Patient Snapshot:
 Allergies:
-${bulletList(allergies, "Nil / not listed")}
+${bulletList(allergies, "No clear saved information.")}
 
-Active Problems:
-${bulletList(diagnosis, "Not listed")}
+Vitals:
+${bulletList(vitals, "No clear saved information.")}
 
-Current Medicines:
-${bulletList(medicines, "Not listed")}
-
-Key Investigations:
-${bulletList(investigations, "Not listed")}
+Diagnosis / Problem List:
+${bulletList(diagnosis, "No clear saved information.")}
 
 Recent Course:
-${bulletList(timeline.slice(-8), "Not listed")}
+${bulletList(timeline.slice(-8), "No clear saved information.")}
 
-Pending / Follow-up:
-${bulletList(advice, "Not listed")}`;
+Key Investigations:
+${bulletList(investigations, "No clear saved information.")}
+
+Current / Recent Medicines:
+${bulletList(medicines, "No clear saved information.")}
+
+Advice / Follow-up:
+${bulletList(advice, "No clear saved information.")}`;
       }
       function patientSnapshotBodyText(snapshotText) {
         return String(snapshotText || "").replace(/^Patient Snapshot:\s*/i, "").trim();
       }
       function patientSnapshotBodyHtml(snapshotText) {
-        const headingPattern = /^(Allergies|Active Problems|Current Medicines|Key Investigations|Recent Course|Pending\s*\/\s*Follow-up):$/i;
-        return patientSnapshotBodyText(snapshotText).split(/\r?\n/).map((line) => {
-          const escaped = escapeHtml(line);
-          return headingPattern.test(line.trim()) ? `<strong>${escaped}</strong>` : escaped;
-        }).join("<br>");
+        const sectionOrder = ["Allergies", "Vitals", "Diagnosis / Problem List", "Recent Course", "Key Investigations", "Current / Recent Medicines", "Advice / Follow-up"];
+        const sections = new Map(sectionOrder.map((heading) => [heading, []]));
+        let current = "";
+        patientSnapshotBodyText(snapshotText).split(/\r?\n/).forEach((rawLine) => {
+          const line = rawLine.trim();
+          if (!line) return;
+          const heading = sectionOrder.find((item) => new RegExp(`^${item.replace(/[\/]/g, "\\/")}\\s*:$`, "i").test(line));
+          if (heading) {
+            current = heading;
+            return;
+          }
+          if (!current) return;
+          const item = line.replace(/^[-*•]\s*/, "").trim();
+          if (item) sections.get(current).push(item);
+        });
+        return `<div class="patient-snapshot-grid">${sectionOrder.map((heading) => {
+          const items = sections.get(heading).filter(Boolean).slice(0, 10);
+          const isEmpty = !items.length || (items.length === 1 && /^no clear saved information\.?$/i.test(items[0]));
+          return `
+            <article class="patient-snapshot-card">
+              <h4>${escapeHtml(heading)}</h4>
+              ${isEmpty ? `<p class="patient-snapshot-empty">No clear saved information.</p>` : `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`}
+            </article>
+          `;
+        }).join("")}</div>`;
       }
       function patientSnapshotHtml(patient, snapshotText) {
         return `
