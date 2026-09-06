@@ -3503,6 +3503,7 @@ ${source}`);
           .replace(/\b(Vitals|Investigations?|Review of investigations|Reports?|Blood reports?|Blood tests?|Medications?|Prescription|Rx|Advice|Diagnosis)\s*:/gi, "\n$1:")
           .split("\n")
           .map((line) => line.trim())
+          .filter((line) => !/[\u0D00-\u0D7F]/.test(line))
           .filter(Boolean);
       }
       function smartChartVitalsLines(record) {
@@ -4050,11 +4051,12 @@ ${source}`);
         `;
       }
       function patientSnapshotLine(value) {
-        return String(value || "")
+        const line = String(value || "")
           .replace(/^[*•-]\s*/, "")
           .replace(/^\d+[\).\s-]+/, "")
           .replace(/\s+/g, " ")
           .trim();
+        return /[\u0D00-\u0D7F]/.test(line) ? "" : line;
       }
       function patientSnapshotSectionName(value) {
         const line = String(value || "").trim().replace(/\s*:$/, "").toLowerCase();
