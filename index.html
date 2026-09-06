@@ -4039,7 +4039,7 @@ ${source}`);
             <section class="smart-chart-section">
               <h3>Patient Snapshot</h3>
               <article class="patient-snapshot-card">
-                <div class="timeline-note-body">${plainTextToHtml(snapshotText)}</div>
+                <div class="timeline-note-body">${patientSnapshotBodyHtml(snapshotText)}</div>
               </article>
             </section>
             ${vitalRows.length ? `
@@ -4198,6 +4198,13 @@ ${bulletList(advice, "Not listed")}`;
       function patientSnapshotBodyText(snapshotText) {
         return String(snapshotText || "").replace(/^Patient Snapshot:\s*/i, "").trim();
       }
+      function patientSnapshotBodyHtml(snapshotText) {
+        const headingPattern = /^(Allergies|Active Problems|Current Medicines|Key Investigations|Recent Course|Pending\s*\/\s*Follow-up):$/i;
+        return patientSnapshotBodyText(snapshotText).split(/\r?\n/).map((line) => {
+          const escaped = escapeHtml(line);
+          return headingPattern.test(line.trim()) ? `<strong>${escaped}</strong>` : escaped;
+        }).join("<br>");
+      }
       function patientSnapshotHtml(patient, snapshotText) {
         return `
           <div class="smart-chart-view patient-snapshot-view">
@@ -4212,7 +4219,7 @@ ${bulletList(advice, "Not listed")}`;
               </div>
             </div>
             <div class="smart-disclaimer">Doctor-only local snapshot from saved notes. Verify with original records.</div>
-            <div class="timeline-note-body">${plainTextToHtml(patientSnapshotBodyText(snapshotText))}</div>
+            <div class="timeline-note-body">${patientSnapshotBodyHtml(snapshotText)}</div>
           </div>
         `;
       }
