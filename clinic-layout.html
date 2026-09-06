@@ -3462,9 +3462,13 @@ ${source}`);
           .sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
       }
       function timelineRecordBody(record) {
+        const recordKind = record?.recordKind || "visit";
         const html = addOnRecordHtml(record) || record.docs?.visit || record.noteHtml || "";
-        if (html) return boldVisitNoteHeadingsHtml(html);
-        return plainTextToHtml(record.note || "");
+        if (["prescription", "certificate", "reply", "summary"].includes(recordKind)) {
+          return html || plainTextToHtml(record.note || "");
+        }
+        if (html) return boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(html));
+        return plainTextToHtml(normalizeVitalsInNoteText(record.note || ""));
       }
       function treatmentTimelineHtml(records) {
         return `<div class="treatment-summary-print treatment-timeline-print">${records.map((record) => `
