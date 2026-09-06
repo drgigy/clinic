@@ -3386,7 +3386,7 @@ ${source}`);
       function boldVisitNoteHeadingsHtml(value) {
         const source = String(value || "");
         if (!source) return source;
-        return plainTextToHtml(htmlToPlainText(source));
+        return plainTextToHtml(normalizeVitalsInNoteText(htmlToPlainText(source)));
       }
       function cleanSummaryLine(value) {
         return String(value || "")
