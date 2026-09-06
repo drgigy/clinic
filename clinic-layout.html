@@ -227,7 +227,8 @@
       .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 14px 18px; display: grid; grid-template-columns: minmax(320px, 1fr) auto; gap: 14px; align-items: start; }
       .record-patient h1 { font-size: 22px; margin-bottom: 6px; font-weight: 900; }
       .record-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 13px; font-weight: 850; }
-      .record-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+      .record-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; max-width: calc(100vw - 360px); overflow-x: auto; }
+      .record-actions button { flex: 0 0 auto; min-height: 34px; padding: 0 10px; font-size: 14px; white-space: nowrap; }
       .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
@@ -2729,7 +2730,8 @@ The purpose / rest period / fitness details will appear here when dictated.`
         return match ? buildValue(match) : "";
       }
       function extractedVitalsLine(text) {
-        const source = htmlToPlainText(String(text || "")).replace(/\s+/g, " ");
+        const source = vitalsSectionText(text).replace(/\s+/g, " ");
+        if (!source) return "";
         const vitals = {};
         vitals.bp = firstVitalMatch(source, /\b(?:bp|blood pressure)\b\s*[:=\-]?\s*(\d{2,3})\s*(?:\/|by|over)\s*(\d{2,3})(?:\s*mmhg)?/i, (match) => `BP ${match[1]}/${match[2]} mmHg`);
         vitals.pulse = firstVitalMatch(source, /\b(?:pulse|pulse rate|pr|heart rate|hr)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*(?:\/min|bpm|beats\/min|per minute))?/i, (match) => `Pulse ${match[1]}/min`);
@@ -2758,6 +2760,27 @@ The purpose / rest period / fitness details will appear here when dictated.`
           }
         }
         return [vitals.bp, vitals.pulse, vitals.spo2, vitals.height, vitals.weight, vitals.bmi].filter(Boolean).join("; ");
+      }
+      function vitalsSectionText(text) {
+        const source = /<\/?[a-z][\s\S]*>/i.test(String(text || "")) ? htmlToPlainText(text) : String(text || "");
+        const lines = source.split(/\r?\n/);
+        const output = [];
+        let inVitals = false;
+        lines.forEach((rawLine) => {
+          const line = rawLine.trim();
+          const headingMatch = line.match(/^vitals\s*:?\s*(.*)$/i);
+          if (headingMatch) {
+            inVitals = true;
+            if (headingMatch[1]?.trim()) output.push(headingMatch[1].trim());
+            return;
+          }
+          if (inVitals && isVisitNoteHeadingLine(line)) {
+            inVitals = false;
+            return;
+          }
+          if (inVitals) output.push(rawLine);
+        });
+        return output.join("\n").trim();
       }
       function normalizeVitalsInNoteText(text) {
         const source = /<\/?[a-z][\s\S]*>/i.test(String(text || "")) ? htmlToPlainText(text) : String(text || "");
@@ -3480,10 +3503,30 @@ ${source}`);
       }
       function smartChartLines(record) {
         return htmlToPlainText(timelineRecordBody(record))
-          .replace(/\b(Investigations?|Review of investigations|Reports?|Blood reports?|Blood tests?|Medications?|Prescription|Rx|Advice|Diagnosis)\s*:/gi, "\n$1:")
+          .replace(/\b(Vitals|Investigations?|Review of investigations|Reports?|Blood reports?|Blood tests?|Medications?|Prescription|Rx|Advice|Diagnosis)\s*:/gi, "\n$1:")
           .split("\n")
           .map((line) => line.trim())
           .filter(Boolean);
+      }
+      function smartChartVitalsLines(record) {
+        const lines = smartChartLines(record);
+        const output = [];
+        let inVitals = false;
+        lines.forEach((line) => {
+          const cleaned = cleanSummaryLine(line);
+          const headingMatch = cleaned.match(/^vitals\s*:?\s*(.*)$/i);
+          if (headingMatch) {
+            inVitals = true;
+            if (headingMatch[1]?.trim()) output.push(headingMatch[1].trim());
+            return;
+          }
+          if (inVitals && isVisitNoteHeadingLine(cleaned)) {
+            inVitals = false;
+            return;
+          }
+          if (inVitals && cleaned) output.push(cleaned);
+        });
+        return output;
       }
       function smartChartDateLabel(record) {
         return smartChartShortDateLabel(record.date || recordTimestamp(record).slice(0, 10));
@@ -3745,7 +3788,7 @@ ${source}`);
         const rows = [];
         const seen = new Set();
         records.forEach((record) => {
-          smartChartLines(record).forEach((line) => {
+          smartChartVitalsLines(record).forEach((line) => {
             const cleaned = cleanSummaryLine(line);
             if (!cleaned) return;
             smartChartSentencePieces(cleaned).forEach((piece) => {
@@ -4019,6 +4062,7 @@ ${source}`);
       function patientSnapshotSectionName(value) {
         const line = String(value || "").trim().replace(/\s*:$/, "").toLowerCase();
         if (/^allerg/.test(line)) return "allergies";
+        if (/^vitals?$/.test(line)) return "vitals";
         if (/^diagnosis/.test(line)) return "diagnosis";
         if (/^(review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?)$/.test(line)) return "investigations";
         if (/^(current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?)$/.test(line)) return "medicines";
@@ -4028,12 +4072,12 @@ ${source}`);
       }
       function patientSnapshotSectionMatch(value) {
         const line = String(value || "").trim();
-        const match = line.match(/^(allerg(?:y|ies)|diagnosis|review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?|current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?|advice|advice\s*\/\s*instructions|instructions|follow up|follow-up|plan|chief complaints?|history of present illness|review note)\s*:?\s*(.*)$/i);
+        const match = line.match(/^(allerg(?:y|ies)|vitals?|diagnosis|review of investigations|investigations?|reports?|blood reports?|blood tests?|labs?|current medications?|prescription|rx|medications?|treatment\s*\/\s*medications?|advice|advice\s*\/\s*instructions|instructions|follow up|follow-up|plan|chief complaints?|history of present illness|review note)\s*:?\s*(.*)$/i);
         if (!match) return { section: "", rest: "" };
         return { section: patientSnapshotSectionName(match[1]), rest: match[2] || "" };
       }
       function patientSnapshotSections(record) {
-        const sections = { allergies: [], diagnosis: [], investigations: [], medicines: [], advice: [], course: [] };
+        const sections = { allergies: [], vitals: [], diagnosis: [], investigations: [], medicines: [], advice: [], course: [] };
         let current = "";
         htmlToPlainText(timelineRecordBody(record)).split(/\r?\n/).forEach((rawLine) => {
           const { section, rest } = patientSnapshotSectionMatch(rawLine);
@@ -4041,6 +4085,10 @@ ${source}`);
             current = section;
             const sameLine = patientSnapshotLine(rest);
             if (sameLine) sections[current].push(sameLine);
+            return;
+          }
+          if (isVisitNoteHeadingLine(rawLine)) {
+            current = "";
             return;
           }
           const line = patientSnapshotLine(rawLine);
@@ -4060,6 +4108,7 @@ ${source}`);
         const chronological = [...records].sort((a, b) => new Date(recordTimestamp(a)) - new Date(recordTimestamp(b)));
         const newestFirst = [...chronological].reverse();
         const allergies = [];
+        const vitals = [];
         const diagnosis = [];
         const investigations = [];
         const course = [];
@@ -4071,6 +4120,7 @@ ${source}`);
         newestFirst.forEach((record) => {
           const sections = patientSnapshotSections(record);
           sections.allergies.forEach((line) => pushSnapshotUnique(allergies, line, 5));
+          sections.vitals.forEach((line) => pushSnapshotUnique(vitals, line, 5));
           sections.diagnosis.forEach((line) => pushSnapshotUnique(diagnosis, line, 6));
           sections.investigations.forEach((line) => pushSnapshotUnique(investigations, line, 8));
           sections.course.forEach((line) => pushSnapshotUnique(course, line, 6));
@@ -4092,6 +4142,9 @@ ${source}`);
         return `Patient Snapshot:
 Allergies:
 ${bulletList(allergies, "No documented allergy found in available notes.")}
+
+Vitals:
+${bulletList(vitals, "No vitals documented in Vitals section.")}
 
 Diagnosis / Problem List:
 ${bulletList(diagnosis)}
