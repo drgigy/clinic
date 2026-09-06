@@ -2062,6 +2062,8 @@ Allergies:
 
 Examination Findings:
 
+Vitals:
+
 Review of Investigations:
 
 Current Medications:
@@ -2083,6 +2085,7 @@ Formatting rules:
 - Past Medical or Surgical History: line by line.
 - Allergies: line by line.
 - Examination Findings: bullet points or separate lines.
+- Vitals: use one compact line if dictated, for example "BP 120/80 mmHg; Pulse 78/min; SpO2 98%; Height 170 cm; Weight 70 kg; BMI 24.2 kg/m2". Include only dictated vitals. If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
 - Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
@@ -2498,6 +2501,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
                     <span>Past Medical or Surgical History</span>
                     <span>Allergies</span>
                     <span>Examination Findings</span>
+                    <span>Vitals</span>
                     <span>Review of Investigations</span>
                     <span>Current Medications</span>
                     <span>Diagnosis</span>
@@ -2735,11 +2739,12 @@ The purpose / rest period / fitness details will appear here when dictated.`
         return hasReviewNote ? lines.join("\n") : ["Review Note:", ...lines].join("\n");
       }
       function addOnSectionName(line) {
-        const match = String(line || "").trim().match(/^(review note|allergies|review of investigations|prescription|advice\s*\/\s*instructions)\s*:?\s*$/i);
+        const match = String(line || "").trim().match(/^(review note|allergies|vitals|review of investigations|prescription|advice\s*\/\s*instructions)\s*:?\s*$/i);
         if (!match) return "";
         return {
           "review note": "Review Note",
           allergies: "Allergies",
+          vitals: "Vitals",
           "review of investigations": "Review of Investigations",
           prescription: "Prescription",
           "advice / instructions": "Advice / Instructions"
@@ -2787,7 +2792,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
         return matches.map((match) => instruction ? `${match.text}\n${instruction}` : match.text);
       }
       function autoStructureAddOnReviewText(text) {
-        const orderedSections = ["Review Note", "Allergies", "Review of Investigations", "Prescription", "Advice / Instructions"];
+        const orderedSections = ["Review Note", "Allergies", "Vitals", "Review of Investigations", "Prescription", "Advice / Instructions"];
         const sections = Object.fromEntries(orderedSections.map((section) => [section, []]));
         let current = "Review Note";
         formatAddOnReviewText(text).split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line) => {
@@ -2839,6 +2844,7 @@ Use only these headings, in this order, and omit headings with no content:
 
 Review Note:
 Allergies:
+Vitals:
 Review of Investigations:
 Prescription:
 Advice / Instructions:
@@ -2847,6 +2853,8 @@ Rules:
 - Preserve every dictated clinical detail. Do not add, infer, assume, or delete clinical information.
 - Keep plain review narrative under Review Note.
 - Move allergy/allergen information under Allergies.
+- Move BP, blood pressure, pulse, heart rate, SpO2, oxygen saturation, height, weight, and BMI under Vitals.
+- Under Vitals, use one compact line if dictated, for example "BP 120/80 mmHg; Pulse 78/min; SpO2 98%; Height 170 cm; Weight 70 kg; BMI 24.2 kg/m2". Include only dictated vitals. If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
 - Move MRI, CT, EEG, NCS, ECG, scan, imaging, blood reports, lab values, and report-review content under Review of Investigations.
 - Under Review of Investigations, number each investigation/report separately.
 - For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L.
@@ -3296,7 +3304,7 @@ ${source}`);
         }, 250);
       }
       function isVisitNoteHeadingLine(value) {
-        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|instructions|review note)\s*:$/i.test(String(value || "").trim());
+        return /^(chief complaints?|history of present illness|past medical or surgical history|allergies|examination findings?|vitals|review of investigations|current medications?|diagnosis|prescription|advice(?:\s*\/\s*instructions)?|instructions|review note)\s*:$/i.test(String(value || "").trim());
       }
       function boldVisitNoteHeadingsHtml(value) {
         const source = String(value || "");
@@ -3666,7 +3674,7 @@ ${source}`);
           ["Pulse rate", /\b(?:pulse|pulse rate|pr|heart rate|hr)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*(?:\/min|bpm|beats\/min|per minute))?/ig, "bpm", 1],
           ["Oxygen saturation", /\b(?:spo2|sp[ .-]?o2|oxygen saturation|saturation)\b\s*[:=\-]?\s*(\d{2,3})(?:\s*%|\s*percent)?/ig, "%", 1],
           ["Weight", /\b(?:weight|wt)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(kg|kgs|kilogram|kilograms))?/ig, "kg", 1],
-          ["Height", /\b(?:height|ht)\b\s*[:=\-]?\s*(\d{2,3}(?:\.\d+)?)(?:\s*(cm|cms|centimeter|centimeters))?/ig, "cm", 1],
+          ["Height", /\b(?:height|ht)\b\s*[:=\-]?\s*(\d{1,3}(?:\.\d+)?)(?:\s*(cm|cms|centimeter|centimeters|m|meter|meters|metre|metres))?/ig, "cm", 1],
           ["BMI", /\b(?:bmi|body mass index)\b\s*[:=\-]?\s*(\d{1,2}(?:\.\d+)?)(?:\s*(kg\/?m2|kg\/?m²))?/ig, "kg/m2", 1]
         ];
       }
@@ -3682,11 +3690,20 @@ ${source}`);
               smartChartVitalPatterns().forEach(([label, pattern, defaultUnit, groupIndex]) => {
                 pattern.lastIndex = 0;
                 [...piece.matchAll(pattern)].forEach((match) => {
-                  const value = Number(match[groupIndex]);
+                  let value = Number(match[groupIndex]);
                   if (!Number.isFinite(value)) return;
                   if (label === "Oxygen saturation" && value > 100) return;
                   if ((label === "Height" || label === "Weight") && value <= 0) return;
-                  const unit = match[3] || defaultUnit;
+                  let unit = ((label === "BP systolic" || label === "BP diastolic") ? match[3] : match[2]) || defaultUnit;
+                  if (label === "Height" && /^m(?:eter|etre|eters|etres)?$/i.test(unit)) {
+                    value = Number((value * 100).toFixed(1));
+                    unit = "cm";
+                  }
+                  if (label === "Height") unit = "cm";
+                  if (label === "Weight") unit = "kg";
+                  if (label === "Oxygen saturation") unit = "%";
+                  if (label === "Pulse rate") unit = "bpm";
+                  if (label === "BMI") unit = "kg/m2";
                   const key = `${dateInfo.sortDate}__${label.toLowerCase()}__${value}__${unit.toLowerCase()}`;
                   if (seen.has(key)) return;
                   seen.add(key);
@@ -3700,6 +3717,34 @@ ${source}`);
                 });
               });
             });
+          });
+        });
+        const vitalsByDate = new Map();
+        rows.forEach((row) => {
+          const dayKey = String(row.date || "").slice(0, 10);
+          const bucket = vitalsByDate.get(dayKey) || { label: row.label, date: row.date };
+          if (row.test === "Height") bucket.height = row;
+          if (row.test === "Weight") bucket.weight = row;
+          if (row.test === "BMI") bucket.bmi = row;
+          vitalsByDate.set(dayKey, bucket);
+        });
+        vitalsByDate.forEach((bucket, dayKey) => {
+          if (bucket.bmi || !bucket.height || !bucket.weight) return;
+          const heightCm = Number(bucket.height.value);
+          const weightKg = Number(bucket.weight.value);
+          if (!Number.isFinite(heightCm) || !Number.isFinite(weightKg) || heightCm <= 0 || weightKg <= 0) return;
+          const heightM = heightCm / 100;
+          const bmi = Number((weightKg / (heightM * heightM)).toFixed(1));
+          if (!Number.isFinite(bmi)) return;
+          const key = `${dayKey}__bmi__${bmi}__kg/m2`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          rows.push({
+            date: bucket.date,
+            label: bucket.label,
+            test: "BMI",
+            value: bmi,
+            unit: "kg/m2"
           });
         });
         return rows.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -6509,7 +6554,7 @@ ${bulletList(advice)}`;
       : ["Reply Letter", "Referral Letter", "Reply", "Letter"];
     var stopHeadings = [
       "Chief Complaints", "History of Present Illness", "History of Present Illness:",
-      "Past Medical", "Allergies", "Examination", "Review of Investigations",
+      "Past Medical", "Allergies", "Examination", "Vitals", "Review of Investigations",
       "Current Medications", "Diagnosis", "Orders", "Prescription", "Advice", "Advice / Instructions",
       "Medical Certificate", "Certificate", "Reply Letter", "Referral Letter", "Reply"
     ];
