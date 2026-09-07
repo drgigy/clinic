@@ -44,7 +44,7 @@
       .login-error { min-height: 20px; color: var(--danger-ink); font-size: 13px; font-weight: 750; }
       .login-status { min-height: 20px; color: var(--muted); font-size: 13px; }
       .signed-in-user { overflow-wrap: anywhere; }
-      #recordSummaryBtn, .smart-chart-button, #recordAddOnBtn { background: #dc2626 !important; color: #fff !important; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22) !important; }
+      #recordSummaryBtn, #recordSmartLabBtn, .smart-chart-button, #recordAddOnBtn { background: #dc2626 !important; color: #fff !important; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22) !important; }
       .app { min-height: 100vh; display: block; }
       .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(180px, auto) minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
       .nav-left { display: flex; align-items: end; gap: 8px; min-width: 0; }
@@ -1048,6 +1048,7 @@
           <button class="secondary" type="button" id="recordCertificateBtn">Certificate</button>
           <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
           <button class="secondary smart-chart-button" type="button" id="recordSummaryBtn" style="background:#dc2626;color:#fff;box-shadow:inset 0 0 0 2px #991b1b,0 1px 4px rgba(153,27,27,.22);">Smart Chart</button>
+          <button class="secondary" type="button" id="recordSmartLabBtn">Smart Lab</button>
           <button class="secondary" type="button" id="recordDiagnosisBtn">Diagnosis</button>
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
@@ -3176,7 +3177,7 @@ ${source}`);
       }
       function medicalPrintFooter() {
         const isDocumentPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && ["prescription", "certificate", "reply"].includes(activeAmbientMode);
-        if (activeRecordView === "smart") return "";
+        if (["smart", "smartlab"].includes(activeRecordView)) return "";
         return isDocumentPrint ? medicalPrintSignature(activeAmbientMode === "prescription" ? "prescription-signature" : "") : medicalPrintDisclaimer();
       }
       function deleteMedicalEntry(recordId) {
@@ -3783,6 +3784,12 @@ ${source}`);
           ["HbA1c", /\b(?:hba1c|a1c)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(%))?/ig],
           ["FBS", /\b(?:fbs|fasting blood sugar|fasting glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
           ["PPBS", /\b(?:ppbs|post prandial blood sugar|postprandial glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
+          ["Prolactin", /\b(?:serum\s+)?prolactin\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml|µg\/?l|ug\/?l))?/ig],
+          ["Vitamin B12", /\b(?:vitamin\s*)?b12\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(pg\/?ml))?/ig],
+          ["Vitamin B9", /\b(?:vitamin\s*)?b9\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml))?/ig],
+          ["Serum iron", /\bserum\s+iron\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(µg\/?dl|ug\/?dl|mcg\/?dl))?/ig],
+          ["FSH", /\b(?:fsh|follicle stimulating hormone)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?ml|iu\/?l))?/ig],
+          ["Testosterone", /\b(?:serum\s+)?testosterone\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?dl|nmol\/?l))?/ig],
           ["ALT", /\b(?:alt|sgpt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig],
           ["AST", /\b(?:ast|sgot)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig]
         ];
@@ -4028,7 +4035,6 @@ ${source}`);
       function smartChartHtml(patient, records) {
         const snapshotText = patientSnapshotBodyText(patientSnapshotText(patient, records));
         const vitalRows = smartChartVitalRows(records);
-        const bloodSeries = smartChartBloodSeries(records);
         return `
           <div class="smart-chart-view">
             <div class="smart-chart-header">
@@ -4056,13 +4062,51 @@ ${source}`);
                 ${smartChartVitalMatrixHtml(vitalRows)}
               </section>
             ` : ""}
+            <div class="smart-disclaimer">Reference only. Verify with original reports and recorded vitals.</div>
+          </div>
+        `;
+      }
+      function smartLabHtml(patient, records) {
+        const bloodSeries = smartChartBloodSeries(records);
+        const investigationRows = smartChartInvestigationRows(records);
+        return `
+          <div class="smart-chart-view">
+            <div class="smart-chart-header">
+              <div>
+                <div class="smart-chart-title-row">
+                  <h1>${escapeHtml(patient.name || "Patient")}</h1>
+                  <span class="smart-chart-title-label">Smart Lab</span>
+                </div>
+                <div class="smart-patient-meta">
+                  <span>ID: ${escapeHtml(patientDisplayId(patient))}</span>
+                  <span>Age/Sex: ${escapeHtml(patient.age || "-")} / ${escapeHtml(patient.sex || "-")}</span>
+                  <span>Mobile: ${escapeHtml(patient.mobile || "-")}</span>
+                </div>
+              </div>
+              <div class="smart-chart-actions">
+                <button class="primary" type="button" data-print-smart-chart="true">Print / Save PDF</button>
+              </div>
+            </div>
             ${bloodSeries.length ? `
               <section class="smart-chart-section">
                 <h3>Lab Values Across Visits</h3>
                 <div class="smart-chart-graphs">${bloodSeries.map(bloodChartHtml).join("")}</div>
               </section>
+            ` : `<div class="smart-empty">No measurable lab values found in saved investigation/lab sections.</div>`}
+            ${investigationRows.length ? `
+              <section class="smart-chart-section">
+                <h3>Investigation Reports</h3>
+                <div class="smart-result-list">${investigationRows.map((row) => `
+                  <div class="smart-result-row">
+                    <span class="smart-result-date">${escapeHtml(row.label || "-")}</span>
+                    <span class="smart-result-test">${escapeHtml(row.test || "Investigation")}</span>
+                    <span class="smart-result-text">${escapeHtml(row.text || "")}</span>
+                    <button class="smart-delete-btn" type="button" data-smart-delete-row="true">Delete</button>
+                  </div>
+                `).join("")}</div>
+              </section>
             ` : ""}
-            <div class="smart-disclaimer">Reference only. Verify with original reports and recorded vitals.</div>
+            <div class="smart-disclaimer">Reference only. Verify with original reports.</div>
           </div>
         `;
       }
@@ -4309,6 +4353,32 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#recordVisitDate").textContent = "Smart Chart";
         $("#medicalNoteText").setAttribute("contenteditable", "false");
         $("#medicalNoteText").innerHTML = smartChartHtml(patient, records);
+        $("#recordDeleteBtn").hidden = true;
+        $("#recordDeleteBtn").title = "Delete note";
+        $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
+        $("#recordStatus").textContent = "";
+        renderPreviousRecords();
+      }
+      function showSmartLab() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        persistCurrentRecordTab();
+        clearActiveAddOn(true);
+        const records = treatmentSummarySourceRecords(patient);
+        if (!records.length) {
+          alert("No saved visit notes found for Smart Lab.");
+          return;
+        }
+        activeRecordView = "smartlab";
+        activeRecordId = "";
+        activeRecordDate = "";
+        activeRecordCreatedAt = "";
+        activeRecordSource = "typed";
+        activeRecordDocs = {};
+        activeRecordDirty = false;
+        $("#recordVisitDate").textContent = "Smart Lab";
+        $("#medicalNoteText").setAttribute("contenteditable", "false");
+        $("#medicalNoteText").innerHTML = smartLabHtml(patient, records);
         $("#recordDeleteBtn").hidden = true;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
@@ -4830,7 +4900,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         const rawHtml = ["single", "draft"].includes(activeRecordView)
           ? (activeRecordDocs.visit || "No notes entered.")
           : ($("#medicalNoteText").innerHTML || "No notes entered.");
-        if (["smart", "snapshot"].includes(activeRecordView)) {
+        if (["smart", "smartlab", "snapshot"].includes(activeRecordView)) {
           const container = document.createElement("div");
           container.innerHTML = rawHtml;
           container.querySelectorAll(".smart-chart-actions, .smart-delete-btn").forEach((node) => node.remove());
@@ -5094,16 +5164,16 @@ ${bulletList(advice, "No clear saved information.")}`;
         }
         if (["single", "draft"].includes(activeRecordView)) persistCurrentRecordTab();
         const isPrescriptionPrint = activeRecordView !== "all" && activeRecordSource === "ambient" && activeAmbientMode === "prescription";
-        const metaText = ["smart", "snapshot"].includes(activeRecordView)
+        const metaText = ["smart", "smartlab", "snapshot"].includes(activeRecordView)
           ? ""
           : activeRecordView === "all"
             ? `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | All entries`
             : `ID: ${patientDisplayId(patient)} | Mobile: ${patient.mobile || "-"} | ${activeRecordSource === "ambient" ? ambientModeLabel(activeAmbientMode) : "Note"}: ${dateTimeLabel(activeRecordCreatedAt)}`;
         const printContent = $("#medicalPrintContent");
-        printContent.classList.toggle("smart-print-content", ["smart", "snapshot"].includes(activeRecordView));
+        printContent.classList.toggle("smart-print-content", ["smart", "smartlab", "snapshot"].includes(activeRecordView));
         printContent.innerHTML = isPrescriptionPrint
           ? activeMedicalPrintBody()
-          : ["smart", "snapshot"].includes(activeRecordView)
+          : ["smart", "smartlab", "snapshot"].includes(activeRecordView)
             ? activeMedicalPrintBody()
           : `
             <h1>${patient.name}</h1>
@@ -5112,7 +5182,7 @@ ${bulletList(advice, "No clear saved information.")}`;
             ${medicalPrintFooter()}
           `;
         document.body.classList.toggle("print-prescription", isPrescriptionPrint);
-        document.body.classList.toggle("print-smart-chart", ["smart", "snapshot"].includes(activeRecordView));
+        document.body.classList.toggle("print-smart-chart", ["smart", "smartlab", "snapshot"].includes(activeRecordView));
         document.body.classList.add("print-medical");
         window.print();
       }
@@ -6515,6 +6585,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
         if (button.id === "recordSummaryBtn") showSmartChart();
+        if (button.id === "recordSmartLabBtn") showSmartLab();
         if (button.id === "recordDiagnosisBtn") openRecordDiagnosisModal();
         if (button.id === "closeRecordDiagnosisBtn") closeRecordDiagnosisModal();
         if (button.id === "saveRecordDiagnosisBtn") {
