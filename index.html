@@ -3696,6 +3696,8 @@ ${source}`);
           smartChartLines(record).forEach((line) => {
             const cleaned = cleanSummaryLine(line);
             if (!cleaned) return;
+            const bloodInlineMatch = cleaned.match(/^(blood reports?|blood tests?|labs?|laboratory results?)\s*:?\s*(.*)$/i);
+            const investigationInlineMatch = cleaned.match(/^(investigations?|review of investigations)\s*:?\s*(.*)$/i);
             if (isSmartChartBloodHeading(cleaned)) {
               section = "blood";
               return;
@@ -3709,9 +3711,21 @@ ${source}`);
               currentBloodDate = null;
               return;
             }
+            let parseLine = cleaned;
+            let canParseLine = section === "blood" || section === "investigations";
+            if (bloodInlineMatch) {
+              section = "blood";
+              parseLine = bloodInlineMatch[2] || "";
+              canParseLine = Boolean(parseLine.trim());
+            } else if (investigationInlineMatch) {
+              section = "investigations";
+              parseLine = investigationInlineMatch[2] || "";
+              canParseLine = Boolean(parseLine.trim());
+            }
+            if (!canParseLine) return;
             const lineDate = smartChartParsedDate(cleaned);
             if (lineDate && /\b(blood reports?|blood tests?|labs?|laboratory|cbc|rft|lft|tft)\b/i.test(cleaned)) currentBloodDate = lineDate;
-            smartChartSentencePieces(cleaned).forEach((piece) => {
+            smartChartSentencePieces(parseLine).forEach((piece) => {
               const stripHeading = piece.replace(/^(blood reports?|blood tests?|labs?|laboratory results?|investigations?|review of investigations)\s*:?\s*/i, "").trim();
               if (!stripHeading) return;
               bloodTestPatterns().forEach(([label, pattern]) => {
