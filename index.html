@@ -3719,6 +3719,8 @@ ${source}`);
                 [...stripHeading.matchAll(pattern)].forEach((match) => {
                   const value = Number(match[1]);
                   if (!Number.isFinite(value)) return;
+                  const followingText = stripHeading.slice((match.index || 0) + match[0].length);
+                  if (/^\s*(?:day|days|week|weeks|month|months|year|years)\b/i.test(followingText)) return;
                   const unit = match[2] || "";
                   const dateInfo = smartChartParsedDate(stripHeading) || currentBloodDate || smartChartResultDate(record, stripHeading);
                   const key = `${dateInfo.sortDate}__${label.toLowerCase()}__${value}__${unit.toLowerCase()}`;
@@ -3784,12 +3786,12 @@ ${source}`);
           ["HbA1c", /\b(?:hba1c|a1c)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(%))?/ig],
           ["FBS", /\b(?:fbs|fasting blood sugar|fasting glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
           ["PPBS", /\b(?:ppbs|post prandial blood sugar|postprandial glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
-          ["Prolactin", /\b(?:serum\s+)?prolactin\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml|µg\/?l|ug\/?l))?/ig],
-          ["Vitamin B12", /\b(?:vitamin\s*)?b12\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(pg\/?ml))?/ig],
-          ["Vitamin B9", /\b(?:vitamin\s*)?b9\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml))?/ig],
-          ["Serum iron", /\bserum\s+iron\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(µg\/?dl|ug\/?dl|mcg\/?dl))?/ig],
-          ["FSH", /\b(?:fsh|follicle stimulating hormone)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?ml|iu\/?l))?/ig],
-          ["Testosterone", /\b(?:serum\s+)?testosterone\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?dl|nmol\/?l))?/ig],
+          ["Prolactin", /\b(?:serum\s+)?prolactin\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml|µg\/?l|ug\/?l))?/ig],
+          ["Vitamin B12", /\b(?:vitamin\s*)?b12\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(pg\/?ml))?/ig],
+          ["Vitamin B9", /\b(?:vitamin\s*)?b9\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml))?/ig],
+          ["Serum iron", /\bserum\s+iron\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(µg\/?dl|ug\/?dl|mcg\/?dl))?/ig],
+          ["FSH", /\b(?:fsh|follicle stimulating hormone)\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?ml|iu\/?l))?/ig],
+          ["Testosterone", /\b(?:serum\s+)?testosterone\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?dl|nmol\/?l))?/ig],
           ["ALT", /\b(?:alt|sgpt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig],
           ["AST", /\b(?:ast|sgot)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig]
         ];
