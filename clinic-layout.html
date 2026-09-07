@@ -1941,7 +1941,7 @@ Do not create a full visit note. Do not include patient demographics.
 		- put each investigation/report as a separate numbered item
 		- under each imaging/report item, place each finding on a separate line
 		- for blood reports, include each value on a separate line with appropriate standard units when units are absent
-		- for common blood values, add conventional units when not dictated, such as Hemoglobin g/dL, platelet count /cmm or lakh/cmm as dictated, WBC /cmm, ESR mm/hr, RBS/FBS/PPBS mg/dL, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, HbA1c %
+		- for common blood values, add conventional units when not dictated, such as Hemoglobin g/dL, platelet count /cmm or lakh/cmm as dictated, WBC /cmm, ESR mm/hr, RBS/FBS/PPBS mg/dL, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, HbA1c %, prolactin ng/mL, vitamin B12 pg/mL, serum iron µg/dL, FSH mIU/mL, testosterone ng/dL
 		- if investigations are advised or ordered, put each investigation as a separate numbered item under Advice / Instructions; do not keep multiple investigations in one paragraph
 	
 	If medicines are newly advised, changed, explicitly continued, or prescribed during the add-on review, use this heading:
@@ -2100,7 +2100,7 @@ Formatting rules:
 - Allergies: line by line.
 - Examination Findings: bullet points or separate lines.
 - Vitals: always keep one compact line with these fields: "BP: ; Pulse rate: ; Oxygen saturation: ; Height: ; Weight: ; BMI:". Fill only dictated values, for example "BP: 120/80 mmHg; Pulse rate: 78/min; Oxygen saturation: 98%; Height: 170 cm; Weight: 70 kg; BMI: 24.2 kg/m2". If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
-- Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units.
+- Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units. If a common lab value is dictated without a unit, add its conventional unit.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
 - Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
@@ -2946,7 +2946,7 @@ Rules:
 - Under Vitals, always keep one compact line with these fields: "BP: ; Pulse rate: ; Oxygen saturation: ; Height: ; Weight: ; BMI:". Fill only dictated values, for example "BP: 120/80 mmHg; Pulse rate: 78/min; Oxygen saturation: 98%; Height: 170 cm; Weight: 70 kg; BMI: 24.2 kg/m2". If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
 - Move MRI, CT, EEG, NCS, ECG, scan, imaging, blood reports, lab values, and report-review content under Review of Investigations.
 - Under Review of Investigations, number each investigation/report separately.
-- For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L.
+- For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, prolactin ng/mL, vitamin B12 pg/mL, serum iron µg/dL, FSH mIU/mL, testosterone ng/dL.
 - Move newly advised, changed, explicitly continued, or prescribed medicines under Prescription.
 - Under Prescription, use a numbered list with one medicine per number.
 - Always write tablet medicines as "Tablet", not "Tab".
@@ -3728,14 +3728,17 @@ ${source}`);
             smartChartSentencePieces(parseLine).forEach((piece) => {
               const stripHeading = piece.replace(/^(blood reports?|blood tests?|labs?|laboratory results?|investigations?|review of investigations)\s*:?\s*/i, "").trim();
               if (!stripHeading) return;
-              bloodTestPatterns().forEach(([label, pattern]) => {
+              bloodTestPatterns().forEach(([label, pattern, defaultUnit = ""]) => {
                 pattern.lastIndex = 0;
                 [...stripHeading.matchAll(pattern)].forEach((match) => {
-                  const value = Number(match[1]);
-                  if (!Number.isFinite(value)) return;
+                  const rawValue = String(match[1] || "");
                   const followingText = stripHeading.slice((match.index || 0) + match[0].length);
+                  if (/^\s*[\/.-]\s*\d{1,2}\s*[\/.-]\s*\d{2,4}\b/.test(followingText)) return;
+                  if (/^0\d+$/.test(rawValue)) return;
+                  const value = Number(rawValue);
+                  if (!Number.isFinite(value)) return;
                   if (/^\s*(?:day|days|week|weeks|month|months|year|years)\b/i.test(followingText)) return;
-                  const unit = match[2] || "";
+                  const unit = match[2] || defaultUnit || "";
                   const dateInfo = smartChartParsedDate(stripHeading) || currentBloodDate || smartChartResultDate(record, stripHeading);
                   const key = `${dateInfo.sortDate}__${label.toLowerCase()}__${value}__${unit.toLowerCase()}`;
                   if (seen.has(key)) return;
@@ -3787,27 +3790,27 @@ ${source}`);
       }
       function bloodTestPatterns() {
         return [
-          ["Hemoglobin", /\b(?:hb|hgb|haemoglobin|hemoglobin)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(g\/?dl|gm%|g%))?/ig],
-          ["WBC", /\b(?:wbc|white blood cells?|tc|total count)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(?:\/?cumm|cells\/?mm3|x?\s*10\^?3)?)?/ig],
-          ["Platelets", /\b(?:platelets?|plt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(lakhs?|lakh|k|x?\s*10\^?3)?)?/ig],
-          ["Creatinine", /\bcreatinine\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
-          ["Urea", /\burea\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
-          ["Sodium", /\b(?:sodium|na\+?)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mmol\/?l|meq\/?l))?/ig],
-          ["Potassium", /\b(?:potassium|k\+?)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mmol\/?l|meq\/?l))?/ig],
-          ["ESR", /\besr\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mm\/?hr))?/ig],
-          ["CRP", /\bcrp\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?l|mg\/?dl))?/ig],
-          ["TSH", /\btsh\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?l|uiu\/?ml))?/ig],
-          ["HbA1c", /\b(?:hba1c|a1c)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(%))?/ig],
-          ["FBS", /\b(?:fbs|fasting blood sugar|fasting glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
-          ["PPBS", /\b(?:ppbs|post prandial blood sugar|postprandial glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig],
-          ["Prolactin", /\b(?:serum\s+)?prolactin\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml|µg\/?l|ug\/?l))?/ig],
-          ["Vitamin B12", /\b(?:vitamin\s*)?b12\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(pg\/?ml))?/ig],
-          ["Vitamin B9", /\b(?:vitamin\s*)?b9\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml))?/ig],
-          ["Serum iron", /\bserum\s+iron\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(µg\/?dl|ug\/?dl|mcg\/?dl))?/ig],
-          ["FSH", /\b(?:fsh|follicle stimulating hormone)\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?ml|iu\/?l))?/ig],
-          ["Testosterone", /\b(?:serum\s+)?testosterone\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?dl|nmol\/?l))?/ig],
-          ["ALT", /\b(?:alt|sgpt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig],
-          ["AST", /\b(?:ast|sgot)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig]
+          ["Hemoglobin", /\b(?:hb|hgb|haemoglobin|hemoglobin)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(g\/?dl|gm%|g%))?/ig, "g/dL"],
+          ["WBC", /\b(?:wbc|white blood cells?|tc|total count)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(?:\/?cumm|cells\/?mm3|x?\s*10\^?3)?)?/ig, "/cmm"],
+          ["Platelets", /\b(?:platelets?|plt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(lakhs?|lakh|k|x?\s*10\^?3)?)?/ig, "lakh/cmm"],
+          ["Creatinine", /\bcreatinine\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig, "mg/dL"],
+          ["Urea", /\burea\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig, "mg/dL"],
+          ["Sodium", /\b(?:sodium|na\+?)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mmol\/?l|meq\/?l))?/ig, "mmol/L"],
+          ["Potassium", /\b(?:potassium|k\+?)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mmol\/?l|meq\/?l))?/ig, "mmol/L"],
+          ["ESR", /\besr\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mm\/?hr))?/ig, "mm/hr"],
+          ["CRP", /\bcrp\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?l|mg\/?dl))?/ig, "mg/L"],
+          ["TSH", /\btsh\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?l|uiu\/?ml))?/ig, "mIU/L"],
+          ["HbA1c", /\b(?:hba1c|a1c)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(%))?/ig, "%"],
+          ["FBS", /\b(?:fbs|fasting blood sugar|fasting glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig, "mg/dL"],
+          ["PPBS", /\b(?:ppbs|post prandial blood sugar|postprandial glucose)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(mg\/?dl))?/ig, "mg/dL"],
+          ["Prolactin", /\b(?:serum\s+)?prolactin\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml|µg\/?l|ug\/?l))?/ig, "ng/mL"],
+          ["Vitamin B12", /\b(?:vitamin\s*)?b12\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(pg\/?ml))?/ig, "pg/mL"],
+          ["Vitamin B9", /\b(?:vitamin\s*)?b9\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?ml))?/ig, "ng/mL"],
+          ["Serum iron", /\bserum\s+iron\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(µg\/?dl|ug\/?dl|mcg\/?dl))?/ig, "µg/dL"],
+          ["FSH", /\b(?:fsh|follicle stimulating hormone)\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(miu\/?ml|iu\/?l))?/ig, "mIU/mL"],
+          ["Testosterone", /\b(?:serum\s+)?testosterone\b\s*(?::|=|-|is|was|value\s*(?:is|was)?|level\s*(?:is|was)?)\s*(\d+(?:\.\d+)?)(?:\s*(ng\/?dl|nmol\/?l))?/ig, "ng/dL"],
+          ["ALT", /\b(?:alt|sgpt)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig, "U/L"],
+          ["AST", /\b(?:ast|sgot)\b\s*[:=\-]?\s*(\d+(?:\.\d+)?)(?:\s*(u\/?l|iu\/?l))?/ig, "U/L"]
         ];
       }
       function smartChartVitalPatterns() {
