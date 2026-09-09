@@ -100,6 +100,12 @@
       .stat { padding: 14px; }
       .stat span, .report-item span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
       .stat strong { font-size: 25px; }
+      .doctor-toolbar { display: grid; grid-template-columns: 170px minmax(220px, 1fr) 98px repeat(5, minmax(125px, 1fr)); gap: 8px; align-items: center; margin-bottom: 12px; }
+      .doctor-toolbar[hidden] { display: none; }
+      .doctor-toolbar .primary, .doctor-toolbar .secondary { min-height: 44px; font-size: 15px; font-weight: 900; }
+      .doctor-toolbar input { min-height: 44px; font-size: 15px; font-weight: 800; }
+      .doctor-stat { min-height: 44px; padding: 8px 12px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 900; white-space: nowrap; }
+      .doctor-stat strong { color: var(--ink); font-size: 24px; line-height: 1; }
       .content-grid { display: grid; grid-template-columns: minmax(520px, 1.1fr) minmax(420px, .9fr); gap: 18px; align-items: start; }
       .section { padding: 16px; }
       .section.doctor-after-section { padding-top: 10px; }
@@ -127,6 +133,7 @@
       .doctor-search-result strong { font-size: 16px; }
       .doctor-search-result span { color: var(--muted); font-size: 13px; font-weight: 700; }
       .doctor-search-result:hover { border-color: var(--green); background: #eefaf4; }
+      .doctor-search-panel.toolbar-results { margin-top: -2px; padding: 0; border: 0; background: transparent; }
       .patient { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; }
       .patient.simple { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
       .patient b { display: block; margin-bottom: 4px; }
@@ -634,6 +641,17 @@
       <main>
         <p class="date" id="todayLabel" hidden></p>
 
+        <section class="doctor-toolbar" id="doctorToolbar" aria-label="Doctor patient toolbar">
+          <button class="primary" id="doctorAddPatientBtn" type="button">Add Patient</button>
+          <input id="doctorPatientSearch" type="search" autocomplete="off" placeholder="Search name, mobile, ID" />
+          <button class="secondary" id="doctorSearchBtn" type="button">Search</button>
+          <div class="doctor-stat"><span>Total patients</span><strong id="doctorStatTotal">0</strong></div>
+          <div class="doctor-stat"><span>In clinic</span><strong id="doctorStatClinic">0</strong></div>
+          <div class="doctor-stat"><span>Teleconsultation</span><strong id="doctorStatTele">0</strong></div>
+          <div class="doctor-stat"><span>Waiting</span><strong id="doctorStatWaiting">0</strong></div>
+          <div class="doctor-stat"><span>Consulted</span><strong id="doctorStatConsulted">0</strong></div>
+        </section>
+
         <section class="stats" id="statsPanel" aria-label="Daily summary">
           <div class="stat"><span>Total patients</span><strong id="statTotal">0</strong></div>
           <div class="stat"><span>In clinic</span><strong id="statClinic">0</strong></div>
@@ -756,12 +774,7 @@
 
           <section class="section wide" id="after">
             <div class="section-head" id="afterSectionHead"><h2>After Consultation</h2><div class="filters"><button class="chip active" type="button" id="afterDateLabel"></button></div></div>
-            <div class="doctor-search-panel" id="doctorSearchPanel" hidden>
-              <label for="doctorPatientSearch">Search previous patient</label>
-              <div class="doctor-search-row">
-                <input id="doctorPatientSearch" type="search" autocomplete="off" placeholder="Name, mobile number, or UHID" />
-                <button class="secondary" id="clearDoctorSearch" type="button">Clear</button>
-              </div>
+            <div class="doctor-search-panel toolbar-results" id="doctorSearchPanel" hidden>
               <div class="doctor-search-results" id="doctorPatientSearchResults"></div>
             </div>
             <div class="patient-list" id="afterList"></div>
@@ -5039,7 +5052,8 @@ ${bulletList(advice, "No clear saved information.")}`;
         $$("[data-main-tab]").forEach((button) => button.classList.toggle("active", button.dataset.mainTab === tab));
         const showClinical = tab === "doctor" || tab === "staff";
         const visibility = {
-          statsPanel: showClinical,
+          doctorToolbar: tab === "doctor",
+          statsPanel: tab === "staff",
           after: showClinical,
           report: tab === "finance",
           accounts: tab === "finance",
@@ -5612,6 +5626,18 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#statMissed").textContent = Math.max(0, summary.total - summary.came);
         $("#statMarked").textContent = summary.markedAfterVisit;
         $("#statDailyTotal").textContent = money(summary.grandTotal);
+        const waiting = Math.max(0, summary.total - summary.came);
+        const doctorStats = {
+          doctorStatTotal: summary.total,
+          doctorStatClinic: summary.clinic,
+          doctorStatTele: summary.tele,
+          doctorStatWaiting: waiting,
+          doctorStatConsulted: summary.came
+        };
+        Object.entries(doctorStats).forEach(([id, value]) => {
+          const element = document.getElementById(id);
+          if (element) element.textContent = value;
+        });
       }
       function renderReport() {
         const summary = totals(selectedMonthPatients());
@@ -6446,6 +6472,15 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (!button) return;
         if (button.matches("a[id^='send']") && button.getAttribute("href") === "#") { event.preventDefault(); alert("Enter doctor WhatsApp number with country code."); return; }
         if (button.id === "homeMenuBtn") { toggleHomeMenu(); return; }
+        if (button.id === "doctorAddPatientBtn") {
+          openAddPatient();
+          return;
+        }
+        if (button.id === "doctorSearchBtn") {
+          $("#doctorPatientSearch")?.focus();
+          renderDoctorPatientSearch();
+          return;
+        }
         if (button.id === "clearDoctorSearch") {
           doctorSearchQuery = "";
           const doctorSearchInput = $("#doctorPatientSearch");
