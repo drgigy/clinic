@@ -656,7 +656,7 @@
           <div class="stat"><span>Total patients</span><strong id="statTotal">0</strong></div>
           <div class="stat"><span>In clinic</span><strong id="statClinic">0</strong></div>
           <div class="stat"><span>Teleconsultation</span><strong id="statTele">0</strong></div>
-          <div class="stat"><span>Missed</span><strong id="statMissed">0</strong></div>
+          <div class="stat"><span>No show</span><strong id="statMissed">0</strong></div>
           <div class="stat"><span>Marked after visit</span><strong id="statMarked">0</strong></div>
           <div class="stat" id="statDailyTotalCard"><span>Daily total</span><strong id="statDailyTotal">0</strong></div>
         </section>
@@ -872,7 +872,7 @@
               <h2>Follow-up List</h2>
               <div class="filters">
                 <button class="chip active" type="button" data-followup="needs">Needs call back</button>
-                <button class="chip" type="button" data-followup="missed">Missed</button>
+                <button class="chip" type="button" data-followup="missed">No show</button>
                 <button class="chip" type="button" data-followup="all">All patients</button>
               </div>
             </div>
@@ -5572,7 +5572,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#followupSummary").innerHTML = `
           <span class="summary-pill high">High priority: ${highNeeds}</span>
           <span class="summary-pill">Needs call back: ${needsRows.length}</span>
-          <span class="summary-pill">Missed: ${missedRows.length}</span>
+          <span class="summary-pill">No show: ${missedRows.length}</span>
           <span class="summary-pill">Total booked: ${patients.length}</span>
         `;
         $("#toggleFollowup").textContent = followupExpanded ? "Hide list" : "Show list";
@@ -5612,7 +5612,7 @@ ${bulletList(advice, "No clear saved information.")}`;
               </div>
             </article>
           `;
-        }).join("") : `<div class="empty">${followupFilter === "needs" ? "No patients currently need call back." : followupFilter === "missed" ? "No missed patients currently need follow-up." : "No booked patients yet."}</div>`;
+        }).join("") : `<div class="empty">${followupFilter === "needs" ? "No patients currently need call back." : followupFilter === "missed" ? "No patients in the no-show list." : "No booked patients yet."}</div>`;
       }
       function renderStats() {
         const summary = totals();
@@ -5643,8 +5643,9 @@ ${bulletList(advice, "No clear saved information.")}`;
         const summary = totals(selectedMonthPatients());
         const account = accountTotals();
         const profit = summary.grandTotal - account.expense;
-        const noShowRate = summary.total ? Math.round((summary.noShow / summary.total) * 100) : 0;
-        $("#reportGrid").innerHTML = [["Total booked", summary.total], ["Came", summary.came], ["Missed", summary.total - summary.came], ["No show", summary.noShow], ["Cash total", money(summary.cashTotal)], ["GPay total", money(summary.gpayTotal)], ["Card total", money(summary.cardTotal)], ["First consultation", summary.first], ["Review", summary.review], ["Monthly total", money(summary.grandTotal)], ["Expense", money(account.expense)], ["Profit", money(profit)]].map(([label, value]) => `<div class="report-item"><span>${label}</span><strong>${value}</strong></div>`).join("");
+        const noShow = Math.max(0, summary.total - summary.came);
+        const noShowRate = summary.total ? Math.round((noShow / summary.total) * 100) : 0;
+        $("#reportGrid").innerHTML = [["Total booked", summary.total], ["Came", summary.came], ["No show", noShow], ["Cash total", money(summary.cashTotal)], ["GPay total", money(summary.gpayTotal)], ["Card total", money(summary.cardTotal)], ["First consultation", summary.first], ["Review", summary.review], ["Monthly total", money(summary.grandTotal)], ["Expense", money(account.expense)], ["Profit", money(profit)]].map(([label, value]) => `<div class="report-item"><span>${label}</span><strong>${value}</strong></div>`).join("");
         const common = Object.entries(summary.diagnosis).sort((a, b) => b[1] - a[1])[0];
         $("#reportList").innerHTML = `<div class="report-row"><span>No show rate</span><strong>${noShowRate}%</strong></div><div class="report-row"><span>Most common diagnosis</span><strong>${common ? `${common[0]}: ${common[1]}` : "-"}</strong></div><div class="report-row"><span>In clinic vs teleconsultation</span><strong>${summary.clinic} / ${summary.tele}</strong></div><div class="report-row"><span>Tests ordered</span><strong>${tests.map((test) => `${test}: ${summary.tests[test]}`).join(" · ")}</strong></div><div class="report-row"><span>Consultation payment</span><strong>Cash ${money(summary.consultCash)} · GPay ${money(summary.consultGpay)} · Card ${money(summary.consultCard)} · Total ${money(summary.consultTotal)}</strong></div><div class="report-row"><span>Test payment</span><strong>Cash ${money(summary.testCash)} · GPay ${money(summary.testGpay)} · Card ${money(summary.testCard)} · Total ${money(summary.testTotal)}</strong></div><div class="report-row"><span>Total collection</span><strong>Cash ${money(summary.cashTotal)} · GPay ${money(summary.gpayTotal)} · Card ${money(summary.cardTotal)} · Total ${money(summary.grandTotal)}</strong></div>`;
       }
@@ -6256,14 +6257,16 @@ ${bulletList(advice, "No clear saved information.")}`;
       function dailyMessage() {
         const rows = selectedDayPatients();
         const summary = totals(rows);
+        const noShow = Math.max(0, summary.total - summary.came);
         if (!rows.length) return `Daily Report - ${dateLabel(selectedDate)}\n\nNo patients added.`;
-        return `Daily Report - ${dateLabel(selectedDate)}\n\n${rows.map((p, i) => `${i + 1}. ${patientLine(p)}\n${p.diagnosis} | ${p.visitType} | ${p.mode}\nAttendance: ${p.attendance || "Not marked"}\nTests: ${(p.tests || []).join(", ") || "None"}\nConsultation: ${money(p.consultAmount)} ${p.consultPayMode || ""}\nTests payment: ${money(p.testAmount)} ${p.testPayMode || ""}`).join("\n\n")}\n\nSummary\nTotal booked: ${summary.total}\nCame: ${summary.came}\nMissed: ${summary.total - summary.came}\nNo show: ${summary.noShow}\nConsultation Cash: ${money(summary.consultCash)}\nConsultation GPay: ${money(summary.consultGpay)}\nConsultation Card: ${money(summary.consultCard)}\nConsultation Total: ${money(summary.consultTotal)}\nTests Cash: ${money(summary.testCash)}\nTests GPay: ${money(summary.testGpay)}\nTests Card: ${money(summary.testCard)}\nTests Total: ${money(summary.testTotal)}\nCash Total: ${money(summary.cashTotal)}\nGPay Total: ${money(summary.gpayTotal)}\nCard Total: ${money(summary.cardTotal)}\nDaily Total: ${money(summary.grandTotal)}`;
+        return `Daily Report - ${dateLabel(selectedDate)}\n\n${rows.map((p, i) => `${i + 1}. ${patientLine(p)}\n${p.diagnosis} | ${p.visitType} | ${p.mode}\nAttendance: ${p.attendance || "Not marked"}\nTests: ${(p.tests || []).join(", ") || "None"}\nConsultation: ${money(p.consultAmount)} ${p.consultPayMode || ""}\nTests payment: ${money(p.testAmount)} ${p.testPayMode || ""}`).join("\n\n")}\n\nSummary\nTotal booked: ${summary.total}\nCame: ${summary.came}\nNo show: ${noShow}\nConsultation Cash: ${money(summary.consultCash)}\nConsultation GPay: ${money(summary.consultGpay)}\nConsultation Card: ${money(summary.consultCard)}\nConsultation Total: ${money(summary.consultTotal)}\nTests Cash: ${money(summary.testCash)}\nTests GPay: ${money(summary.testGpay)}\nTests Card: ${money(summary.testCard)}\nTests Total: ${money(summary.testTotal)}\nCash Total: ${money(summary.cashTotal)}\nGPay Total: ${money(summary.gpayTotal)}\nCard Total: ${money(summary.cardTotal)}\nDaily Total: ${money(summary.grandTotal)}`;
       }
       function monthlyMessage() {
         const rows = selectedMonthPatients();
         const summary = totals(rows);
-        const noShowRate = summary.total ? Math.round((summary.noShow / summary.total) * 100) : 0;
-        return `Monthly Report - ${monthLabel(selectedDate)}\n\nTotal booked: ${summary.total}\nCame: ${summary.came}\nMissed: ${summary.total - summary.came}\nNo show: ${summary.noShow}\nNo show rate: ${noShowRate}%\nFirst consultation: ${summary.first}\nReview: ${summary.review}\n\nTests ordered\n${tests.map((test) => `${test}: ${summary.tests[test]}`).join("\n")}\n\nPayments\nConsultation Cash: ${money(summary.consultCash)}\nConsultation GPay: ${money(summary.consultGpay)}\nConsultation Card: ${money(summary.consultCard)}\nConsultation Total: ${money(summary.consultTotal)}\nTests Cash: ${money(summary.testCash)}\nTests GPay: ${money(summary.testGpay)}\nTests Card: ${money(summary.testCard)}\nTests Total: ${money(summary.testTotal)}\nCash Total: ${money(summary.cashTotal)}\nGPay Total: ${money(summary.gpayTotal)}\nCard Total: ${money(summary.cardTotal)}\nMonthly Total: ${money(summary.grandTotal)}`;
+        const noShow = Math.max(0, summary.total - summary.came);
+        const noShowRate = summary.total ? Math.round((noShow / summary.total) * 100) : 0;
+        return `Monthly Report - ${monthLabel(selectedDate)}\n\nTotal booked: ${summary.total}\nCame: ${summary.came}\nNo show: ${noShow}\nNo show rate: ${noShowRate}%\nFirst consultation: ${summary.first}\nReview: ${summary.review}\n\nTests ordered\n${tests.map((test) => `${test}: ${summary.tests[test]}`).join("\n")}\n\nPayments\nConsultation Cash: ${money(summary.consultCash)}\nConsultation GPay: ${money(summary.consultGpay)}\nConsultation Card: ${money(summary.consultCard)}\nConsultation Total: ${money(summary.consultTotal)}\nTests Cash: ${money(summary.testCash)}\nTests GPay: ${money(summary.testGpay)}\nTests Card: ${money(summary.testCard)}\nTests Total: ${money(summary.testTotal)}\nCash Total: ${money(summary.cashTotal)}\nGPay Total: ${money(summary.gpayTotal)}\nCard Total: ${money(summary.cardTotal)}\nMonthly Total: ${money(summary.grandTotal)}`;
       }
       function whatsAppUrl(message) {
         const phone = $("#doctorPhone").value.replace(/\D/g, "");
@@ -6312,13 +6315,13 @@ ${bulletList(advice, "No clear saved information.")}`;
         const autoBankCredit = autoDoctorCredit + autoNeuroCredit + account.gpayOtherIncome + account.cardOtherIncome + account.chequeOtherIncome;
         const totalBankCredit = autoBankCredit + account.remittance;
         const cashBalance = clinic.cashTotal + account.cashOtherIncome - account.cashExpense - account.cashRemittance;
-        const noShowRate = clinic.total ? Math.round((clinic.noShow / clinic.total) * 100) : 0;
+        const noShow = Math.max(0, clinic.total - clinic.came);
+        const noShowRate = clinic.total ? Math.round((noShow / clinic.total) * 100) : 0;
         const common = Object.entries(clinic.diagnosis).sort((a, b) => b[1] - a[1])[0];
         const clinicDetailRows = [
           ["Total booked", clinic.total],
           ["Came", clinic.came],
-          ["Missed", clinic.total - clinic.came],
-          ["No show", clinic.noShow],
+          ["No show", noShow],
           ["No show rate", `${noShowRate}%`],
           ["First consultation", clinic.first],
           ["Review", clinic.review],
