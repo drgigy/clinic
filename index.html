@@ -100,12 +100,12 @@
       .stat { padding: 14px; }
       .stat span, .report-item span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
       .stat strong { font-size: 25px; }
-      .doctor-toolbar { display: grid; grid-template-columns: 170px minmax(220px, 1fr) 98px repeat(5, minmax(125px, 1fr)); gap: 8px; align-items: center; margin-bottom: 12px; }
+      .doctor-toolbar { display: grid; grid-template-columns: 150px minmax(190px, 1fr) 88px repeat(6, minmax(98px, 1fr)); gap: 7px; align-items: center; margin-bottom: 12px; }
       .doctor-toolbar[hidden] { display: none; }
-      .doctor-toolbar .primary, .doctor-toolbar .secondary { min-height: 44px; font-size: 15px; font-weight: 900; }
-      .doctor-toolbar input { min-height: 44px; font-size: 15px; font-weight: 800; }
-      .doctor-stat { min-height: 44px; padding: 8px 12px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 900; white-space: nowrap; }
-      .doctor-stat strong { color: var(--ink); font-size: 24px; line-height: 1; }
+      .doctor-toolbar .primary, .doctor-toolbar .secondary { min-height: 40px; font-size: 14px; font-weight: 900; padding: 0 10px; }
+      .doctor-toolbar input { min-height: 40px; font-size: 14px; font-weight: 800; padding: 8px 10px; }
+      .doctor-stat { min-height: 40px; padding: 6px 9px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 900; white-space: nowrap; }
+      .doctor-stat strong { color: var(--ink); font-size: 22px; line-height: 1; }
       .content-grid { display: grid; grid-template-columns: minmax(520px, 1.1fr) minmax(420px, .9fr); gap: 18px; align-items: start; }
       .section { padding: 16px; }
       .section.doctor-after-section { padding-top: 10px; }
@@ -645,10 +645,11 @@
           <button class="primary" id="doctorAddPatientBtn" type="button">Add Patient</button>
           <input id="doctorPatientSearch" type="search" autocomplete="off" placeholder="Search name, mobile, ID" />
           <button class="secondary" id="doctorSearchBtn" type="button">Search</button>
-          <div class="doctor-stat"><span>Total patients</span><strong id="doctorStatTotal">0</strong></div>
-          <div class="doctor-stat"><span>In clinic</span><strong id="doctorStatClinic">0</strong></div>
-          <div class="doctor-stat"><span>Teleconsultation</span><strong id="doctorStatTele">0</strong></div>
+          <div class="doctor-stat"><span>Total</span><strong id="doctorStatTotal">0</strong></div>
+          <div class="doctor-stat"><span>Clinic</span><strong id="doctorStatClinic">0</strong></div>
+          <div class="doctor-stat"><span>Teleconsult</span><strong id="doctorStatTele">0</strong></div>
           <div class="doctor-stat"><span>Waiting</span><strong id="doctorStatWaiting">0</strong></div>
+          <div class="doctor-stat"><span>No shows</span><strong id="doctorStatNoShow">0</strong></div>
           <div class="doctor-stat"><span>Consulted</span><strong id="doctorStatConsulted">0</strong></div>
         </section>
 
@@ -5626,12 +5627,13 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#statMissed").textContent = Math.max(0, summary.total - summary.came);
         $("#statMarked").textContent = summary.markedAfterVisit;
         $("#statDailyTotal").textContent = money(summary.grandTotal);
-        const waiting = Math.max(0, summary.total - summary.came);
+        const waiting = Math.max(0, summary.total - summary.came - summary.noShow);
         const doctorStats = {
           doctorStatTotal: summary.total,
           doctorStatClinic: summary.clinic,
           doctorStatTele: summary.tele,
           doctorStatWaiting: waiting,
+          doctorStatNoShow: summary.noShow,
           doctorStatConsulted: summary.came
         };
         Object.entries(doctorStats).forEach(([id, value]) => {
