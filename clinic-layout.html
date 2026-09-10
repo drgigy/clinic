@@ -138,6 +138,11 @@
       .doctor-search-result span { color: var(--muted); font-size: 13px; font-weight: 700; }
       .doctor-search-result:hover { border-color: var(--green); background: #eefaf4; }
       .doctor-search-panel.toolbar-results { margin-top: -2px; padding: 0; border: 0; background: transparent; }
+      .followup-month-nav { display: inline-flex; align-items: center; gap: 8px; }
+      .followup-month-nav .secondary { min-width: 42px; padding: 0 12px; font-size: 22px; }
+      .followup-month-label { min-width: 170px; justify-content: center; font-weight: 900; }
+      .followup-group { display: grid; gap: 10px; margin-bottom: 16px; }
+      .followup-group-title { margin: 2px 0 0; color: var(--muted); font-size: 15px; font-weight: 900; }
       .patient { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: #fff; }
       .patient.simple { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
       .patient b { display: block; margin-bottom: 4px; }
@@ -879,6 +884,11 @@
                 <button class="chip active" type="button" data-followup="needs">Needs call back</button>
                 <button class="chip" type="button" data-followup="missed">No show</button>
                 <button class="chip" type="button" data-followup="all">All patients</button>
+                <div class="followup-month-nav" aria-label="Follow-up month">
+                  <button class="secondary" id="prevFollowupMonthBtn" type="button" title="Previous month" aria-label="Previous month">‹</button>
+                  <button class="chip followup-month-label" id="followupMonthLabel" type="button"></button>
+                  <button class="secondary" id="nextFollowupMonthBtn" type="button" title="Next month" aria-label="Next month">›</button>
+                </div>
               </div>
             </div>
             <div class="section-head">
@@ -1691,6 +1701,19 @@
       function shiftSelectedDate(days) {
         const next = new Date(`${selectedDate || todayKey}T00:00:00`);
         next.setDate(next.getDate() + days);
+        selectedDate = localDateKey(next);
+        $("#clinicDate").value = selectedDate;
+        $("#accountDate").value = selectedDate;
+        $("#accountsReportMonth").value = selectedDate.slice(0, 7);
+        $("#accountsReportFromMonth").value = selectedDate.slice(0, 7);
+        $("#accountsReportToMonth").value = selectedDate.slice(0, 7);
+        $("#accountsReportYear").value = selectedDate.slice(0, 4);
+        save();
+        render();
+      }
+      function shiftSelectedMonth(months) {
+        const current = new Date(`${selectedDate || todayKey}T00:00:00`);
+        const next = new Date(current.getFullYear(), current.getMonth() + months, 1);
         selectedDate = localDateKey(next);
         $("#clinicDate").value = selectedDate;
         $("#accountDate").value = selectedDate;
@@ -5574,12 +5597,16 @@ ${bulletList(advice, "No clear saved information.")}`;
         const needsRows = patients.filter(needsFollowup);
         const missedRows = patients.filter(isMissed);
         const highNeeds = needsRows.filter((p) => priority(p).className === "high").length;
+        const activeMonth = selectedDate.slice(0, 7);
+        const activeMonthLabel = monthLabel(`${activeMonth}-01`);
         $("#followupSummary").innerHTML = `
           <span class="summary-pill high">High priority: ${highNeeds}</span>
           <span class="summary-pill">Needs call back: ${needsRows.length}</span>
           <span class="summary-pill">No show: ${missedRows.length}</span>
           <span class="summary-pill">Total booked: ${patients.length}</span>
         `;
+        const monthButton = $("#followupMonthLabel");
+        if (monthButton) monthButton.textContent = activeMonthLabel;
         $("#toggleFollowup").textContent = followupExpanded ? "Hide list" : "Show list";
         $("#followupList").style.display = followupExpanded ? "grid" : "none";
         if (!followupExpanded) {
@@ -5596,7 +5623,7 @@ ${bulletList(advice, "No clear saved information.")}`;
           const needsB = needsFollowup(b) ? 0 : 1;
           return needsA - needsB || priority(a).rank - priority(b).rank || b.date.localeCompare(a.date);
         });
-        $("#followupList").innerHTML = rows.length ? rows.map((p) => {
+        const rowHtml = (p) => {
           const pPriority = priority(p);
           const needsCall = needsFollowup(p);
           const callbackOpen = openCallbackId === p.id;
@@ -5617,7 +5644,26 @@ ${bulletList(advice, "No clear saved information.")}`;
               </div>
             </article>
           `;
-        }).join("") : `<div class="empty">${followupFilter === "needs" ? "No patients currently need call back." : followupFilter === "missed" ? "No patients in the no-show list." : "No booked patients yet."}</div>`;
+        };
+        const monthRows = rows.filter((p) => String(p.date || "").slice(0, 7) === activeMonth);
+        const otherRows = rows.filter((p) => String(p.date || "").slice(0, 7) !== activeMonth);
+        const emptyText = followupFilter === "needs" ? "No patients currently need call back." : followupFilter === "missed" ? "No patients in the no-show list." : "No booked patients yet.";
+        const groups = [];
+        groups.push(`
+          <div class="followup-group">
+            <h3 class="followup-group-title">${escapeHtml(activeMonthLabel)} list (${monthRows.length})</h3>
+            ${monthRows.length ? monthRows.map(rowHtml).join("") : `<div class="empty compact">No patients in this month list.</div>`}
+          </div>
+        `);
+        if (otherRows.length) {
+          groups.push(`
+            <div class="followup-group">
+              <h3 class="followup-group-title">Other months (${otherRows.length})</h3>
+              ${otherRows.map(rowHtml).join("")}
+            </div>
+          `);
+        }
+        $("#followupList").innerHTML = rows.length ? groups.join("") : `<div class="empty">${emptyText}</div>`;
       }
       function renderStats() {
         const summary = totals();
@@ -6635,6 +6681,8 @@ ${bulletList(advice, "No clear saved information.")}`;
         }
         if (button.dataset.copy) copyReport(button.dataset.copy);
         if (button.id === "toggleFollowup") { followupExpanded = !followupExpanded; renderFollowupList(); }
+        if (button.id === "prevFollowupMonthBtn") { shiftSelectedMonth(-1); return; }
+        if (button.id === "nextFollowupMonthBtn") { shiftSelectedMonth(1); return; }
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
         if (button.id === "toggleAccounts") { accountsExpanded = !accountsExpanded; renderAccounts(); }
         if (button.id === "printAccountsBtn") printAccountsReport();
