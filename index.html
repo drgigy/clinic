@@ -1443,6 +1443,7 @@
           medicalRecords = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
           renderPreviousRecords();
           renderAfterList();
+          renderStats();
         }, (error) => {
           console.error("Firebase medical records sync failed", error);
         }));
@@ -5320,6 +5321,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#recordStatus").textContent = "Saved";
         renderPatientList();
         renderAfterList();
+        renderStats();
         renderPreviousRecords();
       }
       function openMedicalRecord(patientId, recordId = "") {
