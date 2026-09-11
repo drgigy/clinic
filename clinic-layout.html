@@ -3133,7 +3133,7 @@ ${source}`);
           patientKey: recordPatientKey(patient),
           name: patient.name,
           mobile: patient.mobile || "",
-          date: localDateKey(),
+          date: patient.date || selectedDate || localDateKey(),
           note: "",
           noteHtml: "",
           docs: { visit: "" },
@@ -5295,12 +5295,15 @@ ${bulletList(advice, "No clear saved information.")}`;
         return recordPrescriptionSourceHtml(record);
       }
       function printQueueItemForRecord(record) {
-        if (!record || String(record.date || recordTimestamp(record).slice(0, 10)) !== selectedDate) return null;
+        if (!record) return null;
         const kind = record.recordKind || "visit";
         if (!printQueueDocumentKinds.includes(kind)) return null;
+        const patient = patientForMedicalRecord(record);
+        const recordDay = String(record.date || recordTimestamp(record).slice(0, 10));
+        const appointmentDay = String(patient?.date || "");
+        if (recordDay !== selectedDate && appointmentDay !== selectedDate) return null;
         const html = printQueueSourceHtml(record);
         if (!htmlToPlainText(html).trim()) return null;
-        const patient = patientForMedicalRecord(record);
         const type = kind;
         const printedAt = record.printStatus?.[type] || "";
         return {
