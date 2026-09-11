@@ -5671,15 +5671,16 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#statMissed").textContent = Math.max(0, summary.total - summary.came);
         $("#statMarked").textContent = summary.markedAfterVisit;
         $("#statDailyTotal").textContent = money(summary.grandTotal);
-        const noShow = Math.max(0, summary.total - summary.came);
-        const waiting = Math.max(0, summary.total - summary.came - noShow);
+        const consulted = selectedDayPatients().filter(hasMedicalNoteForPatientDate).length;
+        const noShow = Math.max(0, summary.total - consulted);
+        const waiting = Math.max(0, summary.total - consulted - noShow);
         const doctorStats = {
           doctorStatTotal: summary.total,
           doctorStatClinic: summary.clinic,
           doctorStatTele: summary.tele,
           doctorStatWaiting: waiting,
           doctorStatNoShow: noShow,
-          doctorStatConsulted: summary.came
+          doctorStatConsulted: consulted
         };
         Object.entries(doctorStats).forEach(([id, value]) => {
           const element = document.getElementById(id);
