@@ -5297,15 +5297,11 @@ ${bulletList(advice, "No clear saved information.")}`;
       function printQueueItemForRecord(record) {
         if (!record || String(record.date || recordTimestamp(record).slice(0, 10)) !== selectedDate) return null;
         const kind = record.recordKind || "visit";
-        if (["summary", "smart", "smartlab", "snapshot"].includes(kind)) return null;
+        if (!["prescription", "certificate", "reply"].includes(kind)) return null;
         const html = printQueueSourceHtml(record);
         if (!htmlToPlainText(html).trim()) return null;
         const patient = patientForMedicalRecord(record);
-        const type = ["prescription", "certificate", "reply"].includes(kind)
-          ? kind
-          : extractPrescriptionFromVisitHtml(html)
-            ? "prescription"
-            : "visit";
+        const type = kind;
         const printedAt = record.printStatus?.[type] || "";
         return {
           id: `${record.id}:${type}`,
