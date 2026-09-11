@@ -5618,7 +5618,9 @@ ${bulletList(advice, "No clear saved information.")}`;
           : followupFilter === "missed"
             ? missedRows
             : patients;
-        const rows = [...baseRows].sort((a, b) => {
+        const rows = [...baseRows]
+          .filter((patient) => String(patient.date || "").slice(0, 7) === activeMonth)
+          .sort((a, b) => {
           const needsA = needsFollowup(a) ? 0 : 1;
           const needsB = needsFollowup(b) ? 0 : 1;
           return needsA - needsB || priority(a).rank - priority(b).rank || b.date.localeCompare(a.date);
@@ -5645,25 +5647,17 @@ ${bulletList(advice, "No clear saved information.")}`;
             </article>
           `;
         };
-        const monthRows = rows.filter((p) => String(p.date || "").slice(0, 7) === activeMonth);
-        const otherRows = rows.filter((p) => String(p.date || "").slice(0, 7) !== activeMonth);
-        const emptyText = followupFilter === "needs" ? "No patients currently need call back." : followupFilter === "missed" ? "No patients in the no-show list." : "No booked patients yet.";
-        const groups = [];
-        groups.push(`
+        const emptyText = followupFilter === "needs"
+          ? `No patients currently need call back in ${activeMonthLabel}.`
+          : followupFilter === "missed"
+            ? `No patients in the no-show list for ${activeMonthLabel}.`
+            : `No booked patients in ${activeMonthLabel}.`;
+        $("#followupList").innerHTML = `
           <div class="followup-group">
-            <h3 class="followup-group-title">${escapeHtml(activeMonthLabel)} list (${monthRows.length})</h3>
-            ${monthRows.length ? monthRows.map(rowHtml).join("") : `<div class="empty compact">No patients in this month list.</div>`}
+            <h3 class="followup-group-title">${escapeHtml(activeMonthLabel)} list (${rows.length})</h3>
+            ${rows.length ? rows.map(rowHtml).join("") : `<div class="empty compact">${escapeHtml(emptyText)}</div>`}
           </div>
-        `);
-        if (otherRows.length) {
-          groups.push(`
-            <div class="followup-group">
-              <h3 class="followup-group-title">Other months (${otherRows.length})</h3>
-              ${otherRows.map(rowHtml).join("")}
-            </div>
-          `);
-        }
-        $("#followupList").innerHTML = rows.length ? groups.join("") : `<div class="empty">${emptyText}</div>`;
+        `;
       }
       function renderStats() {
         const summary = totals();
