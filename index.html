@@ -46,27 +46,29 @@
       .signed-in-user { overflow-wrap: anywhere; }
       #recordSummaryBtn, #recordSmartLabBtn, .smart-chart-button, #recordAddOnBtn { background: #dc2626 !important; color: #fff !important; box-shadow: inset 0 0 0 2px #991b1b, 0 1px 4px rgba(153, 27, 27, .22) !important; }
       .app { min-height: 100vh; display: block; }
-      .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(180px, auto) minmax(360px, 1fr) auto; align-items: end; gap: 14px; padding: 12px 24px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
+      .compact-nav { position: sticky; top: 0; z-index: 20; display: grid; grid-template-columns: minmax(150px, .85fr) auto auto; align-items: end; gap: 8px; padding: 10px 16px; background: #f4f7f8; border-bottom: 1px solid rgba(217, 228, 234, .72); }
       .nav-left { display: flex; align-items: end; gap: 8px; min-width: 0; }
-      .clinic-name-display { min-width: 0; max-width: 300px; color: var(--ink); font-size: 20px; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
+      .clinic-name-display { min-width: 0; max-width: 260px; color: var(--ink); font-size: 20px; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
       .clinic-name-display.clinic-name-small { font-size: 16px; }
-      .clinic-name-display.clinic-name-medium { font-size: 20px; }
-      .clinic-name-display.clinic-name-large { font-size: 24px; max-width: 340px; }
+      .clinic-name-display.clinic-name-medium { font-size: 18px; }
+      .clinic-name-display.clinic-name-large { font-size: 22px; max-width: 285px; }
       .home-menu { position: relative; }
       .home-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 25; width: 230px; display: none; gap: 6px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 34px rgba(16, 32, 43, .15); }
       .home-menu.open .home-dropdown { display: grid; }
       .home-dropdown button { justify-content: flex-start; width: 100%; background: transparent; color: #22313f; }
       .home-dropdown button:hover, .home-dropdown button.active { background: #e8eef3; }
       .compact-nav > .secondary, .home-menu > .secondary { width: auto; }
-      .main-tabs { justify-self: center; display: flex; align-items: end; justify-content: center; gap: 8px; min-width: 0; }
-      .main-tab { min-width: 104px; }
+      .main-tabs { justify-self: center; display: flex; align-items: end; justify-content: center; gap: 6px; min-width: 0; }
+      .main-tab { min-width: 90px; padding-left: 10px; padding-right: 10px; }
       .main-tab.active { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
-      .whatsapp-tab { min-width: 54px; font-size: 20px; }
-      .nav-date-control { justify-self: end; display: flex; align-items: end; justify-content: flex-end; gap: 10px; min-width: 0; }
-      .nav-date-control label { margin: 0; width: 170px; flex: 0 0 170px; }
-      .nav-date-control input[type="date"] { width: 100%; min-width: 0; }
+      .whatsapp-tab { min-width: 44px; font-size: 18px; }
+      .nav-date-control { justify-self: end; display: flex; align-items: end; justify-content: flex-end; gap: 6px; min-width: 0; }
+      .nav-date-control label { margin: 0; width: 138px; flex: 0 0 138px; }
+      .nav-date-control input[type="date"] { width: 100%; min-width: 0; padding-left: 9px; padding-right: 8px; }
+      #openAddPatientBtn { min-width: 126px; }
+      #openPrintQueueBtn { min-width: 130px; }
       #todayBtn { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
-      .date-step { width: 42px; min-width: 42px; flex: 0 0 42px; padding: 0; font-size: 20px; font-weight: 900; }
+      .date-step { width: 38px; min-width: 38px; flex: 0 0 38px; padding: 0; font-size: 20px; font-weight: 900; }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .home-chevron { margin-left: 6px; font-size: 12px; }
       .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -566,7 +568,7 @@
         .main-tabs { justify-content: stretch; }
         .main-tab { flex: 1; min-width: 0; }
         .nav-date-control { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: center; }
-        .nav-date-control label { width: 180px; flex-basis: 180px; }
+        .nav-date-control label { width: 150px; flex-basis: 150px; }
         .content-grid, .post-consult-block, .preview-body, .accounts-grid, .neuro-controls { grid-template-columns: 1fr; }
         .followup-row { grid-template-columns: 1fr 1fr; }
         .section.wide, .preview-area { grid-column: auto; }
