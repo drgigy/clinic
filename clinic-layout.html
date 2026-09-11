@@ -5674,8 +5674,8 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#statMarked").textContent = summary.markedAfterVisit;
         $("#statDailyTotal").textContent = money(summary.grandTotal);
         const consulted = selectedDayPatients().filter(hasMedicalNoteForPatientDate).length;
-        const noShow = Math.max(0, summary.total - consulted);
-        const waiting = Math.max(0, summary.total - consulted - noShow);
+        const waiting = Math.max(0, summary.came - consulted);
+        const noShow = Math.max(0, summary.total - summary.came);
         const doctorStats = {
           doctorStatTotal: summary.total,
           doctorStatClinic: summary.clinic,
