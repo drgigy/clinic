@@ -5280,8 +5280,8 @@ ${bulletList(advice, "No clear saved information.")}`;
         document.body.classList.add("print-medical");
         window.print();
       }
+      const printQueueDocumentKinds = ["prescription", "certificate", "reply"];
       const printQueueLabels = {
-        visit: "Visit Note",
         prescription: "Prescription",
         certificate: "Medical Certificate",
         reply: "Reply Letter"
@@ -5297,7 +5297,7 @@ ${bulletList(advice, "No clear saved information.")}`;
       function printQueueItemForRecord(record) {
         if (!record || String(record.date || recordTimestamp(record).slice(0, 10)) !== selectedDate) return null;
         const kind = record.recordKind || "visit";
-        if (!["prescription", "certificate", "reply"].includes(kind)) return null;
+        if (!printQueueDocumentKinds.includes(kind)) return null;
         const html = printQueueSourceHtml(record);
         if (!htmlToPlainText(html).trim()) return null;
         const patient = patientForMedicalRecord(record);
@@ -5391,6 +5391,11 @@ ${bulletList(advice, "No clear saved information.")}`;
       function printQueuedDocument(queueId) {
         const item = printQueueItems().find((entry) => entry.id === queueId);
         if (!item) return;
+        if (!printQueueDocumentKinds.includes(item.record.recordKind || "visit") || item.type !== item.record.recordKind) {
+          alert("This item is not an explicit prescription, certificate, or reply letter and cannot be printed from the queue.");
+          renderPrintQueue();
+          return;
+        }
         const patient = item.patient;
         const printBody = printQueueItemHtml(item);
         if (!printBody) {
@@ -5406,7 +5411,7 @@ ${bulletList(advice, "No clear saved information.")}`;
             <h1>${escapeHtml(patient?.name || item.record.name || "Patient")}</h1>
             <div class="meta">${escapeHtml(metaText)}</div>
             <div>${printBody}</div>
-            ${item.type === "visit" ? medicalPrintDisclaimer() : medicalPrintSignature()}
+            ${medicalPrintSignature()}
           `;
         pendingPrintQueueItem = { recordId: item.record.id, type: item.type };
         document.body.classList.toggle("print-prescription", item.type === "prescription");
