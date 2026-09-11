@@ -491,7 +491,7 @@
         body.print-accounts .report-overlay { position: static; display: block; padding: 1in; background: #fff; overflow: visible; }
         body.print-accounts .report-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
         body.print-accounts .report-toolbar { display: none; }
-        body.print-medical .app, body.print-medical .record-screen, body.print-medical .neuro-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog { display: none; }
+        body.print-medical .app, body.print-medical .record-screen, body.print-medical .neuro-screen, body.print-medical .report-overlay, body.print-medical .unsaved-dialog, body.print-medical .add-patient-modal { display: none; }
         body.print-medical .medical-print-content { display: block; box-sizing: border-box; min-height: 100vh; width: 210mm; max-width: 210mm; margin: 0 auto; font-family: Arial, sans-serif; color: #111; padding: 2in 1in 1in; }
         body.print-medical .medical-print-content h1 { font-size: 22px; font-weight: 900 !important; margin: 0 0 8px; }
         body.print-medical .medical-print-content .meta { color: #444; margin-bottom: 18px; }
@@ -5357,7 +5357,6 @@ ${bulletList(advice, "No clear saved information.")}`;
               <div class="print-queue-status">${escapeHtml(status)}</div>
               <div class="print-queue-actions">
                 <button class="primary" type="button" data-print-queue-item="${escapeHtml(item.id)}">Print</button>
-                ${patient ? `<button class="secondary" type="button" data-print-queue-open="${escapeHtml(item.record.id)}">Open</button>` : ""}
               </div>
             </article>
           `;
@@ -6810,14 +6809,6 @@ ${bulletList(advice, "No clear saved information.")}`;
           renderPrintQueue();
         }
         if (button.dataset.printQueueItem) printQueuedDocument(button.dataset.printQueueItem);
-        if (button.dataset.printQueueOpen) {
-          const record = medicalRecords.find((item) => item.id === button.dataset.printQueueOpen);
-          const patient = record ? patientForMedicalRecord(record) : null;
-          if (patient && record) {
-            closePrintQueue();
-            openMedicalRecord(patient.id, record.id);
-          }
-        }
         if (button.dataset.allRecords) renderAllMedicalEntries();
         if (button.dataset.printSmartChart) printActiveMedicalRecord();
         if (button.dataset.smartDeleteRow) {
