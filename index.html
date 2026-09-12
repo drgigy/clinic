@@ -64,7 +64,7 @@
       .whatsapp-tab { min-width: 44px; font-size: 18px; }
       .nav-date-control { justify-self: end; display: flex; align-items: end; justify-content: flex-end; gap: 10px; min-width: 0; }
       .date-nav-group { display: grid; grid-template-columns: 50px minmax(270px, auto) 50px; align-items: center; gap: 10px; }
-      .nav-date-control .date-input-shell { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+      .nav-date-control .date-input-shell { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
       .nav-date-control label { margin: 0; width: 138px; flex: 0 0 138px; }
       .nav-date-control input[type="date"] { width: 100%; min-width: 0; padding-left: 9px; padding-right: 8px; }
       #openAddPatientBtn { min-width: 126px; }
@@ -5847,7 +5847,7 @@ ${bulletList(advice, "No clear saved information.")}`;
       }
       function renderStats() {
         const summary = totals();
-        $("#todayBtn").textContent = weekdayLabel(selectedDate);
+        $("#todayBtn").textContent = `${weekdayLabel(selectedDate)}, ${dateLabel(selectedDate)}`;
         $("#todayLabel").textContent = dateLabel(selectedDate);
         $("#afterDateLabel").textContent = dateLabel(selectedDate);
         $("#monthLabel").textContent = monthLabel(selectedDate);
@@ -6926,7 +6926,11 @@ ${bulletList(advice, "No clear saved information.")}`;
           closeSettingsModal();
         }
         if (button.dataset.accountDelete) { const id = button.dataset.accountDelete; accounts = accounts.filter((entry) => entry.id !== id); deleteAccountFromCloud(id); renderAccounts(); }
-        if (button.id === "todayBtn") { selectedDate = todayKey; $("#clinicDate").value = selectedDate; save(); render(); }
+        if (button.id === "todayBtn") {
+          const picker = $("#clinicDate");
+          if (picker?.showPicker) picker.showPicker();
+          else picker?.click();
+        }
         if (button.id === "prevDateBtn") shiftSelectedDate(-1);
         if (button.id === "nextDateBtn") shiftSelectedDate(1);
       });
