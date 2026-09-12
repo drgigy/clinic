@@ -5847,7 +5847,7 @@ ${bulletList(advice, "No clear saved information.")}`;
       }
       function renderStats() {
         const summary = totals();
-        $("#todayBtn").textContent = `${weekdayLabel(selectedDate)}, ${dateLabel(selectedDate)}`;
+        $("#todayBtn").textContent = dateLabel(selectedDate);
         $("#todayLabel").textContent = dateLabel(selectedDate);
         $("#afterDateLabel").textContent = dateLabel(selectedDate);
         $("#monthLabel").textContent = monthLabel(selectedDate);
