@@ -2032,6 +2032,8 @@ Do not create a full visit note. Do not include patient demographics.
 		- do not write the word "Malayalam" before the Malayalam text; put the Malayalam instruction directly below the English instruction
 		- do not translate medicine brand names into Malayalam; keep medicine names and doses in English in the numbered medicine line only
 		- do not merge a second medicine into the previous medicine instruction
+		- put a medicine under Prescription only when the doctor explicitly prescribes it using words such as prescription, Rx, start, add, increase, reduce, stop, continue, give, prescribe, take, or use as the doctor's instruction
+		- do not put medicines under Prescription just because the patient says they are taking them, were advised elsewhere, were asked by another doctor, or mentions previous/current medicines as history
 
 	If non-medicine advice, follow-up, review timing, precautions, certificates, referrals, or investigation orders are dictated, put them under Advice / Instructions as a numbered list, one instruction/investigation per number.
 	If the doctor dictates the word "orders", route medicines to Prescription and non-medicine items to Advice / Instructions. Do not create an Orders heading.
@@ -2174,7 +2176,8 @@ Formatting rules:
 - Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units. If a common lab value is dictated without a unit, add its conventional unit.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
 - Diagnosis: line by line.
-- Prescription: include only medicines that are prescribed, newly started, changed, or explicitly continued. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
+- Prescription: include only medicines that are prescribed, newly started, changed, stopped, dose-adjusted, or explicitly continued by the doctor in this visit. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
+- Do not put a medicine under Prescription merely because the patient says they are taking it, were advised it elsewhere, were asked by another doctor, or mentions it as past/current treatment history.
 - Advice / Instructions: include investigations, lab tests, imaging, EEG/NCS, scans, review plans, follow-up advice, precautions, certificates, and other non-medicine orders as a numbered list, one item per number.
 - Dictated "orders" rule: medicines go under Prescription; everything else goes under Advice / Instructions. Do not duplicate the same dictated order in both sections.
 - Inside Prescription, use exactly this compact format for each medicine:
@@ -2919,7 +2922,8 @@ The purpose / rest period / fitness details will appear here when dictated.`
         const hasMedicine = /\b(tab|tablet|cap|capsule|syp|syrup|inj|injection|spray|ointment|cream|gel)\s+[A-Z0-9][A-Za-z0-9+./ -]*/i.test(text)
           || /\b[A-Z][A-Za-z0-9+./-]+\s+\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%)\b/.test(text);
         if (!hasMedicine) return false;
-        return /\b(patient\s+(?:takes|is taking|was advised|was asked)|doctor\s+advised|advised\s+to|start|continue|take|give|use|prescribed)\b/i.test(text);
+        if (/\b(patient\s+(?:takes|is taking|was advised|was asked)|was advised|was asked|advised elsewhere|another doctor advised|outside doctor advised)\b/i.test(text)) return false;
+        return /\b(prescription|rx|start|started|add|increase|reduce|decrease|stop|continue|take|give|use|prescribe|prescribed)\b/i.test(text);
       }
       function addOnMedicineMatches(sentence) {
         const text = String(sentence || "");
@@ -3018,7 +3022,8 @@ Rules:
 - Move MRI, CT, EEG, NCS, ECG, scan, imaging, blood reports, lab values, and report-review content under Review of Investigations.
 - Under Review of Investigations, number each investigation/report separately.
 - For blood reports, list each value on a separate line and add conventional units when absent, for example Hemoglobin g/dL, ESR mm/hr, RBS/FBS/PPBS mg/dL, HbA1c %, creatinine mg/dL, sodium/potassium mmol/L, TSH mIU/L, prolactin ng/mL, vitamin B12 pg/mL, serum iron µg/dL, FSH mIU/mL, testosterone ng/dL.
-- Move newly advised, changed, explicitly continued, or prescribed medicines under Prescription.
+- Move only medicines explicitly prescribed, newly started, changed, stopped, dose-adjusted, or explicitly continued by the doctor under Prescription.
+- Do not move medicines under Prescription merely because the patient says they are taking them, were advised them elsewhere, were asked by another doctor, or mentions them as past/current treatment history.
 - Under Prescription, use a numbered list with one medicine per number.
 - Always write tablet medicines as "Tablet", not "Tab".
 - Preserve brand names, dose, route, food timing, frequency, SOS/as-needed instructions, and duration exactly as present.
