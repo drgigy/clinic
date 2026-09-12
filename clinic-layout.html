@@ -62,13 +62,16 @@
       .main-tab { min-width: 90px; padding-left: 10px; padding-right: 10px; }
       .main-tab.active { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
       .whatsapp-tab { min-width: 44px; font-size: 18px; }
-      .nav-date-control { justify-self: end; display: flex; align-items: end; justify-content: flex-end; gap: 6px; min-width: 0; }
+      .nav-date-control { justify-self: end; display: flex; align-items: end; justify-content: flex-end; gap: 10px; min-width: 0; }
+      .date-nav-group { display: grid; grid-template-columns: 50px minmax(270px, auto) 50px; align-items: center; gap: 10px; }
+      .nav-date-control .date-input-shell { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
       .nav-date-control label { margin: 0; width: 138px; flex: 0 0 138px; }
       .nav-date-control input[type="date"] { width: 100%; min-width: 0; padding-left: 9px; padding-right: 8px; }
       #openAddPatientBtn { min-width: 126px; }
       #openPrintQueueBtn { min-width: 130px; }
-      #todayBtn { background: var(--primary); color: #fff; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .22); }
-      .date-step { width: 38px; min-width: 38px; flex: 0 0 38px; padding: 0; font-size: 20px; font-weight: 900; }
+      #todayBtn { min-width: 270px; min-height: 46px; padding: 0 24px; background: linear-gradient(180deg, #168371 0%, #0f766e 100%); color: #fff; border: 1px solid #0a5f57; box-shadow: inset 0 0 0 2px var(--green-dark), 0 2px 7px rgba(0, 79, 51, .24); font-size: 19px; font-weight: 950; letter-spacing: 0; }
+      #homeMenuBtn { min-height: 46px; padding: 0 18px; }
+      .date-step { width: 50px; min-width: 50px; min-height: 46px; flex: 0 0 50px; padding: 0; font-size: 22px; font-weight: 950; border: 1px solid #cfe0e7; box-shadow: inset 0 0 0 2px var(--green-dark), 0 1px 4px rgba(0, 79, 51, .16); }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       .home-chevron { margin-left: 6px; font-size: 12px; }
       .doctor-phone-hidden { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -581,7 +584,7 @@
         .topbar, .section-head, .consult-head { align-items: flex-start; flex-direction: column; }
         .actions, .primary, .secondary { width: 100%; }
         .nav-left, .main-tabs, .nav-date-control { grid-template-columns: 1fr; flex-direction: column; }
-        .nav-date-control label, .date-step { width: 100%; flex-basis: auto; }
+        .nav-date-control label:not(.date-input-shell), .date-step { width: 100%; flex-basis: auto; }
         .main-tabs { display: grid; grid-template-columns: 1fr 1fr; }
         .stats, .two, .form-row, .date-control, .nav-date-control, .report-grid { grid-template-columns: 1fr; }
         .record-top, .record-body { grid-template-columns: 1fr; }
@@ -635,13 +638,15 @@
         <div class="nav-date-control">
           <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
           <button class="secondary" id="openPrintQueueBtn" type="button" hidden>Print Queue</button>
-          <button class="secondary date-step" id="prevDateBtn" type="button" title="Previous day" aria-label="Previous day">‹</button>
-          <label>
+          <div class="date-nav-group">
+            <button class="secondary date-step" id="prevDateBtn" type="button" title="Previous day" aria-label="Previous day">‹</button>
+            <button class="secondary" id="todayBtn" type="button">Today</button>
+            <button class="secondary date-step" id="nextDateBtn" type="button" title="Next day" aria-label="Next day">›</button>
+          </div>
+          <label class="date-input-shell">
             <span class="sr-only">Clinic date</span>
             <input id="clinicDate" type="date" />
           </label>
-          <button class="secondary date-step" id="nextDateBtn" type="button" title="Next day" aria-label="Next day">›</button>
-          <button class="secondary" id="todayBtn" type="button">Today</button>
           <div class="home-menu" id="homeMenu">
             <button class="secondary" id="homeMenuBtn" type="button" aria-expanded="false">Home <span class="home-chevron">▾</span></button>
             <nav class="home-dropdown" aria-label="Main">
