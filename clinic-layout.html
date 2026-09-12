@@ -4565,7 +4565,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         };
         const timing = slotMap[slot];
         if (!timing) return "";
-        const unit = "(?:mg|mcg|g|ml|iu|units?|drops?)";
+        const unit = "(?:mg|mcg|g|gm|gram|grams|ml|iu|units?|drops?)";
         const doseOrCount = `(?:\\d+(?:\\.\\d+)?\\s*)?${unit}|\\d+(?:\\.\\d+)?\\s*(?:tablet|tab|capsule|cap)s?|\\d+(?:\\.\\d+)?`;
         const after = line.match(new RegExp(`\\b${timing}\\b\\s*[:\\-]?\\s*(${doseOrCount})(?=\\b|\\s|,|;|\\.|-|–|—)`, "i"));
         if (after?.[1]) return normalizePrescriptionTimingValue(after[1]);
@@ -4706,7 +4706,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (parts.length > 1 && /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\b/i.test(parts[0])) {
           return parts[0].replace(/\btab\b/ig, "Tablet").replace(/\btablet\b/ig, "Tablet").replace(/\s{2,}/g, " ").trim();
         }
-        const nameDoseMatch = source.match(/^((?:tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\s+.+?\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|%))\b/i);
+        const nameDoseMatch = source.match(/^((?:tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray)\s+.+?\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|gm|gram|grams|ml|iu|units?|%))\b/i);
         if (nameDoseMatch) return nameDoseMatch[1].replace(/\btab\b/ig, "Tablet").replace(/\btablet\b/ig, "Tablet").replace(/\s{2,}/g, " ").trim();
         const duration = prescriptionDuration(line);
         return source
@@ -4717,7 +4717,7 @@ ${bulletList(advice, "No clear saved information.")}`;
           .replace(/\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig, "")
           .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:tablet|tab|capsule|cap|syrup|injection|inj)\b/ig, "")
           .replace(/\b(?:in the )?(morning|noon|afternoon|evening|night|bedtime)\b/ig, "")
-          .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:in\s+the)?\b/ig, "")
+          .replace(/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|1|2|3|4|5|6|7|8|9|10)\s+(?:in\s+the\s+)?(?=(?:morning|noon|afternoon|evening|night|bedtime)\b)/ig, "")
           .replace(/\b(orally|oral|by mouth|once daily|twice daily|thrice daily|once|twice|thrice|daily)\b/ig, "")
           .replace(/\b(for|to|from|after|before|with)\b\s*[.,;:]*$/ig, "")
           .replace(/\b(as needed|when needed|sos|prn|if pain|when there is pain)\b/ig, "")
@@ -4788,10 +4788,10 @@ ${bulletList(advice, "No clear saved information.")}`;
       function isPrescriptionMedicineLine(line) {
         const cleaned = prescriptionInstructionText(line).toLowerCase();
         if (/^(take|use|apply|instill|inject|continue)\b/i.test(cleaned)) return false;
-        if (/^(?:\d+(?:\.\d+)?\s*(?:mg|mcg|g|ml|iu|units?|drops?)\b|(?:one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:tablet|tab|capsule|cap|ml|drops?))\b/i.test(cleaned)) return false;
+        if (/^(?:\d+(?:\.\d+)?\s*(?:mg|mcg|g|gm|gram|grams|ml|iu|units?|drops?)\b|(?:one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:tablet|tab|capsule|cap|ml|drops?))\b/i.test(cleaned)) return false;
         if (/\b(?:nasal\s+spray|oral\s+spray|inhaler|rotacap|respule|nebulization|ointment|cream|gel|patch|drops?)\b/i.test(cleaned)) return true;
         return /^(tab|tablet|cap|capsule|syp|syrup|inj|injection|drops?|ointment|cream|gel|patch|spray|neb|nebulization)\b/i.test(cleaned)
-          || /\b(mg|mcg|g|ml|iu|units?)\b/i.test(cleaned);
+          || /\b(mg|mcg|g|gm|gram|grams|ml|iu|units?)\b/i.test(cleaned);
       }
       function isBarePrescriptionMedicineName(line, nextLine = "") {
         const cleaned = prescriptionInstructionText(line);
