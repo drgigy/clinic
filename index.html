@@ -254,10 +254,10 @@
       .print-box strong { font-size: 20px; }
       .record-screen { position: fixed; inset: 0; z-index: 30; display: none; grid-template-rows: auto 1fr; height: 100vh; background: #f6f9fa; color: var(--ink); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
       .record-screen.open { display: grid; }
-      .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 14px 18px; display: grid; grid-template-columns: minmax(320px, 1fr) auto; gap: 14px; align-items: start; }
+      .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 12px 18px; display: grid; grid-template-columns: minmax(260px, .85fr) minmax(560px, 1.45fr); gap: 14px; align-items: start; }
       .record-patient h1 { font-size: 22px; margin-bottom: 6px; font-weight: 900; }
       .record-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 13px; font-weight: 850; }
-      .record-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; max-width: calc(100vw - 360px); overflow-x: auto; }
+      .record-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-content: flex-start; min-width: 0; overflow: visible; }
       .record-actions button { flex: 0 0 auto; min-height: 34px; padding: 0 10px; font-size: 14px; white-space: nowrap; }
       .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
@@ -1111,7 +1111,6 @@
           <button class="secondary" type="button" id="recordCommentsBtn">Comments</button>
           <button class="secondary" type="button" id="recordSaveBtn">Save</button>
           <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
-          <button class="secondary" type="button" id="recordPrintBtn">Print</button>
           <button class="icon-delete" type="button" id="recordDeleteBtn" title="Delete note" aria-label="Delete note" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 6h18" />
@@ -6970,7 +6969,6 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "savePdfAccountsBtn" || button.id === "printInlineAccountsBtn") { document.body.classList.add("print-accounts"); window.print(); }
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
-        if (button.id === "recordPrintBtn") printActiveMedicalRecord();
         if (button.id === "recordPrescriptionBtn") handlePrescriptionButton();
         if (button.id === "recordVisitNoteBtn") printVisitNoteFromCurrentRecord();
         if (button.id === "recordReplyBtn") startDocumentDraft("reply");
