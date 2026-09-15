@@ -1102,6 +1102,8 @@
           <div class="record-actions">
           <button class="secondary" type="button" id="recordPrescriptionBtn">Print Prescription</button>
           <button class="secondary" type="button" id="recordVisitNoteBtn">Print Visit Note</button>
+          <button class="secondary" type="button" id="recordPrintReplyBtn">Print Reply</button>
+          <button class="secondary" type="button" id="recordPrintCertificateBtn">Print Certificate</button>
           <button class="secondary" type="button" id="recordReplyBtn">Reply Letter</button>
           <button class="secondary" type="button" id="recordCertificateBtn">Certificate</button>
           <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
@@ -5188,6 +5190,56 @@ ${bulletList(advice, "No clear saved information.")}`;
         document.body.classList.add("print-medical", "print-prescription");
         window.print();
       }
+      function latestDocumentRecordForPatient(patient, kind) {
+        return patientMedicalRecords(patient)
+          .filter((record) => (record.recordKind || "visit") === kind && String(record.date || recordTimestamp(record).slice(0, 10)) === selectedDate)
+          .sort((a, b) => new Date(recordTimestamp(b)) - new Date(recordTimestamp(a)))[0] || null;
+      }
+      function documentBodyForPrint(kind, html) {
+        const title = ambientModeLabel(kind);
+        const withoutTitle = stripDuplicateDocumentTitle(html, title);
+        return kind === "certificate" ? stripCertificateDemographics(withoutTitle) : withoutTitle;
+      }
+      function printCurrentDocument(kind) {
+        const patient = activeRecordPatient();
+        if (!patient || !["certificate", "reply"].includes(kind)) return;
+        let sourceHtml = "";
+        let dateSource = activeRecordCreatedAt || selectedDate;
+        let patientId = patientDisplayId(patient);
+        let mobile = patient.mobile || "-";
+        if (["single", "draft"].includes(activeRecordView) && activeRecordSource === "ambient" && activeAmbientMode === kind) {
+          if (hasDocumentTemplatePlaceholder()) {
+            alert(`Please dictate or type the ${ambientModeLabel(kind).toLowerCase()} before printing.`);
+            return;
+          }
+          persistCurrentRecordTab();
+          sourceHtml = activeRecordDocs.visit || $("#medicalNoteText").innerHTML;
+        } else {
+          const record = latestDocumentRecordForPatient(patient, kind);
+          sourceHtml = record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "");
+          dateSource = record ? recordTimestamp(record) : selectedDate;
+          patientId = record?.patientId || patientId;
+          mobile = record?.mobile || mobile;
+        }
+        const printBody = documentBodyForPrint(kind, sourceHtml);
+        if (!htmlToPlainText(printBody).trim()) {
+          alert(`No ${ambientModeLabel(kind).toLowerCase()} found for ${dateLabel(selectedDate)}.`);
+          return;
+        }
+        const label = ambientModeLabel(kind);
+        const metaText = `ID: ${patientId} | Mobile: ${mobile} | ${label}: ${dateTimeLabel(dateSource)}`;
+        const printContent = $("#medicalPrintContent");
+        printContent.classList.remove("smart-print-content");
+        printContent.innerHTML = `
+          <h1>${escapeHtml(patient.name || "Patient")}</h1>
+          <div class="meta">${escapeHtml(metaText)}</div>
+          <div>${printBody}</div>
+          ${medicalPrintSignature()}
+        `;
+        document.body.classList.remove("print-prescription", "print-smart-chart");
+        document.body.classList.add("print-medical");
+        window.print();
+      }
       function openAddPatientModal() {
         renderCommentSelects();
         setSelectedPatientComments("patientComments", []);
@@ -6971,6 +7023,8 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrescriptionBtn") handlePrescriptionButton();
         if (button.id === "recordVisitNoteBtn") printVisitNoteFromCurrentRecord();
+        if (button.id === "recordPrintReplyBtn") printCurrentDocument("reply");
+        if (button.id === "recordPrintCertificateBtn") printCurrentDocument("certificate");
         if (button.id === "recordReplyBtn") startDocumentDraft("reply");
         if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
