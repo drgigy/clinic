@@ -5735,9 +5735,9 @@ ${bulletList(advice, "No clear saved information.")}`;
           updatedAt: new Date().toISOString()
         };
         medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== recordId)];
-        await saveMedicalRecordToCloud(record);
-        savePatientToCloud(patient);
         save();
+        saveMedicalRecordToCloud(record);
+        savePatientToCloud(patient);
         if (savingDraft) {
           removeDraftRecordById(savingDraftRecord.id);
           activeRecordId = record.id;
