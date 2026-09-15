@@ -5683,6 +5683,18 @@ ${bulletList(advice, "No clear saved information.")}`;
           $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         }
         const recordKind = activeRecordSource === "ambient" ? activeAmbientMode : "visit";
+        if (activeRecordSource !== "ambient") {
+          const editorHtml = $("#medicalNoteText").innerHTML || "";
+          if (hasMeaningfulVisitNoteContent(editorHtml)) {
+            activeRecordDocs.visit = editorHtml;
+            const typedDraft = draftRecordById(activeRecordId);
+            if (typedDraft && activeRecordView === "draft") {
+              typedDraft.note = htmlToPlainText(editorHtml);
+              typedDraft.noteHtml = editorHtml;
+              typedDraft.docs = { visit: editorHtml };
+            }
+          }
+        }
         const draftContent = activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "";
         if (!["prescription", "certificate", "reply", "summary"].includes(recordKind) && !hasMeaningfulVisitNoteContent(draftContent)) {
           alert("No visit note text was saved. Please dictate or type the note before saving.");
