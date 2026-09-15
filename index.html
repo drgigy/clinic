@@ -3249,9 +3249,10 @@ ${source}`);
             draft.noteHtml = activeRecordDocs.visit;
           }
         } else {
-          activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
-          draft.note = htmlToPlainText(activeRecordDocs.visit);
-          draft.noteHtml = activeRecordDocs.visit;
+          const editorHtml = $("#medicalNoteText").innerHTML;
+          activeRecordDocs.visit = editorHtml;
+          draft.note = htmlToPlainText(editorHtml);
+          draft.noteHtml = editorHtml;
         }
         draft.docs = { ...activeRecordDocs };
         draft.updatedAt = new Date().toISOString();
@@ -3444,7 +3445,7 @@ ${source}`);
           if (activeRecordView === "draft") captureActiveDraft();
           return;
         }
-        activeRecordDocs[activeRecordType] = $("#medicalNoteText").innerHTML;
+        activeRecordDocs.visit = $("#medicalNoteText").innerHTML;
         if (activeRecordView === "draft") captureActiveDraft();
       }
       function normalizeDisplayNoteText(value) {
@@ -5646,7 +5647,7 @@ ${bulletList(advice, "No clear saved information.")}`;
       }
       async function saveActiveMedicalRecord() {
         const patient = activeRecordPatient();
-        if (!patient) return;
+        if (!patient) return false;
         const fallbackDraft = patientDraftRecords(patient)[0];
         if (!activeRecordId && fallbackDraft) {
           activeRecordView = "draft";
@@ -5657,10 +5658,10 @@ ${bulletList(advice, "No clear saved information.")}`;
           activeAmbientMode = fallbackDraft.recordKind || "visit";
           activeRecordDocs = { visit: fallbackDraft.docs?.visit || fallbackDraft.noteHtml || (fallbackDraft.note ? plainTextToHtml(fallbackDraft.note) : "") };
         }
-        if (!activeRecordId) return;
+        if (!activeRecordId) return false;
         if (activeRecordSource === "ambient" && hasDocumentTemplatePlaceholder()) {
           alert("Please dictate or type the document before saving.");
-          return;
+          return false;
         }
         persistCurrentRecordTab();
         const details = collectRecordDetails();
@@ -5686,7 +5687,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (!["prescription", "certificate", "reply", "summary"].includes(recordKind) && !hasMeaningfulVisitNoteContent(draftContent)) {
           alert("No visit note text was saved. Please dictate or type the note before saving.");
           $("#recordStatus").textContent = "No visit note text to save";
-          return;
+          return false;
         }
         const record = {
           id: recordId,
@@ -5726,6 +5727,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         renderAfterList();
         renderStats();
         renderPreviousRecords();
+        return true;
       }
       function openMedicalRecord(patientId, recordId = "") {
         const patient = patients.find((item) => item.id === patientId);
@@ -7097,7 +7099,10 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "closeAccountsReportBtn") { $("#accountsReportOverlay").classList.remove("open"); $("#accountsReportOverlay").setAttribute("aria-hidden", "true"); }
         if (button.id === "savePdfAccountsBtn" || button.id === "printInlineAccountsBtn") { document.body.classList.add("print-accounts"); window.print(); }
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
-        if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
+        if (button.id === "recordSaveCloseBtn") {
+          const saved = await saveActiveMedicalRecord();
+          if (saved) closeMedicalRecordScreen();
+        }
         if (button.id === "recordPrescriptionBtn") handlePrescriptionButton();
         if (button.id === "recordVisitNoteBtn") printVisitNoteFromCurrentRecord();
         if (button.id === "recordPrintReplyBtn") printCurrentDocument("reply");
