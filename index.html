@@ -3249,9 +3249,10 @@ ${source}`);
             draft.noteHtml = activeRecordDocs.visit;
           }
         } else {
-          const editorHtml = $("#medicalNoteText").innerHTML;
+          const editorText = currentMedicalEditorText();
+          const editorHtml = currentMedicalEditorVisitHtml();
           activeRecordDocs.visit = editorHtml;
-          draft.note = htmlToPlainText(editorHtml);
+          draft.note = editorText || htmlToPlainText(editorHtml);
           draft.noteHtml = editorHtml;
         }
         draft.docs = { ...activeRecordDocs };
@@ -3445,7 +3446,7 @@ ${source}`);
           if (activeRecordView === "draft") captureActiveDraft();
           return;
         }
-        activeRecordDocs.visit = $("#medicalNoteText").innerHTML;
+        activeRecordDocs.visit = currentMedicalEditorVisitHtml();
         if (activeRecordView === "draft") captureActiveDraft();
       }
       function normalizeDisplayNoteText(value) {
@@ -3489,6 +3490,18 @@ ${source}`);
         const container = document.createElement("div");
         container.innerHTML = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n");
         return container.innerText || container.textContent || "";
+      }
+      function currentMedicalEditorText() {
+        const editor = $("#medicalNoteText");
+        if (!editor || hasDocumentTemplatePlaceholder()) return "";
+        const visibleText = editor.innerText || editor.textContent || "";
+        const htmlText = htmlToPlainText(editor.innerHTML || "");
+        return (visibleText.trim() ? visibleText : htmlText).replace(/\u00a0/g, " ");
+      }
+      function currentMedicalEditorVisitHtml() {
+        const text = currentMedicalEditorText();
+        if (text.trim()) return plainTextToHtml(text);
+        return $("#medicalNoteText")?.innerHTML || "";
       }
       function normalizeManualNumberingText(value) {
         const lines = String(value || "").split(/\r?\n/);
@@ -5684,18 +5697,21 @@ ${bulletList(advice, "No clear saved information.")}`;
         }
         const recordKind = activeRecordSource === "ambient" ? activeAmbientMode : "visit";
         if (activeRecordSource !== "ambient") {
-          const editorHtml = $("#medicalNoteText").innerHTML || "";
-          if (hasMeaningfulVisitNoteContent(editorHtml)) {
+          const editorText = currentMedicalEditorText();
+          const editorHtml = currentMedicalEditorVisitHtml();
+          if (hasMeaningfulVisitNoteContent(editorText || editorHtml)) {
             activeRecordDocs.visit = editorHtml;
             const typedDraft = draftRecordById(activeRecordId);
             if (typedDraft && activeRecordView === "draft") {
-              typedDraft.note = htmlToPlainText(editorHtml);
+              typedDraft.note = editorText || htmlToPlainText(editorHtml);
               typedDraft.noteHtml = editorHtml;
               typedDraft.docs = { visit: editorHtml };
             }
           }
         }
-        const draftContent = activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "";
+        const draftContent = activeRecordSource !== "ambient"
+          ? (currentMedicalEditorText() || activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "")
+          : (activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "");
         if (!["prescription", "certificate", "reply", "summary"].includes(recordKind) && !hasMeaningfulVisitNoteContent(draftContent)) {
           alert("No visit note text was saved. Please dictate or type the note before saving.");
           $("#recordStatus").textContent = "No visit note text to save";
@@ -5709,7 +5725,7 @@ ${bulletList(advice, "No clear saved information.")}`;
           name: patient.name,
           mobile: patient.mobile || "",
           date: activeRecordDate || patient.date,
-          note: activeRecordDocs.visit ? htmlToPlainText(activeRecordDocs.visit) : $("#medicalNoteText").innerText,
+          note: activeRecordSource !== "ambient" ? currentMedicalEditorText() : (activeRecordDocs.visit ? htmlToPlainText(activeRecordDocs.visit) : $("#medicalNoteText").innerText),
           noteHtml: activeRecordDocs.visit || $("#medicalNoteText").innerHTML,
           docs: activeRecordDocs,
           details,
