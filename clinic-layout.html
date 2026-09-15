@@ -1842,7 +1842,11 @@
         const day = patient.date;
         return medicalRecords.some((record) => {
           const recordDay = record.date || recordTimestamp(record).slice(0, 10);
-          const hasContent = Boolean(record.note || record.noteHtml || record.docs?.visit);
+          const kind = record.recordKind || "visit";
+          const rawContent = record.docs?.visit || record.noteHtml || record.note || "";
+          const hasContent = ["prescription", "certificate", "reply", "summary"].includes(kind)
+            ? Boolean(htmlToPlainText(rawContent).trim())
+            : hasMeaningfulVisitNoteContent(rawContent);
           return hasContent && recordDay === day && recordMatchesPatient(record, patient);
         });
       }
@@ -2943,6 +2947,27 @@ The purpose / rest period / fitness details will appear here when dictated.`
         lines.unshift(vitalsRow, "");
         return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
       }
+      function stripVitalsSectionsFromNoteText(text) {
+        const source = /<\/?[a-z][\s\S]*>/i.test(String(text || "")) ? htmlToPlainText(text) : String(text || "");
+        const lines = source.split(/\r?\n/);
+        const output = [];
+        let inVitals = false;
+        lines.forEach((rawLine) => {
+          const line = rawLine.trim();
+          if (/^vitals\s*:?\s*/i.test(line)) {
+            inVitals = true;
+            return;
+          }
+          if (inVitals && isVisitNoteHeadingLine(line)) {
+            inVitals = false;
+          }
+          if (!inVitals) output.push(rawLine);
+        });
+        return output.join("\n").trim();
+      }
+      function hasMeaningfulVisitNoteContent(value) {
+        return Boolean(stripVitalsSectionsFromNoteText(value).replace(/\s+/g, " ").trim());
+      }
       function updateDraftContent(draft, text, mode) {
         const noteHtml = plainTextToHtml(text);
         draft.note = text;
@@ -3639,6 +3664,10 @@ ${source}`);
         const html = addOnRecordHtml(record) || record.docs?.visit || record.noteHtml || "";
         if (["prescription", "certificate", "reply", "summary"].includes(recordKind)) {
           return html || plainTextToHtml(record.note || "");
+        }
+        const source = html || record.note || "";
+        if (!hasMeaningfulVisitNoteContent(source)) {
+          return `<div class="empty compact">Empty saved visit note. No clinical note text was saved for this entry.</div>`;
         }
         if (html) return boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(html));
         return plainTextToHtml(normalizeVitalsInNoteText(record.note || ""));
@@ -5652,6 +5681,13 @@ ${bulletList(advice, "No clear saved information.")}`;
           activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "");
           $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         }
+        const recordKind = activeRecordSource === "ambient" ? activeAmbientMode : "visit";
+        const draftContent = activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "";
+        if (!["prescription", "certificate", "reply", "summary"].includes(recordKind) && !hasMeaningfulVisitNoteContent(draftContent)) {
+          alert("No visit note text was saved. Please dictate or type the note before saving.");
+          $("#recordStatus").textContent = "No visit note text to save";
+          return;
+        }
         const record = {
           id: recordId,
           patientAppointmentId: patient.id,
@@ -5665,7 +5701,7 @@ ${bulletList(advice, "No clear saved information.")}`;
           docs: activeRecordDocs,
           details,
           source: activeRecordSource,
-          recordKind: activeRecordSource === "ambient" ? activeAmbientMode : "visit",
+          recordKind,
           createdAt,
           updatedAt: new Date().toISOString()
         };
