@@ -529,11 +529,14 @@
         body.print-medical.print-prescription .prescription-patient-meta { color: #222; font-size: 11px; line-height: 1.3; }
         body.print-medical.print-prescription .prescription-rx-title { color: #15496f; font-size: 14px; font-weight: 900; margin: 0 0 4mm; }
         body.print-medical.print-prescription .prescription-list { display: flex; flex-direction: column; gap: 3.4mm; margin: 0 0 5mm; }
-        body.print-medical.print-prescription .prescription-item { display: grid; grid-template-columns: 28px 1fr; column-gap: 10px; break-inside: avoid; }
+        body.print-medical.print-prescription .prescription-item { display: grid; grid-template-columns: 34px minmax(210px, .9fr) minmax(260px, 1.1fr); column-gap: 12px; padding: 4mm 0; border-bottom: 1px solid #d7e0e6; break-inside: avoid; }
+        body.print-medical.print-prescription .prescription-item:first-child { padding-top: 0; }
+        body.print-medical.print-prescription .prescription-item:last-child { border-bottom: 0; }
         body.print-medical.print-prescription .prescription-number { font-weight: 900; color: #111; line-height: 1.3; }
-        body.print-medical.print-prescription .prescription-medicine { font-size: 13px; font-weight: 900; line-height: 1.3; margin-bottom: .8mm; }
-        body.print-medical.print-prescription .prescription-line { font-size: 12px; line-height: 1.32; margin: 0 0 .6mm; }
-        body.print-medical.print-prescription .prescription-malayalam { font-size: 11px; line-height: 1.35; margin: .5mm 0 0; }
+        body.print-medical.print-prescription .prescription-medicine { font-size: 13px; font-weight: 900; line-height: 1.3; }
+        body.print-medical.print-prescription .prescription-instruction-block { min-width: 0; }
+        body.print-medical.print-prescription .prescription-line { font-size: 12px; line-height: 1.32; margin: 0 0 2.2mm; }
+        body.print-medical.print-prescription .prescription-malayalam { font-size: 11px; line-height: 1.35; margin: 0; }
         body.print-medical.print-prescription .prescription-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6mm; }
         body.print-medical.print-prescription .prescription-table th { background: #f0f2f3; color: #111; font-size: 10px; text-align: center; border: 1px solid #9aa7af; padding: 8px 6px; }
         body.print-medical.print-prescription .prescription-table th:first-child { text-align: left; }
@@ -560,6 +563,15 @@
         body.print-medical.print-prescription .prescription-sheet.prescription-tight .prescription-instruction-row { margin-bottom: 4px; font-size: 11px; line-height: 1.2; }
         body.print-medical.print-prescription .prescription-sheet.prescription-tight .prescription-alert { margin-top: 4mm; padding-top: 2.4mm; font-size: 9.5px; }
         body.print-medical.print-prescription .prescription-sheet.prescription-tight .prescription-signature { margin-top: 16mm; }
+        body.print-medical.print-prescription .visit-note-title { color: #15496f; font-size: 14px; font-weight: 900; margin: 0 0 4mm; text-transform: uppercase; }
+        body.print-medical.print-prescription .visit-note-body { font-size: 12px; line-height: 1.35; }
+        body.print-medical.print-prescription .visit-note-body h1,
+        body.print-medical.print-prescription .visit-note-body h2,
+        body.print-medical.print-prescription .visit-note-body h3 { font-size: 13px; margin: 4mm 0 1.4mm; font-weight: 900 !important; color: #111; }
+        body.print-medical.print-prescription .visit-note-body p,
+        body.print-medical.print-prescription .visit-note-body div { margin: 0 0 1.4mm; }
+        body.print-medical.print-prescription .visit-note-body ol,
+        body.print-medical.print-prescription .visit-note-body ul { margin: 1mm 0 2mm 6mm; padding: 0; }
         body.print-medical.print-prescription .medical-signature strong,
         body.print-medical.print-prescription .medical-signature b,
         body.print-medical.print-prescription h1 { font-weight: 900 !important; }
@@ -1089,6 +1101,7 @@
         </div>
           <div class="record-actions">
           <button class="secondary" type="button" id="recordPrescriptionBtn">Print Prescription</button>
+          <button class="secondary" type="button" id="recordVisitNoteBtn">Print Visit Note</button>
           <button class="secondary" type="button" id="recordReplyBtn">Reply Letter</button>
           <button class="secondary" type="button" id="recordCertificateBtn">Certificate</button>
           <button class="secondary" type="button" id="recordAddOnBtn" hidden>Add On</button>
@@ -4934,6 +4947,12 @@ ${bulletList(advice, "No clear saved information.")}`;
         (extraLines || []).forEach((line) => pushUniquePrescriptionSentence(instructionParts, line));
         return finishPrescriptionSentence(instructionParts) || prescriptionInstructionText(sourceLine);
       }
+      function prescriptionPrintInstruction(line = "") {
+        return cleanPrescriptionPatientSentence(line)
+          .replace(/^take\s+/i, "")
+          .replace(/^use\s+/i, "Use ")
+          .replace(/^apply\s+/i, "Apply ");
+      }
       function formatPrescriptionPrintHtml(html, patient) {
         const text = htmlToPlainText(stripDuplicateDocumentTitle(html, "Prescription"));
         const isDemographicLine = (line) => /^(patient\s*name|patient\s*id|uhid|id|mobile)\s*:/i.test(line);
@@ -4945,17 +4964,19 @@ ${bulletList(advice, "No clear saved information.")}`;
         const dateText = activeRecordCreatedAt ? dateLabel(activeRecordCreatedAt.slice(0, 10)) : dateLabel(localDateKey());
         const medicineRows = medicineItems.map((item, index) => {
           const details = prescriptionLineDetails(item.line);
-          const englishLine = descriptivePrescriptionLine(details, item.line, item.extra || []);
+          const englishLine = prescriptionPrintInstruction(descriptivePrescriptionLine(details, item.line, item.extra || []));
           const malayalamLines = (item.malayalam || [])
             .map((line) => `<div class="prescription-malayalam">${escapeHtml(line)}</div>`)
             .join("");
           return `
             <div class="prescription-item">
               <div class="prescription-number">${index + 1}.</div>
+              <div class="prescription-medicine">${escapeHtml(details.medicine)}</div>
               <div>
-                <div class="prescription-medicine">${escapeHtml(details.medicine)}</div>
+                <div class="prescription-instruction-block">
                 <div class="prescription-line">${escapeHtml(englishLine)}</div>
                 ${malayalamLines}
+                </div>
               </div>
             </div>
           `;
@@ -4991,6 +5012,38 @@ ${bulletList(advice, "No clear saved information.")}`;
                 If you develop any rash, breathing difficulty, swelling, severe allergy symptoms, or any unexpected reaction, please contact us immediately or get urgent medical attention.
                 Emergency contact: +91 8330 811 911, Rajagiri Hospital, Aluva, Ernakulam.
               </div>
+              ${medicalPrintSignature("prescription-signature")}
+            </div>
+          </div>
+        `;
+      }
+      function printDocumentDateText(dateSource = "") {
+        const source = dateSource || activeRecordCreatedAt || selectedDate || localDateKey();
+        return dateLabel(String(source).slice(0, 10));
+      }
+      function printableVisitNoteHtml(html = "") {
+        const container = document.createElement("div");
+        container.innerHTML = html || "";
+        container.querySelectorAll(".smart-chart-actions, .smart-delete-btn, button, input, select, textarea").forEach((node) => node.remove());
+        container.querySelectorAll("[contenteditable]").forEach((node) => node.removeAttribute("contenteditable"));
+        return container.innerHTML || "No visit note entered.";
+      }
+      function formatVisitNotePrintHtml(html, patient, dateSource = "") {
+        return `
+          <div class="prescription-sheet">
+            <div class="prescription-banner">${medicalPrintSignature("prescription-header-signature")}</div>
+            <div class="prescription-content">
+              <div class="prescription-patient-plain">
+                <h1>${escapeHtml(patient?.name || "-")}</h1>
+                <div class="prescription-patient-meta">
+                  Age: ${escapeHtml(patient?.age ? `${patient.age} years` : "-")} |
+                  Sex: ${escapeHtml(patient?.sex || "-")} |
+                  UHID: ${escapeHtml(patient ? patientDisplayId(patient) : "-")} |
+                  ${escapeHtml(printDocumentDateText(dateSource))}
+                </div>
+              </div>
+              <div class="visit-note-title">Visit Note</div>
+              <div class="visit-note-body">${printableVisitNoteHtml(html)}</div>
               ${medicalPrintSignature("prescription-signature")}
             </div>
           </div>
@@ -5097,6 +5150,44 @@ ${bulletList(advice, "No clear saved information.")}`;
       }
       function handlePrescriptionButton() {
         printPrescriptionFromVisitNote();
+      }
+      function latestVisitNoteSourceForPatient(patient) {
+        return patientMedicalRecords(patient)
+          .filter((record) => {
+            const kind = record.recordKind || "visit";
+            return ["visit", "addon", "summary"].includes(kind) && record.date === selectedDate;
+          })
+          .sort((a, b) => new Date(recordTimestamp(b)) - new Date(recordTimestamp(a)))
+          .map((record) => ({
+            html: record.docs?.visit || record.noteHtml || (record.note ? plainTextToHtml(record.note) : ""),
+            dateSource: recordTimestamp(record)
+          }))
+          .find((item) => item.html) || null;
+      }
+      function printVisitNoteFromCurrentRecord() {
+        const patient = activeRecordPatient();
+        if (!patient) return;
+        let sourceHtml = "";
+        let dateSource = activeRecordCreatedAt || selectedDate;
+        if (["single", "draft"].includes(activeRecordView)) {
+          if (["prescription", "certificate", "reply"].includes(activeAmbientMode)) {
+            alert("Open a visit note first. Prescription, certificate, and reply-letter documents should not be printed as visit notes.");
+            return;
+          }
+          persistCurrentRecordTab();
+          sourceHtml = activeRecordDocs.visit || $("#medicalNoteText").innerHTML;
+        } else {
+          const latestNote = latestVisitNoteSourceForPatient(patient);
+          sourceHtml = latestNote?.html || "";
+          dateSource = latestNote?.dateSource || selectedDate;
+        }
+        if (!sourceHtml) {
+          alert(`No visit note found for ${dateLabel(selectedDate)}.`);
+          return;
+        }
+        $("#medicalPrintContent").innerHTML = formatVisitNotePrintHtml(sourceHtml, patient, dateSource);
+        document.body.classList.add("print-medical", "print-prescription");
+        window.print();
       }
       function openAddPatientModal() {
         renderCommentSelects();
@@ -6881,6 +6972,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "recordSaveCloseBtn") { await saveActiveMedicalRecord(); closeMedicalRecordScreen(); }
         if (button.id === "recordPrintBtn") printActiveMedicalRecord();
         if (button.id === "recordPrescriptionBtn") handlePrescriptionButton();
+        if (button.id === "recordVisitNoteBtn") printVisitNoteFromCurrentRecord();
         if (button.id === "recordReplyBtn") startDocumentDraft("reply");
         if (button.id === "recordCertificateBtn") startDocumentDraft("certificate");
         if (button.id === "recordAddOnBtn") startRecordAddOn();
