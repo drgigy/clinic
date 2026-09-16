@@ -254,13 +254,13 @@
       .print-box strong { font-size: 20px; }
       .record-screen { position: fixed; inset: 0; z-index: 30; display: none; grid-template-rows: auto 1fr; height: 100vh; background: #f6f9fa; color: var(--ink); overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
       .record-screen.open { display: grid; }
-      .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 12px 18px; display: grid; grid-template-columns: minmax(260px, .85fr) minmax(560px, 1.45fr); gap: 14px; align-items: start; }
+      .record-top { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--line); padding: 12px 18px; display: grid; grid-template-columns: minmax(250px, .62fr) minmax(640px, 1.8fr); gap: 14px; align-items: start; }
       .record-patient h1 { font-size: 22px; margin-bottom: 6px; font-weight: 900; }
       .record-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 13px; font-weight: 850; }
       .record-actions { display: grid; gap: 6px; justify-items: end; align-content: flex-start; min-width: 0; overflow: visible; }
-      .record-action-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; min-width: 0; }
+      .record-action-row { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; min-width: 0; }
       .record-action-row.print-row { order: 2; }
-      .record-action-row button { flex: 0 0 auto; min-height: 34px; padding: 0 10px; font-size: 14px; white-space: nowrap; }
+      .record-action-row button { flex: 0 0 auto; min-height: 34px; padding: 0 9px; font-size: 13px; white-space: nowrap; }
       .record-body { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; padding: 14px 18px 18px; min-height: 0; height: calc(100vh - 96px); overflow: hidden; }
       .record-main { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-height: 0; height: 100%; }
       .record-status { min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 850; }
@@ -386,8 +386,7 @@
       .previous-record.active span { color: #d7fffa; }
       .previous-record span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
       .record-entry-row { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: stretch; }
-      .icon-delete { min-height: 38px; width: 38px; padding: 0; color: var(--danger-ink); background: var(--danger); }
-      .icon-delete svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .danger-action { color: var(--danger-ink); background: var(--danger); }
       .timeline-entry { border-bottom: 1px solid var(--line); padding: 0 0 18px; margin-bottom: 18px; }
       .timeline-entry h2 { font-size: 16px; margin-bottom: 10px; font-weight: 900; }
       .smart-chart-view { display: grid; gap: 10px; max-width: none; margin: 0; }
@@ -1113,14 +1112,7 @@
             <button class="secondary" type="button" id="recordSaveBtn">Save</button>
             <button class="primary" type="button" id="recordSaveCloseBtn">Save & Close</button>
             <button class="secondary" type="button" id="recordCloseBtn">Close</button>
-            <button class="icon-delete" type="button" id="recordDeleteBtn" title="Delete note" aria-label="Delete note" hidden>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 6h18" />
-                <path d="M8 6V4h8v2" />
-                <path d="M19 6l-1 14H6L5 6" />
-                <path d="M10 11v5M14 11v5" />
-              </svg>
-            </button>
+            <button class="secondary danger-action" type="button" id="recordDeleteBtn" title="Delete note" aria-label="Delete note" hidden>Delete</button>
           </div>
           <div class="record-action-row print-row">
             <button class="secondary" type="button" id="recordPrescriptionBtn">Print Prescription</button>
@@ -1226,6 +1218,7 @@
       const patientCommentsStore = "clinicPatientComments.v1";
       const clinicNameStore = "clinicNameHtml.v1";
       const clinicNameStyleStore = "clinicNameStyle.v1";
+      const pendingMedicalRecordsStore = "clinicPendingMedicalRecords.v1";
       const ambientModes = {
         visit: "Visit Note",
         prescription: "Rx",
@@ -1332,6 +1325,48 @@
         } catch {
           return fallback;
         }
+      }
+      function recordTimeMs(record) {
+        return Date.parse(record?.updatedAt || record?.createdAt || record?.date || "") || 0;
+      }
+      function recordContentValue(record) {
+        return record?.docs?.visit || record?.noteHtml || record?.note || "";
+      }
+      function hasSavedMedicalContent(record) {
+        return hasMeaningfulVisitNoteContent(recordContentValue(record));
+      }
+      function pendingMedicalRecords() {
+        return parseStoredArray(pendingMedicalRecordsStore);
+      }
+      function writePendingMedicalRecords(records) {
+        const sorted = [...records]
+          .filter((record) => record?.id)
+          .sort((a, b) => recordTimeMs(b) - recordTimeMs(a))
+          .slice(0, 60);
+        writeStore(pendingMedicalRecordsStore, JSON.stringify(sorted));
+      }
+      function rememberPendingMedicalRecord(record) {
+        if (!record?.id) return;
+        const records = [record, ...pendingMedicalRecords().filter((item) => item.id !== record.id)];
+        writePendingMedicalRecords(records);
+      }
+      function forgetPendingMedicalRecord(id) {
+        if (!id) return;
+        writePendingMedicalRecords(pendingMedicalRecords().filter((record) => record.id !== id));
+      }
+      function shouldKeepLocalMedicalRecord(localRecord, cloudRecord) {
+        if (!localRecord?.id) return false;
+        if (!cloudRecord) return true;
+        if (recordTimeMs(localRecord) > recordTimeMs(cloudRecord)) return true;
+        return hasSavedMedicalContent(localRecord) && !hasSavedMedicalContent(cloudRecord);
+      }
+      function mergeCloudMedicalRecords(cloudRecords) {
+        const byId = new Map((cloudRecords || []).filter((record) => record?.id).map((record) => [record.id, record]));
+        [...medicalRecords, ...pendingMedicalRecords()].forEach((localRecord) => {
+          const cloudRecord = byId.get(localRecord?.id);
+          if (shouldKeepLocalMedicalRecord(localRecord, cloudRecord)) byId.set(localRecord.id, localRecord);
+        });
+        return [...byId.values()].sort((a, b) => recordTimeMs(b) - recordTimeMs(a));
       }
       function makeId() { return window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
       function yearPrefix(dateKey = selectedDate) { return String(new Date(`${dateKey}T00:00:00`).getFullYear()).slice(-2); }
@@ -1440,6 +1475,7 @@
       async function saveMedicalRecordToCloud(record) {
         try {
           await setDoc(doc(db, "medicalRecords", record.id), record, { merge: true });
+          forgetPendingMedicalRecord(record.id);
         } catch (error) {
           console.error("Firebase medical record save failed", error);
         }
@@ -1494,7 +1530,8 @@
         }));
         const medicalRecordsQuery = query(medicalRecordsCollection, orderBy("date", "desc"));
         firebaseUnsubscribers.push(onSnapshot(medicalRecordsQuery, (snapshot) => {
-          medicalRecords = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+          const cloudRecords = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+          medicalRecords = mergeCloudMedicalRecords(cloudRecords);
           renderPreviousRecords();
           renderAfterList();
           renderStats();
@@ -2311,7 +2348,7 @@ ${context}`;
         });
       }
       function ambientRecorderOptions() {
-        const options = { audioBitsPerSecond: 48000 };
+        const options = { audioBitsPerSecond: 24000 };
         const preferredTypes = [
           "audio/webm;codecs=opus",
           "audio/webm",
@@ -5735,6 +5772,7 @@ ${bulletList(advice, "No clear saved information.")}`;
           updatedAt: new Date().toISOString()
         };
         medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== recordId)];
+        rememberPendingMedicalRecord(record);
         save();
         saveMedicalRecordToCloud(record);
         savePatientToCloud(patient);
