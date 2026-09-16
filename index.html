@@ -3005,6 +3005,27 @@ The purpose / rest period / fitness details will appear here when dictated.`
       function hasMeaningfulVisitNoteContent(value) {
         return Boolean(stripVitalsSectionsFromNoteText(value).replace(/\s+/g, " ").trim());
       }
+      function hasMeaningfulDocumentContent(value) {
+        return Boolean(htmlToPlainText(value || "").replace(/\s+/g, " ").trim());
+      }
+      function hasMeaningfulRecordContent(kind, value) {
+        return ["prescription", "certificate", "reply", "summary"].includes(kind || "")
+          ? hasMeaningfulDocumentContent(value)
+          : hasMeaningfulVisitNoteContent(value);
+      }
+      function emptyRecordSaveMessage(kind) {
+        if (kind === "prescription") return "No prescription text was saved. Please dictate or type the prescription before saving.";
+        if (kind === "certificate") return "No certificate text was saved. Please dictate or type the certificate before saving.";
+        if (kind === "reply") return "No reply letter text was saved. Please dictate or type the reply letter before saving.";
+        if (kind === "summary") return "No summary text was saved. Please generate the summary before saving.";
+        return "No visit note text was saved. Please dictate or type the note before saving.";
+      }
+      function setRecordSaveControls(enabled) {
+        ["#recordSaveBtn", "#recordSaveCloseBtn"].forEach((selector) => {
+          const button = $(selector);
+          if (button) button.disabled = !enabled;
+        });
+      }
       function updateDraftContent(draft, text, mode) {
         const noteHtml = plainTextToHtml(text);
         draft.note = text;
@@ -3327,6 +3348,7 @@ ${source}`);
         $("#recordStatus").textContent = activeRecordSource === "ambient" ? `${ambientModeLabel(activeAmbientMode)} draft. Save when ready.` : "Draft note. Save when ready.";
         $("#medicalNoteText").setAttribute("contenteditable", "true");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
+        setRecordSaveControls(true);
         setAmbientButtons();
         $("#medicalNoteText").focus();
         renderPreviousRecords();
@@ -3470,6 +3492,7 @@ ${source}`);
           $("#recordDeleteBtn").title = "Discard draft";
           $("#recordDeleteBtn").setAttribute("aria-label", "Discard draft");
           $("#recordVisitDate").textContent = dateTimeLabel(createdAt);
+          setRecordSaveControls(true);
         }
         $("#recordStatus").textContent = source === "ambient" ? "Visit Note draft. Save when ready." : "New note";
         activeRecordDirty = true;
@@ -5233,6 +5256,9 @@ ${bulletList(advice, "No clear saved information.")}`;
         return addOnRecordHtml(record) || record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "");
       }
       function latestPrescriptionSourceForPatient(patient) {
+        return latestPrescriptionSourceItemForPatient(patient)?.html || "";
+      }
+      function latestPrescriptionSourceItemForPatient(patient) {
         return patientMedicalRecords(patient)
           .map((record) => ({
             record,
@@ -5240,20 +5266,50 @@ ${bulletList(advice, "No clear saved information.")}`;
             kind: record.recordKind || "visit"
           }))
           .filter((item) => !["certificate", "reply", "summary"].includes(item.kind))
-          .find((item) => item.html && (item.kind === "prescription" || extractPrescriptionFromVisitHtml(item.html)))?.html || "";
+          .find((item) => item.html && (item.kind === "prescription" || extractPrescriptionFromVisitHtml(item.html))) || null;
+      }
+      function savePrintedPrescriptionCopy(patient, prescriptionHtml, sourceRecord = null) {
+        if (!patient || !hasMeaningfulDocumentContent(prescriptionHtml)) return;
+        const sourceId = sourceRecord?.id || activeRecordId || `${patient.id}_${selectedDate}`;
+        const recordId = `${sourceId}_prescription_copy`;
+        const createdAt = sourceRecord ? recordTimestamp(sourceRecord) : (activeRecordCreatedAt || new Date().toISOString());
+        const record = {
+          id: recordId,
+          patientAppointmentId: patient.id,
+          patientId: patientDisplayId(patient),
+          patientKey: recordPatientKey(patient),
+          name: patient.name,
+          mobile: patient.mobile || "",
+          date: sourceRecord?.date || activeRecordDate || patient.date || selectedDate,
+          note: htmlToPlainText(prescriptionHtml),
+          noteHtml: prescriptionHtml,
+          docs: { visit: prescriptionHtml },
+          details: sourceRecord?.details || {},
+          source: "ambient",
+          recordKind: "prescription",
+          createdAt,
+          updatedAt: new Date().toISOString()
+        };
+        medicalRecords = [record, ...medicalRecords.filter((item) => item.id !== recordId)];
+        rememberPendingMedicalRecord(record);
+        saveMedicalRecordToCloud(record);
       }
       function printPrescriptionFromVisitNote() {
         const patient = activeRecordPatient();
         if (!patient) return;
         let sourceHtml = "";
+        let sourceRecord = null;
         const selectedPrescriptionDocument = ["single", "draft"].includes(activeRecordView)
           && activeRecordSource === "ambient"
           && activeAmbientMode === "prescription";
         if (["single", "draft"].includes(activeRecordView) && ["visit", "addon", "prescription"].includes(activeAmbientMode)) {
           persistCurrentRecordTab();
           sourceHtml = activeRecordDocs.visit || $("#medicalNoteText").innerHTML;
+          sourceRecord = medicalRecords.find((record) => record.id === activeRecordId) || null;
         } else {
-          sourceHtml = latestPrescriptionSourceForPatient(patient);
+          const latestItem = latestPrescriptionSourceItemForPatient(patient);
+          sourceHtml = latestItem?.html || "";
+          sourceRecord = latestItem?.record || null;
         }
         if (!sourceHtml) {
           alert("No visit or add-on note with a prescription section found for printing.");
@@ -5266,6 +5322,7 @@ ${bulletList(advice, "No clear saved information.")}`;
           alert("No prescription section found in this visit note.");
           return;
         }
+        if (!selectedPrescriptionDocument) savePrintedPrescriptionCopy(patient, prescriptionHtml, sourceRecord);
         $("#medicalPrintContent").innerHTML = formatPrescriptionPrintHtml(prescriptionHtml, patient);
         document.body.classList.add("print-medical", "print-prescription");
         window.print();
@@ -5499,6 +5556,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         activeRecordDirty = false;
         $("#medicalNoteText").setAttribute("contenteditable", "false");
         $("#recordDeleteBtn").hidden = true;
+        setRecordSaveControls(false);
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
         $("#medicalNoteText").innerHTML = rows.length ? rows.map((record) => {
@@ -5698,6 +5756,10 @@ ${bulletList(advice, "No clear saved information.")}`;
       async function saveActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return false;
+        if (activeRecordView === "all") {
+          $("#recordStatus").textContent = "Open a single entry before saving.";
+          return false;
+        }
         const fallbackDraft = patientDraftRecords(patient)[0];
         if (!activeRecordId && fallbackDraft) {
           activeRecordView = "draft";
@@ -5749,9 +5811,10 @@ ${bulletList(advice, "No clear saved information.")}`;
         const draftContent = activeRecordSource !== "ambient"
           ? (currentMedicalEditorText() || activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "")
           : (activeRecordDocs.visit || $("#medicalNoteText").innerHTML || "");
-        if (!["prescription", "certificate", "reply", "summary"].includes(recordKind) && !hasMeaningfulVisitNoteContent(draftContent)) {
-          alert("No visit note text was saved. Please dictate or type the note before saving.");
-          $("#recordStatus").textContent = "No visit note text to save";
+        if (!hasMeaningfulRecordContent(recordKind, draftContent)) {
+          const message = emptyRecordSaveMessage(recordKind);
+          alert(message);
+          $("#recordStatus").textContent = message;
           return false;
         }
         const record = {
@@ -5788,6 +5851,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#recordDeleteBtn").hidden = false;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
+        setRecordSaveControls(true);
         $("#recordStatus").textContent = "Saved";
         renderPatientList();
         renderAfterList();
@@ -5837,6 +5901,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#recordDeleteBtn").hidden = !record;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
+        setRecordSaveControls(true);
         $("#recordStatus").textContent = record ? "Saved note" : "New note";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
@@ -5861,6 +5926,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         activeRecordSource = "typed";
         activeRecordDocs = {};
         activeRecordType = "visit";
+        setRecordSaveControls(true);
       }
       function hasAfterVisitDetails(patient) {
         return Boolean(
