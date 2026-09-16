@@ -3021,10 +3021,10 @@ The purpose / rest period / fitness details will appear here when dictated.`
         return "No visit note text was saved. Please dictate or type the note before saving.";
       }
       function setRecordSaveControls(enabled) {
-        ["#recordSaveBtn", "#recordSaveCloseBtn"].forEach((selector) => {
-          const button = $(selector);
-          if (button) button.disabled = !enabled;
-        });
+        const saveButton = $("#recordSaveBtn");
+        const saveCloseButton = $("#recordSaveCloseBtn");
+        if (saveButton) saveButton.disabled = !enabled;
+        if (saveCloseButton) saveCloseButton.disabled = false;
       }
       function updateDraftContent(draft, text, mode) {
         const noteHtml = plainTextToHtml(text);
@@ -7232,6 +7232,10 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "savePdfAccountsBtn" || button.id === "printInlineAccountsBtn") { document.body.classList.add("print-accounts"); window.print(); }
         if (button.id === "recordSaveBtn") await saveActiveMedicalRecord();
         if (button.id === "recordSaveCloseBtn") {
+          if (activeRecordView === "all") {
+            closeMedicalRecordScreen();
+            return;
+          }
           const saved = await saveActiveMedicalRecord();
           if (saved) closeMedicalRecordScreen();
         }
