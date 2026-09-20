@@ -1333,7 +1333,7 @@
         return record?.docs?.visit || record?.noteHtml || record?.note || "";
       }
       function hasSavedMedicalContent(record) {
-        return hasMeaningfulVisitNoteContent(recordContentValue(record));
+        return hasMeaningfulRecordContent(record?.recordKind || "visit", recordContentValue(record));
       }
       function pendingMedicalRecords() {
         return parseStoredArray(pendingMedicalRecordsStore);
@@ -3399,7 +3399,8 @@ ${source}`);
           ${rows.length ? rows.map((record) => `
           <div class="record-entry-row">
             <button class="secondary previous-record ${activeRecordView === "single" && record.id === activeRecordId ? "active" : ""}" type="button" data-open-record="${record.id}">
-              <strong>${record.source === "ambient" ? `${ambientModeLabel(record.recordKind || "visit")} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</strong>
+              <strong>${hasSavedMedicalContent(record) ? "" : "Empty note - "}${record.source === "ambient" ? `${ambientModeLabel(record.recordKind || "visit")} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</strong>
+              ${hasSavedMedicalContent(record) ? "" : "<span>No document text saved</span>"}
             </button>
           </div>
         `).join("") : `<div class="empty">No notes yet. Click Add note.</div>`}
@@ -5911,17 +5912,19 @@ ${bulletList(advice, "No clear saved information.")}`;
         activeRecordDocs = {
           visit: addOnRecordHtml(record) || record?.docs?.visit || record?.noteHtml || (record?.note ? plainTextToHtml(record.note) : "")
         };
-        if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
+        const recordHasContent = hasSavedMedicalContent(record);
+        if (!recordHasContent) activeRecordDocs.visit = `<div class="empty compact">Empty saved entry. No document text was saved for this record.</div>`;
+        else if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
         else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(activeRecordDocs.visit));
         activeRecordType = "visit";
-        $("#medicalNoteText").setAttribute("contenteditable", "true");
+        $("#medicalNoteText").setAttribute("contenteditable", recordHasContent ? "true" : "false");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         setAmbientButtons();
         $("#recordDeleteBtn").hidden = !record;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
-        setRecordSaveControls(true);
-        $("#recordStatus").textContent = record ? "Saved note" : "New note";
+        setRecordSaveControls(recordHasContent);
+        $("#recordStatus").textContent = recordHasContent ? "Saved note" : "Empty saved entry";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
         $("#medicalRecordScreen").setAttribute("aria-hidden", "false");
