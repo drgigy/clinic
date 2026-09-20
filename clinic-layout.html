@@ -651,7 +651,6 @@
         <div class="nav-date-control">
           <button class="primary" id="openAddPatientBtn" type="button">Add Patient</button>
           <button class="secondary" id="openPrintQueueBtn" type="button" hidden>Print Queue</button>
-          <button class="secondary" id="openRecordAuditTopBtn" type="button">Audit</button>
           <div class="date-nav-group">
             <button class="secondary date-step" id="prevDateBtn" type="button" title="Previous day" aria-label="Previous day">‹</button>
             <button class="secondary" id="todayBtn" type="button">Today</button>
@@ -7317,7 +7316,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
         if (button.id === "openPrintQueueBtn") openPrintQueue();
         if (button.id === "closePrintQueueBtn") closePrintQueue();
-        if (button.id === "openRecordAuditBtn" || button.id === "openRecordAuditTopBtn") openRecordAudit();
+        if (button.id === "openRecordAuditBtn") openRecordAudit();
         if (button.id === "closeRecordAuditBtn") closeRecordAudit();
         if (button.id === "toggleAccounts") { accountsExpanded = !accountsExpanded; renderAccounts(); }
         if (button.id === "printAccountsBtn") printAccountsReport();
