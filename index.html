@@ -670,6 +670,7 @@
               <button class="secondary" data-scroll="report" type="button">Monthly Report</button>
               <button class="secondary" type="button" data-main-tab="whatsapp">WhatsApp Preview</button>
               <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
+              <button class="secondary" type="button" id="openRecordAuditBtn">Record Audit</button>
               <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
               <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
             </nav>
@@ -1185,6 +1186,16 @@
           <button class="choice" type="button" data-print-queue-filter="all">All</button>
         </div>
         <div class="print-queue-list" id="printQueueList"></div>
+      </div>
+    </section>
+    <section class="add-patient-modal" id="recordAuditModal" aria-hidden="true">
+      <div class="add-patient-card">
+        <div class="section-head">
+          <h2>Record Audit <span class="meta" id="recordAuditSummary"></span></h2>
+          <button class="secondary" type="button" id="closeRecordAuditBtn">Close</button>
+        </div>
+        <div class="settings-note">Shows saved record entries where the document body is empty or only a vitals/template shell.</div>
+        <div class="print-queue-list" id="recordAuditList"></div>
       </div>
     </section>
     <div class="medical-print-content" id="medicalPrintContent"></div>
@@ -5642,6 +5653,55 @@ ${bulletList(advice, "No clear saved information.")}`;
           || patients.find((patient) => patient.id === record.patientAppointmentId)
           || null;
       }
+      function recordAuditItems() {
+        return medicalRecords
+          .filter((record) => record?.id && !hasSavedMedicalContent(record))
+          .map((record) => {
+            const patient = patientForMedicalRecord(record);
+            const kind = record.recordKind || "visit";
+            const rawContent = recordContentValue(record);
+            const plain = htmlToPlainText(rawContent).replace(/\s+/g, " ").trim();
+            return {
+              record,
+              patient,
+              kind,
+              patientName: patient?.name || record.name || "Unknown patient",
+              patientId: record.patientId || record.patientKey || (patient ? patientDisplayId(patient) : "-"),
+              mobile: record.mobile || patient?.mobile || "-",
+              reason: plain ? "Template/vitals only" : "No document body saved"
+            };
+          })
+          .sort((a, b) => recordTimestamp(b.record).localeCompare(recordTimestamp(a.record)));
+      }
+      function renderRecordAudit() {
+        const items = recordAuditItems();
+        const summary = $("#recordAuditSummary");
+        const list = $("#recordAuditList");
+        if (summary) summary.textContent = `${items.length} suspicious ${items.length === 1 ? "entry" : "entries"}`;
+        if (!list) return;
+        list.innerHTML = items.length ? items.map((item) => `
+          <article class="print-queue-row">
+            <div>
+              <div class="print-queue-title">${escapeHtml(item.patientName)}</div>
+              <div class="print-queue-meta">ID: ${escapeHtml(item.patientId)} · Mobile: ${escapeHtml(item.mobile)} · ${escapeHtml(dateTimeLabel(recordTimestamp(item.record)))}</div>
+            </div>
+            <div class="print-queue-type">${escapeHtml(ambientModeLabel(item.kind))}</div>
+            <div class="print-queue-status">${escapeHtml(item.reason)}</div>
+            <div class="print-queue-actions">
+              <button class="secondary" type="button" data-audit-open-record="${escapeHtml(item.record.id)}">Open</button>
+            </div>
+          </article>
+        `).join("") : `<div class="empty compact">No suspicious empty record shells found.</div>`;
+      }
+      function openRecordAudit() {
+        renderRecordAudit();
+        $("#recordAuditModal").classList.add("open");
+        $("#recordAuditModal").setAttribute("aria-hidden", "false");
+      }
+      function closeRecordAudit() {
+        $("#recordAuditModal").classList.remove("open");
+        $("#recordAuditModal").setAttribute("aria-hidden", "true");
+      }
       function printQueueSourceHtml(record) {
         return recordPrescriptionSourceHtml(record);
       }
@@ -7198,6 +7258,14 @@ ${bulletList(advice, "No clear saved information.")}`;
           renderPrintQueue();
         }
         if (button.dataset.printQueueItem) printQueuedDocument(button.dataset.printQueueItem);
+        if (button.dataset.auditOpenRecord) {
+          const record = medicalRecords.find((item) => item.id === button.dataset.auditOpenRecord);
+          const patient = record ? patientForMedicalRecord(record) : null;
+          if (record && patient) {
+            closeRecordAudit();
+            openMedicalRecord(patient.id, record.id);
+          }
+        }
         if (button.dataset.allRecords) renderAllMedicalEntries();
         if (button.dataset.printSmartChart) printActiveMedicalRecord();
         if (button.dataset.smartDeleteRow) {
@@ -7248,6 +7316,8 @@ ${bulletList(advice, "No clear saved information.")}`;
         if (button.id === "toggleWhatsapp") { whatsappExpanded = !whatsappExpanded; renderWhatsappPreview(); }
         if (button.id === "openPrintQueueBtn") openPrintQueue();
         if (button.id === "closePrintQueueBtn") closePrintQueue();
+        if (button.id === "openRecordAuditBtn") openRecordAudit();
+        if (button.id === "closeRecordAuditBtn") closeRecordAudit();
         if (button.id === "toggleAccounts") { accountsExpanded = !accountsExpanded; renderAccounts(); }
         if (button.id === "printAccountsBtn") printAccountsReport();
         if (button.id === "closeAccountsReportBtn") { $("#accountsReportOverlay").classList.remove("open"); $("#accountsReportOverlay").setAttribute("aria-hidden", "true"); }
