@@ -1,7 +1,7 @@
 import {assistantRequest} from './assistant-config.js';
-import {createIcons, Mic, Send, Stethoscope, Languages, AudioLines, Square, ShieldCheck} from 'https://esm.sh/lucide@0.468.0';
+import {createIcons, Mic, Send, Stethoscope, AudioLines, Square, ShieldCheck} from 'https://esm.sh/lucide@0.468.0';
 
-createIcons({icons:{Mic,Send,Stethoscope,Languages,AudioLines,Square,ShieldCheck}});
+createIcons({icons:{Mic,Send,Stethoscope,AudioLines,Square,ShieldCheck}});
 const $ = id => document.getElementById(id);
 let device = JSON.parse(localStorage.getItem('clinicAssistantDeviceAuth') || sessionStorage.getItem('clinicAssistantDeviceAuth') || 'null');
 if(location.hash)history.replaceState(null,'',location.pathname+location.search);
@@ -169,6 +169,7 @@ function completed(message){
   stopVoice();clearTimeout(checkpointTimer);
   if(current)sessionStorage.removeItem(storageKey(current.id));
   current=null;transcript=[];$('messages').replaceChildren();$('conversation').hidden=true;$('waiting').hidden=false;
+  $('patientHeader').hidden=true;$('patientName').textContent='';$('patientIdentity').textContent='';
   $('waitingTitle').textContent='Conversation ended';$('waitingText').textContent=message;$('stop').disabled=false;
 }
 async function poll(){
@@ -197,6 +198,7 @@ async function poll(){
     const local=JSON.parse(sessionStorage.getItem(storageKey(session.id))||'[]');const remote=session.transcript||[];
     transcript=local.length>=remote.length?local:remote;persist();
     $('waiting').hidden=true;$('conversation').hidden=false;$('patientName').textContent=session.patient.name;
+    $('patientHeader').hidden=false;
     $('patientIdentity').textContent=`Age: ${session.patient.age || 'Not recorded'} | Sex: ${session.patient.sex || 'Not recorded'} | ID: ${session.patient.patientId}`;
     $('conversation').classList.remove('started');
     $('identityCheck').hidden=false;$('confirmIdentity').disabled=false;$('stop').hidden=transcript.length===0;$('resume').hidden=true;$('messageForm').hidden=true;
