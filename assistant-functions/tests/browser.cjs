@@ -14,7 +14,7 @@ const root=path.resolve(__dirname,'../..');
   const originalCopy=JSON.stringify(original);
   const summary=Object.fromEntries(sections.map(([key])=>[key,'Not reported']));summary.presentingComplaints='Headache';summary.provisionalDiagnosis='DOCTOR ONLY ASSESSMENT';
   let session=null,active=null,transcript=[],notes=[...original],finishAttempts=0,failNextFinish=true;
-  const writes=[];const errors=[];
+  const writes=[];const errors=[];const requestedLanguages=[];
   const server=http.createServer(async(req,res)=>{try{const name=new URL(req.url,'http://local').pathname;const file=path.join(root,name==='/'?'index.html':name);if(!file.startsWith(root+path.sep))throw Error();const bytes=await fs.readFile(file);res.setHeader('Content-Type',file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'text/javascript');res.end(bytes);}catch{res.statusCode=404;res.end();}});
   await new Promise(resolve=>server.listen(8879,'127.0.0.1',resolve));
   let browser;
@@ -39,7 +39,7 @@ const root=path.resolve(__dirname,'../..');
         if(active){code=400;result={error:'Another patient conversation is active.'};}
         else{const patient=patients.find(p=>p.id===b.appointmentId);session={id:'session-test',status:'waiting',patient,transcript:[]};active={sessionId:session.id,appointmentId:patient.id,patientName:patient.name};result={sessionId:session.id};}
       }else if(b.action==='poll')result={session:session?{...session,transcript}:null};
-      else if(b.action==='token'){session.status='active';result={token:'fake',model:'test',liveConfig:{}};}
+      else if(b.action==='token'){requestedLanguages.push(b.language);session.status='active';result={token:'fake',model:'test',liveConfig:{}};}
       else if(b.action==='checkpoint'){transcript=b.transcript;result={saved:true};}
       else if(b.action==='finish'){
         finishAttempts++;
@@ -56,6 +56,7 @@ const root=path.resolve(__dirname,'../..');
     await staff.waitForFunction(()=>!document.querySelector('[data-doctor-assistant="testA"]').disabled);
     const tablet=await context.newPage();tablet.on('pageerror',e=>errors.push('tablet: '+e.message));
     await tablet.goto('http://127.0.0.1:8879/patient.html');
+    await tablet.locator('label:has(input[value="ml"])').click();
     await tablet.locator('#enable').click();await tablet.locator('#pairing').waitFor({state:'visible'});
     await staff.locator('[data-doctor-assistant="testA"]').click();
     await staff.waitForFunction(()=>document.querySelector('[data-doctor-assistant="testB"]').disabled);
@@ -64,7 +65,17 @@ const root=path.resolve(__dirname,'../..');
     await tablet.locator('#confirmIdentity').click();await tablet.locator('#messageForm').waitFor({state:'visible'});
     await tablet.locator('#message').fill('Headache since yesterday. Current medicine Levipil 1 gram.');
     await tablet.locator('#messageForm button').click();
-    await tablet.waitForFunction(()=>document.getElementById('messages').textContent.includes('Levipil 1 gram'));
+    await tablet.waitForFunction(()=>document.getElementById('messages').textContent.includes('Are you taking any medicines?'));
+    assert.equal(await tablet.locator('#messages').textContent().then(t=>t.includes('Levipil')),false,'patient answers must not be displayed');
+    assert.equal(await tablet.locator('#messages .patient').count(),0);
+    assert.equal(await tablet.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('clinicAssistantTranscript.')).some(k=>sessionStorage.getItem(k).includes('Levipil 1 gram'))),true,'hidden answers remain in recovery transcript');
+    assert.equal(requestedLanguages.at(-1),'ml');
+    await tablet.locator('label:has(input[value="en"])').click();
+    await tablet.waitForFunction(()=>!document.getElementById('languagePicker').disabled);
+    assert.equal(requestedLanguages.at(-1),'en');
+    await tablet.locator('label:has(input[value="auto"])').click();
+    await tablet.waitForFunction(()=>!document.getElementById('languagePicker').disabled);
+    assert.equal(requestedLanguages.at(-1),'auto');
     await fs.mkdir('/private/tmp/clinic-assistant-review',{recursive:true});
     await tablet.screenshot({path:'/private/tmp/clinic-assistant-review/patient-desktop.png',fullPage:true});
     await tablet.setViewportSize({width:390,height:844});
@@ -75,6 +86,7 @@ const root=path.resolve(__dirname,'../..');
     assert.ok(active,'failed save must retain lock');assert.equal(notes.length,1);
     await tablet.locator('#stop').click();await tablet.locator('#waiting').waitFor({state:'visible'});
     assert.equal(finishAttempts,2);assert.equal(notes.length,2);assert.equal(JSON.stringify(notes.slice(0,1)),originalCopy);
+    assert.ok(transcript.some(t=>t.role==='patient'&&t.text.includes('Levipil 1 gram')),'hidden answers must reach the note backend');
     assert.equal(await tablet.locator('body').textContent().then(t=>t.includes('DOCTOR ONLY')),false);
     assert.equal(await tablet.evaluate(()=>Object.keys(sessionStorage).some(k=>k.startsWith('clinicAssistantTranscript.'))),false);
     await staff.evaluate(notes=>{window.__data.medicalRecords=notes;window.__listeners.medicalRecords();},notes);

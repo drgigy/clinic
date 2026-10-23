@@ -14,6 +14,15 @@ only to its assigned session, not to the patient's medical-record collection.
 5. Press **Stop Conversation**. Wait for save confirmation. A separate
    **Assistant Note - date/time** appears in the medical-record sidebar.
 
+The patient page offers Malayalam, English, and Auto reply languages. Fixed
+choices constrain the server's live-session prompt regardless of the patient's
+spoken language; Auto follows the patient's Malayalam/English preference.
+Changing language reconnects voice with the new prompt while retaining the
+transcript. The chat displays assistant questions only, not patient answers.
+Answers still enter the recovery transcript and doctor-only summary. This
+display change does not eliminate speech recognition errors; unclear words
+must be clarified and the resulting note reviewed by the doctor.
+
 The clinic permits one active interview across staff tabs. Its lock remains
 until a note is saved or an empty session is explicitly ended. Clicking the
 active patient's button lets staff request a stop on the patient device.

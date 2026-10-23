@@ -5,7 +5,7 @@ import {initializeApp} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
 import {getFirestore} from 'firebase-admin/firestore';
 import {GoogleGenAI} from '@google/genai';
-import {interviewPrompt, notePrompt} from './prompts.js';
+import {interviewPromptForLanguage, notePrompt} from './prompts.js';
 import {appendAssistantNote, startAssistantSession, saveTranscript, freezeTranscript, abandonEmptySession, validateNote} from './records.js';
 
 initializeApp();
@@ -112,13 +112,14 @@ export const doctorAssistant = onRequest({region:'asia-south1',secrets:[key],tim
       res.json(await finish(sessionId));return;
     }
     if (action === 'token') {
+      const systemInstruction = interviewPromptForLanguage(body.language || 'auto');
       await db.runTransaction(async tx => {
         const snapshot = await tx.get(session.ref);
         const s = snapshot.data();
         if (!['waiting','active'].includes(s.status) || (s.connections || 0) >= 10) throw new Error('This conversation cannot be started again. Ask staff for help.');
         tx.update(session.ref,{status:'active',connections:(s.connections || 0)+1});
       });
-      const liveConfig = {responseModalities:['AUDIO'],inputAudioTranscription:{},outputAudioTranscription:{},speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}},systemInstruction:interviewPrompt};
+      const liveConfig = {responseModalities:['AUDIO'],inputAudioTranscription:{},outputAudioTranscription:{},speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}},systemInstruction};
       const model = 'gemini-3.8-live';
       const ai = new GoogleGenAI({apiKey:key.value(),httpOptions:{apiVersion:'v1beta'}});
       const token = await ai.authTokens.create({config:{uses:1,expireTime:new Date(Date.now()+30*60000).toISOString(),newSessionExpireTime:new Date(Date.now()+60000).toISOString(),liveConnectConstraints:{model,config:liveConfig}}});

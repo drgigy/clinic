@@ -1,7 +1,7 @@
 import {assistantRequest} from './assistant-config.js';
-import {createIcons, Mic, Send} from 'https://esm.sh/lucide@0.468.0';
+import {createIcons, Mic, Send, Stethoscope, Languages, AudioLines, Square, ShieldCheck} from 'https://esm.sh/lucide@0.468.0';
 
-createIcons({icons:{Mic,Send}});
+createIcons({icons:{Mic,Send,Stethoscope,Languages,AudioLines,Square,ShieldCheck}});
 const $ = id => document.getElementById(id);
 let device = JSON.parse(sessionStorage.getItem('clinicAssistantDeviceAuth') || 'null');
 let current = null;
@@ -26,7 +26,8 @@ const sources = new Set();
 const storageKey = id => `clinicAssistantTranscript.${id}`;
 const api = (action,body={}) => assistantRequest(action,{deviceCode:device?.deviceCode,...body},{'X-Device-Token':device?.token || ''});
 const error = message => {$('error').textContent=message;};
-const status = message => {$('sessionStatus').textContent=message;};
+const status = message => {$('sessionStatus').textContent=message;document.body.dataset.voice=message.toLowerCase();};
+const replyLanguage = () => document.querySelector('input[name="language"]:checked').value;
 function persist(){
   try{sessionStorage.setItem(storageKey(current.id),JSON.stringify(transcript));}
   catch{error('This device could not keep a local recovery copy. Keep the page open until saving is confirmed.');}
@@ -35,6 +36,8 @@ function renderTranscript(){
   const container=$('messages');container.replaceChildren();
   let lastRole='';let bubble;
   for(const turn of transcript){
+    if(turn.role==='assistant'&&turn.text==='\n\n'){lastRole='';continue;}
+    if(turn.role==='patient'){lastRole='';continue;}
     if(turn.role!==lastRole){bubble=document.createElement('div');bubble.className=`message ${turn.role}`;const label=document.createElement('span');label.textContent=turn.role==='patient'?'You':'Doctor Assistant';bubble.append(label,document.createTextNode(''));container.append(bubble);lastRole=turn.role;}
     bubble.lastChild.textContent+=turn.text;
   }
@@ -73,10 +76,10 @@ function play(data){
 async function startVoice(){
   if(starting || live || finishing)return;
   const generation=++voiceGeneration;
-  starting=true;$('resume').hidden=true;$('confirmIdentity').disabled=true;error('');status('Connecting…');
+  starting=true;$('languagePicker').disabled=true;$('resume').hidden=true;$('confirmIdentity').disabled=true;error('');status('Connecting…');
   try{
     await output.resume();await input.resume();
-    const [{GoogleGenAI},credentials]=await Promise.all([import('https://esm.sh/@google/genai@1.45.0'),api('token',{sessionId:current.id})]);
+    const [{GoogleGenAI},credentials]=await Promise.all([import('https://esm.sh/@google/genai@1.45.0'),api('token',{sessionId:current.id,language:replyLanguage()})]);
     if(generation!==voiceGeneration)return;
     const ai=new GoogleGenAI({apiKey:credentials.token,httpOptions:{apiVersion:'v1beta'}});
     const id=current.id;
@@ -89,6 +92,7 @@ async function startVoice(){
         if(content?.outputTranscription?.text)add('assistant',content.outputTranscription.text);
         if(content?.interrupted)clearAudio();
         for(const part of content?.modelTurn?.parts||[])if(part.inlineData?.mimeType?.startsWith('audio/pcm'))play(part.inlineData.data);
+        if(content?.turnComplete)add('assistant','\n\n');
         if(message.goAway){error('Voice session is ending. Resume the conversation or stop and save.');$('resume').hidden=false;}
       },
       onerror(){if(generation===voiceGeneration&&!finishing){stopVoice();status('Paused');error('Voice connection interrupted. Your answers are retained. Resume or stop and save.');$('resume').hidden=false;}},
@@ -102,7 +106,7 @@ async function startVoice(){
     live.sendClientContent({turns:[{role:'user',parts:[{text:context}]}],turnComplete:true});
     status('Listening');
   }catch(e){stopVoice();error(e.message);$('resume').hidden=false;}
-  finally{starting=false;$('confirmIdentity').disabled=false;}
+  finally{starting=false;$('confirmIdentity').disabled=false;$('languagePicker').disabled=finishing;}
 }
 async function enable(){
   $('enable').disabled=true;error('');
@@ -128,7 +132,7 @@ async function enable(){
 }
 async function finish(){
   if(finishing||!current)return;
-  finishing=true;$('stop').disabled=true;$('resume').hidden=true;$('messageForm').hidden=true;error('');status('Saving your answers…');
+  finishing=true;$('languagePicker').disabled=true;$('stop').disabled=true;$('resume').hidden=true;$('messageForm').hidden=true;error('');status('Saving your answers…');
   try{
     stream?.getAudioTracks().forEach(track=>{track.enabled=false;});clearAudio();
     live?.sendRealtimeInput({audioStreamEnd:true});
@@ -143,7 +147,7 @@ async function finish(){
     await api('finish',{sessionId:current.id,transcript});
     completed('Your answers have been saved for the doctor. Thank you.');
   }catch(e){error(e.message+' Keep this page open and press Stop Conversation to retry.');status('Save not confirmed');$('stop').disabled=false;$('resume').hidden=false;}
-  finally{finishing=false;}
+  finally{finishing=false;$('languagePicker').disabled=false;}
 }
 function completed(message){
   stopVoice();clearTimeout(checkpointTimer);
@@ -178,6 +182,23 @@ async function poll(){
   finally{pollBusy=false;}
 }
 $('enable').onclick=enable;
+$('languagePicker').onchange=async()=>{
+  $('messages').lang=replyLanguage()==='ml'?'ml':replyLanguage()==='en'?'en':'';
+  if(live&&!finishing&&!starting){
+    starting=true;$('languagePicker').disabled=true;$('stop').disabled=true;
+    try{
+      stream?.getAudioTracks().forEach(track=>{track.enabled=false;});
+      clearAudio();live.sendRealtimeInput({audioStreamEnd:true});
+      const deadline=Date.now()+3000;
+      await new Promise(resolve=>setTimeout(resolve,1000));
+      while(live&&Date.now()<deadline&&Date.now()-lastSpeech<700)await new Promise(resolve=>setTimeout(resolve,150));
+      await queueCheckpoint();
+      stopVoice();starting=false;
+      if(!finishing&&current)await startVoice();
+    }catch(e){stopVoice();error(e.message);$('resume').hidden=false;}
+    finally{starting=false;$('languagePicker').disabled=finishing;$('stop').disabled=finishing;}
+  }
+};
 $('confirmIdentity').onclick=startVoice;
 $('resume').onclick=startVoice;
 $('wrongIdentity').onclick=()=>{error('Please call the clinic staff. Do not continue under another person’s name.');$('confirmIdentity').disabled=true;};
