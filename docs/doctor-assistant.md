@@ -20,7 +20,9 @@ active patient's button lets staff request a stop on the patient device.
 For an offline device, staff can save the answers already received by the server.
 The note is patient-reported history with a clearly labelled tentative AI
 assessment for the doctor. It is excluded from prescription selection and the
-doctor-seen indicator. The original assistant entry is read-only in the EMR.
+doctor-seen indicator. The assistant entry is read-only in the EMR, with a
+manual Delete button requiring confirmation for that entry only. The launch
+button appears in the Staff tab only.
 
 ## Data preservation
 

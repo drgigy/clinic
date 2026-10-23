@@ -3439,8 +3439,8 @@ ${source}`);
       function deleteMedicalEntry(recordId) {
         const record = medicalRecords.find((item) => item.id === recordId);
         if (!record) return;
-        if (record.recordKind === "assistant") return;
-        if (!confirm(`Delete medical note from ${dateTimeLabel(recordTimestamp(record))}?`)) return;
+        const label = record.recordKind === "assistant" ? "Assistant Note" : "medical note";
+        if (!confirm(`Delete ${label} from ${dateTimeLabel(recordTimestamp(record))}? Only this entry will be deleted.`)) return;
         medicalRecords = medicalRecords.filter((item) => item.id !== recordId);
         deleteMedicalRecordFromCloud(recordId);
         if (activeRecordView === "all") {
@@ -5986,7 +5986,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         $("#medicalNoteText").setAttribute("contenteditable", recordHasContent && record.recordKind !== "assistant" ? "true" : "false");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         setAmbientButtons();
-        $("#recordDeleteBtn").hidden = !record || record.recordKind === "assistant";
+        $("#recordDeleteBtn").hidden = !record;
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
         setRecordSaveControls(recordHasContent && record.recordKind !== "assistant");
@@ -6184,7 +6184,6 @@ ${bulletList(advice, "No clear saved information.")}`;
                   ${status}
                   ${patientWhatsAppButton(p)}
                   <button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button>
-                  ${doctorAssistantButton(p.id)}
                 </div>
               </div>
             </div>
