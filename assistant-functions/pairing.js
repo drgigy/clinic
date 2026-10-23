@@ -2,6 +2,25 @@ export function deviceAvailable(device, now = Date.now()) {
   return Boolean(device && !device.revoked && (device.persistent === true || device.expiresAt > now));
 }
 
+export async function approveWaitingDevice(db, code, expectedPrevious, staffUid, now = Date.now()) {
+  return db.runTransaction(async tx => {
+    const controlRef=db.doc('assistantControl/device');
+    const ref=db.doc(`assistantDevices/${code}`);
+    const [control,lock,device]=await Promise.all([tx.get(controlRef),tx.get(db.doc('assistantControl/active')),tx.get(ref)]);
+    const oldCode=control.data()?.deviceCode || null;
+    const saved=device.data();
+    if(oldCode===code&&deviceAvailable(saved,now)&&!saved.waiting)return;
+    if(lock.data()?.sessionId)throw new Error('Patient conversation is active. Finish and save it before connecting another device.');
+    if(oldCode!==(expectedPrevious || null))throw new Error('Patient device connection changed. Refresh the list and try again.');
+    if(!deviceAvailable(saved,now)||!saved.waiting||saved.lastSeen<now-30000)throw new Error('Patient device is no longer waiting online. Reopen patient.html on that device.');
+    const oldRef=oldCode?db.doc(`assistantDevices/${oldCode}`):null;
+    const old=oldRef?await tx.get(oldRef):null;
+    tx.update(ref,{waiting:false,persistent:true,approvedBy:staffUid,pairedAt:now});
+    if(old?.exists)tx.update(oldRef,{revoked:true});
+    tx.set(controlRef,{deviceCode:code,pendingHash:null});
+  });
+}
+
 export async function createPairing(db, hash, deviceCode, staffUid, now = Date.now()) {
   return db.runTransaction(async tx => {
     const controlRef = db.doc('assistantControl/device');

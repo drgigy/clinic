@@ -6,7 +6,7 @@ import {getAuth} from 'firebase-admin/auth';
 import {getFirestore} from 'firebase-admin/firestore';
 import {GoogleGenAI} from '@google/genai';
 import {interviewPromptForLanguage, notePrompt} from './prompts.js';
-import {deviceAvailable, createPairing, claimPairing, disconnectDevice} from './pairing.js';
+import {deviceAvailable, createPairing, claimPairing, disconnectDevice, approveWaitingDevice} from './pairing.js';
 import {appendAssistantNote, startAssistantSession, saveTranscript, freezeTranscript, abandonEmptySession, validateNote} from './records.js';
 
 initializeApp();
@@ -14,7 +14,7 @@ const db = getFirestore();
 const key = defineSecret('DOCTOR_ASSISTANT_GEMINI_KEY');
 const hash = text => createHash('sha256').update(text).digest('hex');
 const validId = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,150}$/.test(value);
-const staffActions = new Set(['start','status','staff-finish','abandon','pair-create','pair-disconnect']);
+const staffActions = new Set(['start','status','staff-finish','abandon','pair-create','pair-disconnect','device-list','device-approve']);
 
 async function staff(req) {
   const token = (req.headers.authorization || '').replace(/^Bearer /,'');
@@ -59,6 +59,23 @@ export const doctorAssistant = onRequest({region:'asia-south1',secrets:[key],tim
   const {action,sessionId,deviceCode} = body;
   try {
     const user = staffActions.has(action) ? await staff(req) : null;
+    if (action === 'device-request') {
+      const code=randomBytes(8).toString('hex');
+      const token=randomBytes(32).toString('hex');
+      const label=typeof body.label==='string'?body.label.trim().slice(0,100):'Patient browser';
+      await db.doc(`assistantDevices/${code}`).create({tokenHash:hash(token),label,waiting:true,revoked:false,persistent:false,expiresAt:Date.now()+12*60*60*1000,createdAt:Date.now(),lastSeen:Date.now(),sessionId:null});
+      res.json({deviceCode:code,token});return;
+    }
+    if (action === 'device-list') {
+      const rows=await db.collection('assistantDevices').where('lastSeen','>',Date.now()-30000).orderBy('lastSeen','desc').limit(50).get();
+      const waiting=rows.docs.filter(row=>row.data().waiting&&deviceAvailable(row.data())).map(row=>({deviceCode:row.id,label:row.data().label||'Patient browser',createdAt:row.data().createdAt}));
+      res.json({waiting});return;
+    }
+    if (action === 'device-approve') {
+      if(!validId(deviceCode))throw new Error('Invalid patient device.');
+      await approveWaitingDevice(db,deviceCode,body.expectedPrevious,user.uid);
+      res.json({connected:true});return;
+    }
     if (action === 'pair-create') {
       const invitation = randomBytes(32).toString('hex');
       const result = await createPairing(db,hash(invitation),randomBytes(8).toString('hex'),user.uid);
@@ -112,10 +129,12 @@ export const doctorAssistant = onRequest({region:'asia-south1',secrets:[key],tim
     const tablet = await device(req,deviceCode);
     if (action === 'poll') {
       await tablet.ref.update({lastSeen:Date.now()});
+      if(tablet.waiting){res.json({approved:false,session:null});return;}
       const session = tablet.sessionId ? await getSession(tablet.sessionId,deviceCode) : null;
       // Only the minimum patient identity and this device's own transcript are exposed.
-      res.json({session:session ? {id:tablet.sessionId,status:session.status,stopRequested:Boolean(session.stopRequested),patient:{name:session.patient.name,patientId:session.patient.patientId,age:session.patient.age,sex:session.patient.sex},transcript:['waiting','active','ending'].includes(session.status) ? session.transcript || [] : []} : null});return;
+      res.json({approved:true,session:session ? {id:tablet.sessionId,status:session.status,stopRequested:Boolean(session.stopRequested),patient:{name:session.patient.name,patientId:session.patient.patientId,age:session.patient.age,sex:session.patient.sex},transcript:['waiting','active','ending'].includes(session.status) ? session.transcript || [] : []} : null});return;
     }
+    if(tablet.waiting)throw new Error('Patient device is awaiting staff approval.');
     const session = await getSession(sessionId,deviceCode);
     if (action === 'end-empty') {
       await abandonEmptySession(db,sessionId);res.json({ended:true});return;

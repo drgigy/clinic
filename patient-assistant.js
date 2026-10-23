@@ -4,17 +4,13 @@ import {createIcons, Mic, Send, Stethoscope, Languages, AudioLines, Square, Shie
 createIcons({icons:{Mic,Send,Stethoscope,Languages,AudioLines,Square,ShieldCheck}});
 const $ = id => document.getElementById(id);
 let device = JSON.parse(localStorage.getItem('clinicAssistantDeviceAuth') || sessionStorage.getItem('clinicAssistantDeviceAuth') || 'null');
-const invitation = new URLSearchParams(location.hash.slice(1)).get('pair');
-if(invitation){
-  history.replaceState(null,'',location.pathname+location.search);
-  if(/^[a-f0-9]{64}$/.test(invitation)){
-    const previous=JSON.parse(sessionStorage.getItem('clinicAssistantPairing')||'null');
-    if(previous?.invitation!==invitation){
-      const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
-      sessionStorage.setItem('clinicAssistantPairing',JSON.stringify({invitation,token}));
-    }
-  }
-}
+if(location.hash)history.replaceState(null,'',location.pathname+location.search);
+sessionStorage.removeItem('clinicAssistantPairing');
+let deviceWork=null;
+const ua=navigator.userAgent;
+const browserLabel=/Edg\//.test(ua)?'Edge':/Chrome|CriOS/.test(ua)?'Chrome':/Firefox|FxiOS/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'Browser';
+const platformLabel=/iPad/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)?'iPad':/iPhone/.test(ua)?'iPhone':/Android/.test(ua)?'Android':/Mac/.test(ua)?'Mac':/Windows/.test(ua)?'Windows':'device';
+const deviceLabel=`${browserLabel} on ${platformLabel}`;
 let current = null;
 let transcript = [];
 let live = null;
@@ -39,6 +35,19 @@ const api = (action,body={}) => assistantRequest(action,{deviceCode:device?.devi
 const error = message => {$('error').textContent=message;};
 const status = message => {$('sessionStatus').textContent=message;document.body.dataset.voice=message.toLowerCase();};
 const replyLanguage = () => document.querySelector('input[name="language"]:checked').value;
+async function ensureDevice(){
+  if(deviceWork)return deviceWork;
+  deviceWork=(async()=>{
+    if(device){
+      try{await api('poll');return;}
+      catch(e){if(!e.message.startsWith('Patient device disconnected or expired'))throw e;device=null;localStorage.removeItem('clinicAssistantDeviceAuth');sessionStorage.removeItem('clinicAssistantDeviceAuth');}
+    }
+    localStorage.setItem('clinicAssistantStorageCheck','1');localStorage.removeItem('clinicAssistantStorageCheck');
+    device=await assistantRequest('device-request',{label:deviceLabel});
+    localStorage.setItem('clinicAssistantDeviceAuth',JSON.stringify(device));
+  })();
+  try{await deviceWork;}finally{deviceWork=null;}
+}
 function persist(){
   try{sessionStorage.setItem(storageKey(current.id),JSON.stringify(transcript));}
   catch{error('This device could not keep a local recovery copy. Keep the page open until saving is confirmed.');}
@@ -86,6 +95,7 @@ function play(data){
 }
 async function startVoice(){
   if(starting || live || finishing)return;
+  if(!stream){await enable();if(!stream)return;}
   const generation=++voiceGeneration;
   starting=true;$('languagePicker').disabled=true;$('resume').hidden=true;$('confirmIdentity').disabled=true;error('');status('Connecting…');
   try{
@@ -122,17 +132,6 @@ async function startVoice(){
 async function enable(){
   $('enable').disabled=true;error('');
   try{
-    const pairing=JSON.parse(sessionStorage.getItem('clinicAssistantPairing')||'null');
-    if(pairing){
-      // Check persistence before consuming the single-use QR invitation.
-      localStorage.setItem('clinicAssistantStorageCheck','1');localStorage.removeItem('clinicAssistantStorageCheck');
-      const result=await assistantRequest('pair-claim',pairing);
-      device={deviceCode:result.deviceCode,token:pairing.token};
-      localStorage.setItem('clinicAssistantDeviceAuth',JSON.stringify(device));
-      sessionStorage.removeItem('clinicAssistantPairing');sessionStorage.removeItem('clinicAssistantDeviceAuth');
-    }
-    if(!device)throw new Error('Ask clinic staff to open Home > Connect Patient Device, then scan the QR code with this device.');
-    await api('poll');
     output ||= new AudioContext({sampleRate:24000});await output.resume();
     stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     stream.getAudioTracks().forEach(track=>{track.enabled=false;});
@@ -145,9 +144,10 @@ async function enable(){
       live.sendRealtimeInput({audio:{data:btoa(binary),mimeType:`audio/pcm;rate=${input.sampleRate}`}});
     };
     microphone.connect(processor);processor.connect(input.destination);
+    await ensureDevice();
     enabled=true;$('enable').hidden=true;$('pairing').hidden=false;
     $('waitingTitle').textContent='Ready for your consultation';$('waitingText').textContent='Please wait for the clinic staff.';$('connection').textContent='Connected';await poll();
-  }catch(e){error(e.message);stream?.getTracks().forEach(t=>t.stop());await input?.close();input=null;}
+  }catch(e){error(e.message);stream?.getTracks().forEach(t=>t.stop());stream=null;await input?.close();input=null;}
   finally{$('enable').disabled=false;}
 }
 async function finish(){
@@ -179,7 +179,14 @@ async function poll(){
   if(!enabled||pollBusy||finishing)return;
   pollBusy=true;
   try{
-    const {session}=await api('poll');$('connection').textContent='Connected';
+    const {session,approved}=await api('poll');
+    if(approved===false){
+      $('connection').textContent='Awaiting approval';$('waitingTitle').textContent='Waiting for clinic staff';
+      $('waitingText').textContent=`${deviceLabel} is ready for staff approval.`;
+      $('pairing').hidden=true;return;
+    }
+    $('connection').textContent='Connected';$('pairing').hidden=false;
+    if(!current&&$('waitingTitle').textContent==='Waiting for clinic staff'){$('waitingTitle').textContent='Ready for your consultation';$('waitingText').textContent='Please wait for the clinic staff.';}
     if(session && ['completed','abandoned'].includes(session.status)){
       if(current)completed(session.status==='completed'?'Your answers have been saved for the doctor. Thank you.':'The staff ended this session.');
       return;
@@ -202,6 +209,7 @@ async function poll(){
   finally{pollBusy=false;}
 }
 $('enable').onclick=enable;
+ensureDevice().then(async()=>{enabled=true;await poll();}).catch(e=>error(e.message));
 $('languagePicker').onchange=async()=>{
   $('messages').lang=replyLanguage()==='ml'?'ml':replyLanguage()==='en'?'en':'';
   if(live&&!finishing&&!starting){

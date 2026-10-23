@@ -60,7 +60,7 @@ export async function startAssistantSession(db, sessionId, appointmentId, device
     const patientRef = db.doc(`patients/${appointmentId}`);
     const [lock, device, patient] = await Promise.all([tx.get(lockRef),tx.get(deviceRef),tx.get(patientRef)]);
     if (lock.data()?.sessionId) throw new Error('Another patient conversation is still active. Finish it first.');
-    if (!deviceAvailable(device.data()) || device.data().lastSeen < Date.now()-30000) throw new Error('Patient device is offline or disconnected. Open patient.html and enable the device.');
+    if (!deviceAvailable(device.data()) || device.data().waiting || device.data().lastSeen < Date.now()-30000) throw new Error('Patient device is offline, awaiting approval, or disconnected. Open patient.html and connect the device from Home.');
     if (!patient.exists) throw new Error('Patient not found.');
     const p = patient.data();
     const patientId = String(p.patientId || p.uhid || p.idNumber || '').trim();

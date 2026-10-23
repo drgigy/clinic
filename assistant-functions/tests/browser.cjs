@@ -14,7 +14,7 @@ const root=path.resolve(__dirname,'../..');
   const originalCopy=JSON.stringify(original);
   const summary=Object.fromEntries(sections.map(([key])=>[key,'Not reported']));summary.presentingComplaints='Headache';summary.provisionalDiagnosis='DOCTOR ONLY ASSESSMENT';
   let session=null,active=null,transcript=[],notes=[...original],finishAttempts=0,failNextFinish=true;
-  let pairedDevice=null,claims=0;const invitation='a'.repeat(64);
+  let pairedDevice=null,claims=0,registrations=0;
   const writes=[];const errors=[];const requestedLanguages=[];
   const server=http.createServer(async(req,res)=>{try{const name=new URL(req.url,'http://local').pathname;const file=path.join(root,name==='/'?'index.html':name);if(!file.startsWith(root+path.sep))throw Error();const bytes=await fs.readFile(file);res.setHeader('Content-Type',file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'text/javascript');res.end(bytes);}catch{res.statusCode=404;res.end();}});
   await new Promise(resolve=>server.listen(8879,'127.0.0.1',resolve));
@@ -34,13 +34,14 @@ const root=path.resolve(__dirname,'../..');
     await context.route('https://asia-south1-clinic-app-cccc0.cloudfunctions.net/doctorAssistant',async route=>{
       if(route.request().method()==='OPTIONS'){await route.fulfill({status:204,headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'content-type,authorization,x-device-token','Access-Control-Allow-Methods':'POST,OPTIONS'}});return;}
       const b=route.request().postDataJSON();let result={},code=200;
-      if(b.action==='pair-create')result={invitation,expiresAt:Date.now()+300000};
-      else if(b.action==='pair-claim'){assert.equal(b.invitation,invitation);claims++;pairedDevice={deviceCode:'0123456789abcdef',online:true};result={deviceCode:pairedDevice.deviceCode};}
+      if(b.action==='device-request'){registrations++;result={deviceCode:'0123456789abcdef',token:'fake-device-token'};}
+      else if(b.action==='device-list')result={waiting:registrations&&!pairedDevice?[{deviceCode:'0123456789abcdef',label:'Chrome on Mac',createdAt:Date.now()}]:[]};
+      else if(b.action==='device-approve'){claims++;pairedDevice={deviceCode:'0123456789abcdef',online:true};result={connected:true};}
       else if(b.action==='status')result={active,pairedDevice};
       else if(b.action==='start'){
         if(active){code=400;result={error:'Another patient conversation is active.'};}
         else{const patient=patients.find(p=>p.id===b.appointmentId);session={id:'session-test',status:'waiting',patient,transcript:[]};active={sessionId:session.id,appointmentId:patient.id,patientName:patient.name};result={sessionId:session.id};}
-      }else if(b.action==='poll')result={session:session?{...session,transcript}:null};
+      }else if(b.action==='poll')result={approved:Boolean(pairedDevice),session:pairedDevice&&session?{...session,transcript}:null};
       else if(b.action==='token'){requestedLanguages.push(b.language);session.status='active';result={token:'fake',model:'test',liveConfig:{}};}
       else if(b.action==='checkpoint'){transcript=b.transcript;result={saved:true};}
       else if(b.action==='finish'){
@@ -56,25 +57,27 @@ const root=path.resolve(__dirname,'../..');
     await staff.locator('[data-main-tab="staff"]').first().click();
     await staff.locator('[data-doctor-assistant="testA"]').waitFor();
     await staff.waitForFunction(()=>!document.querySelector('[data-doctor-assistant="testA"]').disabled);
+    const tablet=await context.newPage();tablet.on('pageerror',e=>errors.push('tablet: '+e.message));
+    await tablet.goto('http://127.0.0.1:8879/patient.html');
+    await tablet.waitForFunction(()=>document.getElementById('connection').textContent==='Awaiting approval');
+    assert.equal(await tablet.locator('#conversation').isVisible(),false,'no patient details before approval');
     await staff.locator('#pairPatientDeviceBtn').evaluate(button=>button.click());
-    await staff.locator('.pair-qr canvas').waitFor();
-    assert.equal(await staff.locator('.pair-qr canvas').evaluate(canvas=>{const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;return pixels.some((value,i)=>i%4===0&&value===0)&&pixels.some((value,i)=>i%4===0&&value===255);}),true);
+    await staff.locator('[data-connect-device]').waitFor();
     await fs.mkdir('/private/tmp/clinic-assistant-review',{recursive:true});
     await staff.screenshot({path:'/private/tmp/clinic-assistant-review/pairing-desktop.png'});
     await staff.setViewportSize({width:390,height:844});
-    assert.equal(await staff.locator('.assistant-pair-dialog').evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}),true,'QR dialog must fit mobile viewport');
+    assert.equal(await staff.locator('.assistant-pair-dialog').evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}),true,'approval dialog must fit mobile viewport');
     await staff.screenshot({path:'/private/tmp/clinic-assistant-review/pairing-mobile.png'});
     await staff.setViewportSize({width:1440,height:1000});
-    const tablet=await context.newPage();tablet.on('pageerror',e=>errors.push('tablet: '+e.message));
-    await tablet.goto('http://127.0.0.1:8879/patient.html#pair='+invitation);
-    assert.equal(await tablet.evaluate(()=>location.hash),'','pairing secret must be removed from address');
+    await staff.locator('[data-connect-device]').click();
     await tablet.locator('label:has(input[value="ml"])').click();
     await tablet.locator('#enable').click();await tablet.locator('#pairing').waitFor({state:'visible'});
     assert.equal(claims,1);
     assert.equal(await tablet.evaluate(()=>Boolean(localStorage.getItem('clinicAssistantDeviceAuth'))),true);
     await tablet.reload();
     await tablet.locator('#enable').click();await tablet.locator('#pairing').waitFor({state:'visible'});
-    assert.equal(claims,1,'reopening must not require a second QR claim');
+    assert.equal(claims,1,'reopening must not require a second staff approval');
+    assert.equal(registrations,1,'reopening must reuse the remembered credential');
     await tablet.locator('label:has(input[value="ml"])').click();
     await staff.locator('.assistant-pair-dialog .pair-close').click();
     await staff.locator('[data-doctor-assistant="testA"]').click();
@@ -112,7 +115,7 @@ const root=path.resolve(__dirname,'../..');
     await reopened.goto('http://127.0.0.1:8879/patient.html');
     assert.equal(await reopened.evaluate(()=>sessionStorage.getItem('clinicAssistantDeviceAuth')),null);
     await reopened.locator('#enable').click();await reopened.locator('#pairing').waitFor({state:'visible'});
-    assert.equal(claims,1,'a new tab with no session credentials must reuse the remembered device');
+    assert.equal(claims,1,'a new tab with no session credentials must reuse the remembered approval');
     await reopened.close();
     await staff.evaluate(notes=>{window.__data.medicalRecords=notes;window.__listeners.medicalRecords();},notes);
     await staff.locator('[data-medical-record="testA"]').click();

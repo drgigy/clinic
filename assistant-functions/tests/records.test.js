@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPairing,claimPairing,disconnectDevice,deviceAvailable} from '../pairing.js';
+import {createPairing,claimPairing,disconnectDevice,deviceAvailable,approveWaitingDevice} from '../pairing.js';
 import {appendAssistantNote,startAssistantSession,saveTranscript,freezeTranscript,abandonEmptySession,makeAssistantRecord,validateTranscript,sections} from '../records.js';
 
 // An atomic, serial transaction store: tests exercise the same read/create/update
@@ -23,6 +23,25 @@ class Store {
   }
 }
 const patient={name:'Test Patient',patientId:'TEST-1',mobile:'',age:'30',sex:'Female'};
+test('waiting device cannot start before staff approval; approval is persistent and changes no clinical data',async()=>{
+  const db=new Store({'patients/appointment':patient,'medicalRecords/old':{note:'untouched'},'assistantDevices/waiting':{waiting:true,lastSeen:Date.now(),expiresAt:Date.now()+60000}});
+  await assert.rejects(startAssistantSession(db,'session','appointment','waiting','staff'),/awaiting approval/);
+  await approveWaitingDevice(db,'waiting',null,'staff');
+  await approveWaitingDevice(db,'waiting',null,'staff');
+  assert.equal(db.rows.get('assistantDevices/waiting').waiting,false);
+  assert.equal(deviceAvailable(db.rows.get('assistantDevices/waiting'),Date.now()+365*86400000),true);
+  assert.equal(db.writes.some(([,path])=>/^(patients|medicalRecords)\//.test(path)),false);
+});
+test('staff approval rejects offline, expired, conflicting and active-session replacements',async()=>{
+  const now=Date.now();
+  const db=new Store({'assistantDevices/one':{waiting:true,lastSeen:now,expiresAt:now+60000},'assistantDevices/two':{waiting:true,lastSeen:now,expiresAt:now+60000},'assistantDevices/offline':{waiting:true,lastSeen:now-60000,expiresAt:now+60000}});
+  await assert.rejects(approveWaitingDevice(db,'offline',null,'staff'),/no longer waiting/);
+  await assert.rejects(approveWaitingDevice(db,'one',null,'staff',now+70000),/no longer waiting/);
+  const results=await Promise.allSettled([approveWaitingDevice(db,'one',null,'staff'),approveWaitingDevice(db,'two',null,'staff')]);
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  db.rows.set('assistantControl/active',{sessionId:'active'});
+  await assert.rejects(approveWaitingDevice(db,'two','one','staff'),/active/);
+});
 test('QR claim is single-device, retryable, persistent, revocable and preserves clinical data',async()=>{
   const db=new Store({'patients/p':{name:'Untouched'},'medicalRecords/n':{note:'Untouched'}});
   await createPairing(db,'invite','device','staff',1000);
