@@ -1,0 +1,3 @@
+{
+  "functions": [{ "source": "assistant-functions", "codebase": "doctor-assistant", "runtime": "nodejs22" }]
+}

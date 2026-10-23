@@ -671,6 +671,7 @@
               <button class="secondary" type="button" data-main-tab="whatsapp">WhatsApp Preview</button>
               <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
               <button class="secondary" type="button" id="openRecordAuditBtn">Record Audit</button>
+              <button class="secondary" type="button" id="pairPatientDeviceBtn">Pair Patient Device</button>
               <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
               <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
             </nav>
@@ -1201,6 +1202,7 @@
     <div class="medical-print-content" id="medicalPrintContent"></div>
 
     <script type="module">
+      import { doctorAssistantButton, installDoctorAssistant } from "./doctor-assistant.js";
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
       import {
         getFirestore,
@@ -1891,6 +1893,7 @@
         return medicalRecords.some((record) => {
           const recordDay = record.date || recordTimestamp(record).slice(0, 10);
           const kind = record.recordKind || "visit";
+          if (kind === "assistant") return false;
           const rawContent = record.docs?.visit || record.noteHtml || record.note || "";
           const hasContent = ["prescription", "certificate", "reply", "summary"].includes(kind)
             ? Boolean(htmlToPlainText(rawContent).trim())
@@ -2060,6 +2063,7 @@
         return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
       }
       function ambientModeLabel(mode = activeAmbientMode) {
+        if (mode === "assistant") return "Assistant Note";
         if (mode === "summary") return "Smart Chart";
         if (mode === "addon") return "Add On";
         return ambientModes[mode] || ambientModes.visit;
@@ -3410,7 +3414,7 @@ ${source}`);
           ${rows.length ? rows.map((record) => `
           <div class="record-entry-row">
             <button class="secondary previous-record ${activeRecordView === "single" && record.id === activeRecordId ? "active" : ""}" type="button" data-open-record="${record.id}">
-              <strong>${hasSavedMedicalContent(record) ? "" : "Empty note - "}${record.source === "ambient" ? `${ambientModeLabel(record.recordKind || "visit")} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</strong>
+              <strong>${hasSavedMedicalContent(record) ? "" : "Empty note - "}${["ambient", "assistant"].includes(record.source) ? `${ambientModeLabel(record.recordKind || "visit")} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</strong>
               ${hasSavedMedicalContent(record) ? "" : "<span>No document text saved</span>"}
             </button>
           </div>
@@ -3435,6 +3439,7 @@ ${source}`);
       function deleteMedicalEntry(recordId) {
         const record = medicalRecords.find((item) => item.id === recordId);
         if (!record) return;
+        if (record.recordKind === "assistant") return;
         if (!confirm(`Delete medical note from ${dateTimeLabel(recordTimestamp(record))}?`)) return;
         medicalRecords = medicalRecords.filter((item) => item.id !== recordId);
         deleteMedicalRecordFromCloud(recordId);
@@ -3767,7 +3772,7 @@ ${source}`);
       function timelineRecordBody(record) {
         const recordKind = record?.recordKind || "visit";
         const html = addOnRecordHtml(record) || record.docs?.visit || record.noteHtml || "";
-        if (["prescription", "certificate", "reply", "summary"].includes(recordKind)) {
+        if (["prescription", "certificate", "reply", "summary", "assistant"].includes(recordKind)) {
           return html || plainTextToHtml(record.note || "");
         }
         const source = html || record.note || "";
@@ -5296,7 +5301,7 @@ ${bulletList(advice, "No clear saved information.")}`;
             html: recordPrescriptionSourceHtml(record),
             kind: record.recordKind || "visit"
           }))
-          .filter((item) => !["certificate", "reply", "summary"].includes(item.kind))
+          .filter((item) => !["certificate", "reply", "summary", "assistant"].includes(item.kind))
           .find((item) => item.html && (item.kind === "prescription" || extractPrescriptionFromVisitHtml(item.html))) || null;
       }
       function savePrintedPrescriptionCopy(patient, prescriptionHtml, sourceRecord = null) {
@@ -5597,7 +5602,7 @@ ${bulletList(advice, "No clear saved information.")}`;
             : timelineRecordBody(record);
           return `
             <section class="timeline-entry" id="entry-${record.id}">
-              <h2>${record.source === "ambient" ? `${ambientModeLabel(recordKind)} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</h2>
+              <h2>${["ambient", "assistant"].includes(record.source) ? `${ambientModeLabel(recordKind)} - ` : ""}${dateTimeLabel(recordTimestamp(record))}</h2>
               <div>${bodyHtml}</div>
             </section>
           `;
@@ -5836,6 +5841,7 @@ ${bulletList(advice, "No clear saved information.")}`;
       async function saveActiveMedicalRecord() {
         const patient = activeRecordPatient();
         if (!patient) return false;
+        if (medicalRecords.find((record) => record.id === activeRecordId)?.recordKind === "assistant") return true;
         if (activeRecordView === "all") {
           $("#recordStatus").textContent = "Open a single entry before saving.";
           return false;
@@ -5975,15 +5981,15 @@ ${bulletList(advice, "No clear saved information.")}`;
         const recordHasContent = hasSavedMedicalContent(record);
         if (!recordHasContent) activeRecordDocs.visit = `<div class="empty compact">Empty saved entry. No document text was saved for this record.</div>`;
         else if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
-        else if (!["prescription", "certificate", "reply"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(activeRecordDocs.visit));
+        else if (!["prescription", "certificate", "reply", "assistant"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(activeRecordDocs.visit));
         activeRecordType = "visit";
-        $("#medicalNoteText").setAttribute("contenteditable", recordHasContent ? "true" : "false");
+        $("#medicalNoteText").setAttribute("contenteditable", recordHasContent && record.recordKind !== "assistant" ? "true" : "false");
         $("#medicalNoteText").innerHTML = activeRecordDocs.visit;
         setAmbientButtons();
-        $("#recordDeleteBtn").hidden = !record;
+        $("#recordDeleteBtn").hidden = !record || record.recordKind === "assistant";
         $("#recordDeleteBtn").title = "Delete note";
         $("#recordDeleteBtn").setAttribute("aria-label", "Delete note");
-        setRecordSaveControls(recordHasContent);
+        setRecordSaveControls(recordHasContent && record.recordKind !== "assistant");
         $("#recordStatus").textContent = recordHasContent ? "Saved note" : "Empty saved entry";
         activeRecordDirty = false;
         $("#medicalRecordScreen").classList.add("open");
@@ -6178,6 +6184,7 @@ ${bulletList(advice, "No clear saved information.")}`;
                   ${status}
                   ${patientWhatsAppButton(p)}
                   <button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button>
+                  ${doctorAssistantButton(p.id)}
                 </div>
               </div>
             </div>
@@ -6188,7 +6195,7 @@ ${bulletList(advice, "No clear saved information.")}`;
             <div class="consult-head"><div class="consult-title"><b>${afterPatientLine(p)}</b></div><div class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div>
             <div class="post-consult-block">
               <div class="post-consult-left">
-                <div class="attendance-actions patient-row-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button><button class="secondary" data-edit-patient="${p.id}" type="button">Edit</button></div>
+                <div class="attendance-actions patient-row-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button><button class="secondary" data-edit-patient="${p.id}" type="button">Edit</button>${doctorAssistantButton(p.id)}</div>
                 <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
               </div>
               <div class="payment-group">
@@ -7470,6 +7477,7 @@ ${bulletList(advice, "No clear saved information.")}`;
       window.addEventListener("beforeunload", () => {
         stopAmbientTracks({ releaseMic: true });
       });
+      installDoctorAssistant({ auth, render: renderAfterList });
       onAuthStateChanged(auth, (user) => {
         if (user) {
           document.body.classList.remove("auth-locked");

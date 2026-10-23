@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Doctor Assistant | Dr Gigy's Neuro Clinic</title>
+  <link rel="stylesheet" href="patient-assistant.css">
+</head>
+<body>
+  <header><div><span class="clinic">Dr Gigy's Neuro Clinic</span><h1>Doctor Assistant</h1></div><span id="connection" role="status">Not connected</span></header>
+  <main>
+    <section id="waiting">
+      <div class="microphone" aria-hidden="true"><i data-lucide="mic"></i></div>
+      <h2 id="waitingTitle">Welcome</h2>
+      <p id="waitingText">Please enable this device and wait for the clinic staff.</p>
+      <button id="enable" type="button">Enable Device</button>
+      <p id="pairing" hidden>Pairing code <strong id="deviceCode"></strong></p>
+    </section>
+    <section id="conversation" hidden>
+      <div class="patient-heading"><div><h2 id="patientName"></h2><p id="patientIdentity"></p></div><span id="sessionStatus" role="status">Ready</span></div>
+      <div id="identityCheck"><p>Is this your name and patient ID?</p><button id="confirmIdentity" type="button">Yes, this is me</button><button id="wrongIdentity" class="secondary" type="button">This is not me</button></div>
+      <div id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+      <form id="messageForm" hidden><label class="sr-only" for="message">Your answer</label><input id="message" autocomplete="off" placeholder="Type your answer"><button type="submit" aria-label="Send answer" title="Send answer"><i data-lucide="send"></i></button></form>
+      <div class="controls"><button id="resume" class="secondary" hidden type="button">Resume Conversation</button><button id="stop" hidden type="button">Stop Conversation</button></div>
+    </section>
+    <p id="error" role="alert"></p>
+  </main>
+  <footer>Patient history for your doctor's review</footer>
+  <script type="module" src="patient-assistant.js"></script>
+</body>
+</html>
