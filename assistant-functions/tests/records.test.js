@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createPairing,claimPairing,disconnectDevice,deviceAvailable} from '../pairing.js';
 import {appendAssistantNote,startAssistantSession,saveTranscript,freezeTranscript,abandonEmptySession,makeAssistantRecord,validateTranscript,sections} from '../records.js';
 
 // An atomic, serial transaction store: tests exercise the same read/create/update
@@ -22,6 +23,41 @@ class Store {
   }
 }
 const patient={name:'Test Patient',patientId:'TEST-1',mobile:'',age:'30',sex:'Female'};
+test('QR claim is single-device, retryable, persistent, revocable and preserves clinical data',async()=>{
+  const db=new Store({'patients/p':{name:'Untouched'},'medicalRecords/n':{note:'Untouched'}});
+  await createPairing(db,'invite','device','staff',1000);
+  assert.deepEqual(await claimPairing(db,'invite','token',2000),{deviceCode:'device'});
+  assert.deepEqual(await claimPairing(db,'invite','token',3000),{deviceCode:'device'});
+  await assert.rejects(claimPairing(db,'invite','other',3000),/already been used/);
+  assert.equal(deviceAvailable(db.rows.get('assistantDevices/device'),Date.now()+365*86400000),true);
+  await disconnectDevice(db);
+  assert.equal(deviceAvailable(db.rows.get('assistantDevices/device')),false);
+  await assert.rejects(claimPairing(db,'invite','token',4000),/already been used/);
+  assert.equal(db.writes.some(([,path])=>/^(patients|medicalRecords)\//.test(path)),false);
+});
+test('QR expiration, supersession and active conversations prevent pairing mutations',async()=>{
+  const db=new Store({});
+  await createPairing(db,'old','oldDevice','staff',1000);
+  await createPairing(db,'new','newDevice','staff',2000);
+  await assert.rejects(claimPairing(db,'old','token',3000),/replaced/);
+  await assert.rejects(claimPairing(db,'new','token',302000),/expired/);
+  db.rows.set('assistantControl/active',{sessionId:'active'});
+  const before=JSON.stringify([...db.rows]);
+  await assert.rejects(claimPairing(db,'new','token',3000),/active/);
+  await assert.rejects(createPairing(db,'third','thirdDevice','staff',3000),/active/);
+  await assert.rejects(disconnectDevice(db),/active/);
+  assert.equal(JSON.stringify([...db.rows]),before);
+});
+test('concurrent scanners cannot share a QR and replacement revokes previous device',async()=>{
+  const db=new Store({});
+  await createPairing(db,'one','oneDevice','staff');
+  const results=await Promise.allSettled([claimPairing(db,'one','token1'),claimPairing(db,'one','token2')]);
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  await createPairing(db,'two','twoDevice','staff');
+  await claimPairing(db,'two','token3');
+  assert.equal(deviceAvailable(db.rows.get('assistantDevices/oneDevice')),false);
+  assert.equal(deviceAvailable(db.rows.get('assistantDevices/twoDevice')),true);
+});
 const answers=[{role:'assistant',text:'What brings you here?'},{role:'patient',text:'A headache since yesterday. Levipil 1 gram is a current medicine.'}];
 const summary=Object.fromEntries(sections.map(([key])=>[key,'Not reported']));
 summary.currentMedication='Levipil 1 gram, patient reported. Schedule not reported.';

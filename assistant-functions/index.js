@@ -6,6 +6,7 @@ import {getAuth} from 'firebase-admin/auth';
 import {getFirestore} from 'firebase-admin/firestore';
 import {GoogleGenAI} from '@google/genai';
 import {interviewPromptForLanguage, notePrompt} from './prompts.js';
+import {deviceAvailable, createPairing, claimPairing, disconnectDevice} from './pairing.js';
 import {appendAssistantNote, startAssistantSession, saveTranscript, freezeTranscript, abandonEmptySession, validateNote} from './records.js';
 
 initializeApp();
@@ -13,7 +14,7 @@ const db = getFirestore();
 const key = defineSecret('DOCTOR_ASSISTANT_GEMINI_KEY');
 const hash = text => createHash('sha256').update(text).digest('hex');
 const validId = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,150}$/.test(value);
-const staffActions = new Set(['start','status','staff-finish','abandon']);
+const staffActions = new Set(['start','status','staff-finish','abandon','pair-create','pair-disconnect']);
 
 async function staff(req) {
   const token = (req.headers.authorization || '').replace(/^Bearer /,'');
@@ -26,7 +27,7 @@ async function device(req, code) {
   const snapshot = await ref.get();
   const token = String(req.headers['x-device-token'] || '');
   const saved = snapshot.data();
-  if (!saved || saved.expiresAt < Date.now() || !token || !timingSafeEqual(Buffer.from(hash(token)), Buffer.from(saved.tokenHash))) throw new Error('Patient device expired. Enable this device again.');
+  if (!deviceAvailable(saved) || !token || !timingSafeEqual(Buffer.from(hash(token)), Buffer.from(saved.tokenHash))) throw new Error('Patient device disconnected or expired. Ask staff to connect this device again.');
   return {ref, ...saved};
 }
 async function getSession(id, code) {
@@ -58,6 +59,18 @@ export const doctorAssistant = onRequest({region:'asia-south1',secrets:[key],tim
   const {action,sessionId,deviceCode} = body;
   try {
     const user = staffActions.has(action) ? await staff(req) : null;
+    if (action === 'pair-create') {
+      const invitation = randomBytes(32).toString('hex');
+      const result = await createPairing(db,hash(invitation),randomBytes(8).toString('hex'),user.uid);
+      res.json({...result,invitation});return;
+    }
+    if (action === 'pair-claim') {
+      if (!/^[a-f0-9]{64}$/.test(body.invitation || '') || !/^[a-f0-9]{64}$/.test(body.token || '')) throw new Error('Invalid device pairing.');
+      res.json(await claimPairing(db,hash(body.invitation),hash(body.token)));return;
+    }
+    if (action === 'pair-disconnect') {
+      await disconnectDevice(db);res.json({disconnected:true});return;
+    }
     if (action === 'register') {
       const code = randomBytes(8).toString('hex');
       const token = randomBytes(32).toString('hex');
@@ -68,12 +81,15 @@ export const doctorAssistant = onRequest({region:'asia-south1',secrets:[key],tim
       const lock = (await db.doc('assistantControl/active').get()).data();
       let status = null;
       if (lock?.sessionId) status = (await getSession(lock.sessionId)).status;
-      res.json({active:lock?.sessionId ? {...lock,status} : null});return;
+      const code = (await db.doc('assistantControl/device').get()).data()?.deviceCode;
+      const paired = code ? (await db.doc(`assistantDevices/${code}`).get()).data() : null;
+      res.json({active:lock?.sessionId ? {...lock,status} : null,pairedDevice:deviceAvailable(paired) ? {deviceCode:code,online:paired.lastSeen>Date.now()-30000} : null});return;
     }
     if (action === 'start') {
-      if (!validId(body.appointmentId) || !validId(deviceCode)) throw new Error('Choose a patient and pair the patient device.');
+      const pairedCode = (await db.doc('assistantControl/device').get()).data()?.deviceCode || deviceCode;
+      if (!validId(body.appointmentId) || !validId(pairedCode)) throw new Error('Choose a patient and connect the patient device from Home.');
       const id = randomBytes(16).toString('hex');
-      await startAssistantSession(db,id,body.appointmentId,deviceCode,user.uid);
+      await startAssistantSession(db,id,body.appointmentId,pairedCode,user.uid);
       res.json({sessionId:id});return;
     }
     if (action === 'abandon') {

@@ -1,4 +1,5 @@
 import {assistantRequest} from './assistant-config.js';
+import {pairingDialog} from './assistant-pairing.js';
 
 let active = null;
 let ready = false;
@@ -18,6 +19,8 @@ export function installDoctorAssistant({auth,render}) {
     return assistantRequest(action,body,{Authorization:`Bearer ${token}`});
   };
   let polling = false;
+  let pairedDevice = null;
+  const openPairing = pairingDialog(api,refresh);
   async function refresh() {
     if (!auth.currentUser || polling || document.hidden) return;
     polling = true;
@@ -25,12 +28,13 @@ export function installDoctorAssistant({auth,render}) {
       const result = await api('status');
       const changed = !ready || JSON.stringify(active) !== JSON.stringify(result.active);
       active = result.active;
+      pairedDevice = result.pairedDevice;
       // The backend returns the appointment binding; lock ownership is clinic-wide.
       ready = true; failure = '';
       if (changed) render();
     } catch {
       const changed = ready;
-      ready = false;failure = 'Assistant connection unavailable. Use Home > Pair Patient Device to retry.';
+      ready = false;failure = 'Assistant connection unavailable. Use Home > Connect Patient Device to retry.';
       if (changed) render();
     } finally {polling = false;}
   }
@@ -38,12 +42,7 @@ export function installDoctorAssistant({auth,render}) {
     const button = event.target.closest('button');
     if (!button || busy) return;
     if (button.id === 'pairPatientDeviceBtn') {
-      const value = prompt('Open patient.html on the patient device, press Enable Device, and enter its pairing code here.',localStorage.getItem('clinicAssistantDevice') || '');
-      if (value === null) return;
-      const code = value.trim().toLowerCase();
-      if (!/^[a-f0-9]{16}$/.test(code)) {alert('Enter the 16-character pairing code shown on the patient device.');return;}
-      localStorage.setItem('clinicAssistantDevice',code);
-      await refresh();
+      await openPairing();
       return;
     }
     const appointmentId = button.dataset.doctorAssistant;
@@ -61,12 +60,10 @@ export function installDoctorAssistant({auth,render}) {
         }
         alert(requested ? 'Stop requested on the patient device. The session will unlock after saving.' : 'The assistant session has ended. Existing records were not changed.');
       } else {
-        let code = localStorage.getItem('clinicAssistantDevice');
-        if (!code) code = prompt('Enter the pairing code shown on patient.html on the patient device.');
-        if (!code) return;
-        code = code.trim().toLowerCase();
+        await refresh();
+        const code = pairedDevice?.deviceCode;
+        if (!code) {await openPairing();return;}
         await api('start',{appointmentId,deviceCode:code});
-        localStorage.setItem('clinicAssistantDevice',code);
       }
     } catch (error) {alert(error.message);}
     finally {busy = false;await refresh();render();}

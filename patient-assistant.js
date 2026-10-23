@@ -3,7 +3,18 @@ import {createIcons, Mic, Send, Stethoscope, Languages, AudioLines, Square, Shie
 
 createIcons({icons:{Mic,Send,Stethoscope,Languages,AudioLines,Square,ShieldCheck}});
 const $ = id => document.getElementById(id);
-let device = JSON.parse(sessionStorage.getItem('clinicAssistantDeviceAuth') || 'null');
+let device = JSON.parse(localStorage.getItem('clinicAssistantDeviceAuth') || sessionStorage.getItem('clinicAssistantDeviceAuth') || 'null');
+const invitation = new URLSearchParams(location.hash.slice(1)).get('pair');
+if(invitation){
+  history.replaceState(null,'',location.pathname+location.search);
+  if(/^[a-f0-9]{64}$/.test(invitation)){
+    const previous=JSON.parse(sessionStorage.getItem('clinicAssistantPairing')||'null');
+    if(previous?.invitation!==invitation){
+      const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
+      sessionStorage.setItem('clinicAssistantPairing',JSON.stringify({invitation,token}));
+    }
+  }
+}
 let current = null;
 let transcript = [];
 let live = null;
@@ -111,6 +122,17 @@ async function startVoice(){
 async function enable(){
   $('enable').disabled=true;error('');
   try{
+    const pairing=JSON.parse(sessionStorage.getItem('clinicAssistantPairing')||'null');
+    if(pairing){
+      // Check persistence before consuming the single-use QR invitation.
+      localStorage.setItem('clinicAssistantStorageCheck','1');localStorage.removeItem('clinicAssistantStorageCheck');
+      const result=await assistantRequest('pair-claim',pairing);
+      device={deviceCode:result.deviceCode,token:pairing.token};
+      localStorage.setItem('clinicAssistantDeviceAuth',JSON.stringify(device));
+      sessionStorage.removeItem('clinicAssistantPairing');sessionStorage.removeItem('clinicAssistantDeviceAuth');
+    }
+    if(!device)throw new Error('Ask clinic staff to open Home > Connect Patient Device, then scan the QR code with this device.');
+    await api('poll');
     output ||= new AudioContext({sampleRate:24000});await output.resume();
     stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     stream.getAudioTracks().forEach(track=>{track.enabled=false;});
@@ -123,9 +145,7 @@ async function enable(){
       live.sendRealtimeInput({audio:{data:btoa(binary),mimeType:`audio/pcm;rate=${input.sampleRate}`}});
     };
     microphone.connect(processor);processor.connect(input.destination);
-    if(device){try{await api('poll');}catch{device=null;}}
-    if(!device){device=await assistantRequest('register');sessionStorage.setItem('clinicAssistantDeviceAuth',JSON.stringify(device));}
-    enabled=true;$('enable').hidden=true;$('pairing').hidden=false;$('deviceCode').textContent=device.deviceCode;
+    enabled=true;$('enable').hidden=true;$('pairing').hidden=false;
     $('waitingTitle').textContent='Ready for your consultation';$('waitingText').textContent='Please wait for the clinic staff.';$('connection').textContent='Connected';await poll();
   }catch(e){error(e.message);stream?.getTracks().forEach(t=>t.stop());await input?.close();input=null;}
   finally{$('enable').disabled=false;}
