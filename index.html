@@ -290,6 +290,10 @@
       }
       .medical-textarea { width: 100%; min-height: 0; height: 100%; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.55; color: var(--ink); background: #fff; outline: none; }
       .medical-textarea b, .medical-textarea strong, .timeline-note-body strong { font-weight: 900; color: var(--ink); }
+      .assistant-note-body { font-family: inherit; font-size: inherit; line-height: inherit; }
+      .assistant-note-body h3 { font-family: inherit; font-size: 1em; line-height: inherit; font-weight: 900; color: var(--ink); margin: 0; }
+      .assistant-note-body p { margin: 0; }
+      .assistant-note-body > section { margin-top: 1.55em; }
       .ambient-panel { height: 100%; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; display: grid; place-items: center; padding: 26px; text-align: center; }
       .ambient-panel.result { display: block; padding: 0; border: 0; background: transparent; }
       .ambient-stage { display: grid; place-items: center; min-height: 0; width: min(780px, 100%); }
@@ -3772,6 +3776,7 @@ ${source}`);
       function timelineRecordBody(record) {
         const recordKind = record?.recordKind || "visit";
         const html = addOnRecordHtml(record) || record.docs?.visit || record.noteHtml || "";
+        if (recordKind === "assistant") return `<div class="assistant-note-body">${html || plainTextToHtml(record.note || "")}</div>`;
         if (["prescription", "certificate", "reply", "summary", "assistant"].includes(recordKind)) {
           return html || plainTextToHtml(record.note || "");
         }
@@ -5981,6 +5986,7 @@ ${bulletList(advice, "No clear saved information.")}`;
         const recordHasContent = hasSavedMedicalContent(record);
         if (!recordHasContent) activeRecordDocs.visit = `<div class="empty compact">Empty saved entry. No document text was saved for this record.</div>`;
         else if (activeAmbientMode === "summary") activeRecordDocs.visit = formattedTreatmentSummaryHtml(activeRecordDocs.visit);
+        else if (activeAmbientMode === "assistant") activeRecordDocs.visit = `<div class="assistant-note-body">${activeRecordDocs.visit}</div>`;
         else if (!["prescription", "certificate", "reply", "assistant"].includes(activeAmbientMode)) activeRecordDocs.visit = boldVisitNoteHeadingsHtml(normalizeVitalsInNoteText(activeRecordDocs.visit));
         activeRecordType = "visit";
         $("#medicalNoteText").setAttribute("contenteditable", recordHasContent && record.recordKind !== "assistant" ? "true" : "false");
