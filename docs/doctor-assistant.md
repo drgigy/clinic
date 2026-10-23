@@ -9,12 +9,13 @@ only to its assigned session, not to the patient's medical-record collection.
 1. Open `https://neuroclinic.woyz.in/patient.html` on the patient device.
    It automatically appears as a waiting device; no code or QR is needed.
 2. In the staff EMR choose **Home > Connect Patient Device** and click
-   **Connect** beside that browser. On the patient device press **Enable Device**
-   and permit microphone access. Keep this tab open.
+   **Connect** beside that browser. Keep the patient tab open; microphone access
+   is not requested while waiting.
 3. On later visits, open `https://neuroclinic.woyz.in/patient.html` in the same
-   browser and press **Enable Device**. Staff approval is remembered.
+   browser. Staff approval is remembered.
 4. Click **Doctor Assistant** next to the patient's Edit button. The device
-   displays the patient's identity; confirmation starts the voice interview.
+   displays the patient's name, age, sex and ID. Press the large microphone
+   **Start** button and allow microphone access to begin the voice interview.
 5. Press **Stop Conversation**. Wait for save confirmation. A separate
    **Assistant Note - date/time** appears in the medical-record sidebar.
 
@@ -26,6 +27,16 @@ transcript. The chat displays assistant questions only, not patient answers.
 Answers still enter the recovery transcript and doctor-only summary. This
 display change does not eliminate speech recognition errors; unclear words
 must be clarified and the resulting note reviewed by the doctor.
+
+The page fits the viewport, with scrolling confined to question history and
+long error messages. Patient identity and Stop Conversation remain visible.
+The interview opens with the clinic's Malayalam invitation (English equivalent
+for English mode), listens to the main account first, then asks brief optional
+questions about missing background details. Unknown or declined answers are
+not repeatedly pursued. Voice uses `gemini-3.8-live`; note generation uses
+`gemini-2.5-flash`. Audio capture requests 16 kHz PCM and speech detection allows
+1.5 seconds of silence to tolerate thinking pauses. Recognition accuracy and
+turn timing still need testing with real patient-device audio.
 
 Waiting devices receive no patient information until authenticated staff approve
 them. The waiting list shows the browser/platform and request time. Only online,

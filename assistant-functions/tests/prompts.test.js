@@ -14,3 +14,15 @@ test('fixed reply language accepts multilingual input without following its lang
     assert.match(interviewPromptForLanguage(language), /Ask for clarification when speech is unclear/);
   }
 });
+
+test('patient-led interview opens gently and never pressures patients to complete a checklist',()=>{
+  for(const language of ['ml','en','auto']){
+    const prompt=interviewPromptForLanguage(language);
+    assert.match(prompt,/ഡോക്ടറെ കാണുന്നതിന് മുമ്പ്/);
+    assert.match(prompt,/Do not ask their name again/);
+    assert.match(prompt,/let the patient describe their full story/);
+    assert.match(prompt,/Only after the main account is finished/);
+    assert.match(prompt,/Do not force the patient to answer/);
+    assert.match(prompt,/Uncollected details must remain Not reported/);
+  }
+});

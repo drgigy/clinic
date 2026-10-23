@@ -154,7 +154,7 @@ export const doctorAssistant = onRequest({region:'asia-south1',secrets:[key],tim
         if (!['waiting','active'].includes(s.status) || (s.connections || 0) >= 10) throw new Error('This conversation cannot be started again. Ask staff for help.');
         tx.update(session.ref,{status:'active',connections:(s.connections || 0)+1});
       });
-      const liveConfig = {responseModalities:['AUDIO'],inputAudioTranscription:{},outputAudioTranscription:{},speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}},systemInstruction};
+      const liveConfig = {responseModalities:['AUDIO'],inputAudioTranscription:{},outputAudioTranscription:{},realtimeInputConfig:{automaticActivityDetection:{disabled:false,endOfSpeechSensitivity:'END_SENSITIVITY_LOW',prefixPaddingMs:300,silenceDurationMs:1500}},speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Aoede'}}},systemInstruction};
       const model = 'gemini-3.8-live';
       const ai = new GoogleGenAI({apiKey:key.value(),httpOptions:{apiVersion:'v1beta'}});
       const token = await ai.authTokens.create({config:{uses:1,expireTime:new Date(Date.now()+30*60000).toISOString(),newSessionExpireTime:new Date(Date.now()+60000).toISOString(),liveConnectConstraints:{model,config:liveConfig}}});

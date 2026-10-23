@@ -95,10 +95,11 @@ function play(data){
 }
 async function startVoice(){
   if(starting || live || finishing)return;
-  if(!stream){await enable();if(!stream)return;}
   const generation=++voiceGeneration;
   starting=true;$('languagePicker').disabled=true;$('resume').hidden=true;$('confirmIdentity').disabled=true;error('');status('Connecting…');
   try{
+    if(!stream)await prepareMicrophone();
+    if(generation!==voiceGeneration||!current)return;
     await output.resume();await input.resume();
     const [{GoogleGenAI},credentials]=await Promise.all([import('https://esm.sh/@google/genai@1.45.0'),api('token',{sessionId:current.id,language:replyLanguage()})]);
     if(generation!==voiceGeneration)return;
@@ -122,20 +123,19 @@ async function startVoice(){
     if(generation!==voiceGeneration){session.close();return;}
     if(sessionClosed){session.close();throw new Error('Voice connection closed. Press Resume Conversation.');}
     live=session;stream.getAudioTracks().forEach(track=>{track.enabled=true;});
-    $('identityCheck').hidden=true;$('messageForm').hidden=false;$('stop').hidden=false;
-    const context=transcript.length ? `Continue this interview without repeating answered questions. Earlier transcript: ${JSON.stringify(transcript)}` : `The patient has confirmed this identity: ${JSON.stringify(current.patient)}. Greet them and begin collecting their presenting complaint.`;
+    $('identityCheck').hidden=true;$('conversation').classList.add('started');$('messageForm').hidden=false;$('stop').hidden=false;
+    const context=transcript.length ? `Continue this interview without repeating the introduction or answered questions. Earlier transcript: ${JSON.stringify(transcript)}` : `The patient has confirmed this identity by pressing Start: ${JSON.stringify(current.patient)}. Deliver the opening invitation in the configured reply language, then listen to their full account before asking follow-up questions. Do not ask their name again.`;
     live.sendClientContent({turns:[{role:'user',parts:[{text:context}]}],turnComplete:true});
     status('Listening');
-  }catch(e){stopVoice();error(e.message);$('resume').hidden=false;}
+  }catch(e){stopVoice();status('Ready');error(e.name==='NotAllowedError'?'Microphone permission is needed to talk. Allow microphone access in this browser, then press Start.':e.message);$('resume').hidden=!$('identityCheck').hidden;}
   finally{starting=false;$('confirmIdentity').disabled=false;$('languagePicker').disabled=finishing;}
 }
-async function enable(){
-  $('enable').disabled=true;error('');
+async function prepareMicrophone(){
   try{
     output ||= new AudioContext({sampleRate:24000});await output.resume();
     stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     stream.getAudioTracks().forEach(track=>{track.enabled=false;});
-    input=new AudioContext();await input.audioWorklet.addModule('assistant-mic-worklet.js');await input.resume();
+    input=new AudioContext({sampleRate:16000});await input.audioWorklet.addModule('assistant-mic-worklet.js');await input.resume();
     microphone=input.createMediaStreamSource(stream);processor=new AudioWorkletNode(input,'assistant-capture');
     processor.port.onmessage=event=>{
       if(!live||finishing)return;
@@ -144,11 +144,7 @@ async function enable(){
       live.sendRealtimeInput({audio:{data:btoa(binary),mimeType:`audio/pcm;rate=${input.sampleRate}`}});
     };
     microphone.connect(processor);processor.connect(input.destination);
-    await ensureDevice();
-    enabled=true;$('enable').hidden=true;$('pairing').hidden=false;
-    $('waitingTitle').textContent='Ready for your consultation';$('waitingText').textContent='Please wait for the clinic staff.';$('connection').textContent='Connected';await poll();
-  }catch(e){error(e.message);stream?.getTracks().forEach(t=>t.stop());stream=null;await input?.close();input=null;}
-  finally{$('enable').disabled=false;}
+  }catch(e){stream?.getTracks().forEach(t=>t.stop());stream=null;await input?.close();input=null;throw e;}
 }
 async function finish(){
   if(finishing||!current)return;
@@ -201,14 +197,14 @@ async function poll(){
     const local=JSON.parse(sessionStorage.getItem(storageKey(session.id))||'[]');const remote=session.transcript||[];
     transcript=local.length>=remote.length?local:remote;persist();
     $('waiting').hidden=true;$('conversation').hidden=false;$('patientName').textContent=session.patient.name;
-    $('patientIdentity').textContent=`Patient ID: ${session.patient.patientId}`;
+    $('patientIdentity').textContent=`Age: ${session.patient.age || 'Not recorded'} | Sex: ${session.patient.sex || 'Not recorded'} | ID: ${session.patient.patientId}`;
+    $('conversation').classList.remove('started');
     $('identityCheck').hidden=false;$('confirmIdentity').disabled=false;$('stop').hidden=transcript.length===0;$('resume').hidden=true;$('messageForm').hidden=true;
-    renderTranscript();status('Confirm your identity');error('');
+    renderTranscript();status('Ready');error('');
     if(session.status==='ending'){$('identityCheck').hidden=true;$('stop').hidden=false;status('Save pending. Press Stop Conversation to retry.');}
   }catch(e){$('connection').textContent='Connection interrupted';error(e.message);}
   finally{pollBusy=false;}
 }
-$('enable').onclick=enable;
 ensureDevice().then(async()=>{enabled=true;await poll();}).catch(e=>error(e.message));
 $('languagePicker').onchange=async()=>{
   $('messages').lang=replyLanguage()==='ml'?'ml':replyLanguage()==='en'?'en':'';

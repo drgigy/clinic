@@ -13,14 +13,13 @@
     <div class="language-bar"><span><i data-lucide="languages" aria-hidden="true"></i> Reply language</span><fieldset id="languagePicker"><legend class="sr-only">Assistant reply language</legend><label><input type="radio" name="language" value="ml"><span lang="ml">മലയാളം</span></label><label><input type="radio" name="language" value="en"><span>English</span></label><label><input type="radio" name="language" value="auto" checked><span>Auto</span></label></fieldset></div>
     <section id="waiting">
       <div class="microphone" aria-hidden="true"><i data-lucide="mic"></i></div>
-      <p class="eyebrow">YOUR CONSULTATION</p><h2 id="waitingTitle">Welcome. Let's begin.</h2>
-      <p id="waitingText">Please enable this device and wait for the clinic staff.</p>
-      <button id="enable" type="button">Enable Device</button>
+      <p class="eyebrow">YOUR CONSULTATION</p><h2 id="waitingTitle">Waiting for clinic staff</h2>
+      <p id="waitingText">Your consultation will appear here.</p>
       <p id="pairing" hidden>Connected to the clinic</p>
     </section>
     <section id="conversation" hidden>
       <div class="patient-heading"><div><p class="eyebrow">PATIENT</p><h2 id="patientName"></h2><p id="patientIdentity"></p></div><span id="sessionStatus" role="status">Ready</span></div>
-      <div id="identityCheck"><p>Is this your name and patient ID?</p><button id="confirmIdentity" type="button">Yes, this is me</button><button id="wrongIdentity" class="secondary" type="button">This is not me</button></div>
+      <div id="identityCheck"><button id="confirmIdentity" type="button" aria-label="Start conversation for the patient shown above"><i data-lucide="mic" aria-hidden="true"></i><span>Start</span></button><button id="wrongIdentity" class="secondary" type="button">This is not me</button></div>
       <div class="conversation-label"><i data-lucide="audio-lines" aria-hidden="true"></i><span>Doctor Assistant</span></div><div id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
       <form id="messageForm" hidden><label class="sr-only" for="message">Your answer</label><input id="message" autocomplete="off" placeholder="Type your answer"><button type="submit" aria-label="Send answer" title="Send answer"><i data-lucide="send"></i></button></form>
       <div class="controls"><button id="resume" class="secondary" hidden type="button">Resume Conversation</button><button id="stop" hidden type="button"><i data-lucide="square" aria-hidden="true"></i> Stop Conversation</button></div>
