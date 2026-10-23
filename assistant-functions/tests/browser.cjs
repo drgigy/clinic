@@ -59,6 +59,7 @@ const root=path.resolve(__dirname,'../..');
     await staff.waitForFunction(()=>!document.querySelector('[data-doctor-assistant="testA"]').disabled);
     const tablet=await context.newPage();tablet.on('pageerror',e=>errors.push('tablet: '+e.message));
     await tablet.goto('http://127.0.0.1:8879/patient.html');
+    assert.equal(await tablet.locator('input[name="language"]:checked').inputValue(),'ml','Malayalam must be selected by default');
     await tablet.evaluate(()=>{window.__micRequests=0;const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=(...args)=>{window.__micRequests++;if(window.__denyMic)return Promise.reject(new DOMException('Denied','NotAllowedError'));return original(...args);};});
     await tablet.waitForFunction(()=>document.getElementById('connection').textContent==='Awaiting approval');
     assert.equal(await tablet.locator('#conversation').isVisible(),false,'no patient details before approval');
