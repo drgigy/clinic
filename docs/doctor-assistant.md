@@ -1,5 +1,16 @@
 # Doctor Assistant
 
+## Retired from the clinic UI (3 November 2026)
+
+The Staff launch button, Home device-connection menu and patient.html entrypoint
+have been removed. Existing Assistant Notes remain readable in medical records.
+No patient data, notes, session transcripts or backend collections were deleted.
+Backend and legacy client sources are retained for recovery, not loaded by the
+clinic UI. The setup instructions below describe the retired implementation.
+Use `node assistant-functions/tests/clinic-browser.cjs` (with Playwright available)
+for the current retirement/preservation browser regression; `tests/browser.cjs`
+documents the former, now-retired patient workflow.
+
 The staff EMR starts an interview on a paired device running `patient.html`.
 The patient device has no login form. A random device credential grants access
 only to its assigned session, not to the patient's medical-record collection.

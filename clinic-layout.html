@@ -675,7 +675,6 @@
               <button class="secondary" type="button" data-main-tab="whatsapp">WhatsApp Preview</button>
               <button class="secondary" type="button" id="openNeuroBtn">Neurodiagnostics</button>
               <button class="secondary" type="button" id="openRecordAuditBtn">Record Audit</button>
-              <button class="secondary" type="button" id="pairPatientDeviceBtn">Connect Patient Device</button>
               <button class="secondary" type="button" id="openSettingsBtn">Settings</button>
               <button class="secondary sign-out" id="logoutBtn" type="button">Sign out</button>
             </nav>
@@ -1206,7 +1205,6 @@
     <div class="medical-print-content" id="medicalPrintContent"></div>
 
     <script type="module">
-      import { doctorAssistantButton, installDoctorAssistant } from "./doctor-assistant.js";
       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
       import {
         getFirestore,
@@ -2081,12 +2079,24 @@
           addon: "Add On"
         }[mode] || "Visit note";
       }
+      function clinicalFidelityRules() {
+        return `MANDATORY CLINICAL FIDELITY RULES (override formatting examples):
+Use only the dictated audio or supplied source text. Examples are formatting illustrations, NEVER a source of patient facts or doses.
+Do not generate a diagnosis, differential, suspected condition, or provisional diagnosis. Include Diagnosis only when explicitly stated by the doctor in the source; otherwise omit the heading entirely. Never infer diagnoses from symptoms, medications, lab values, or patient-list categories. Patient-reported past diagnoses belong in history, not a new diagnosis.
+For each medicine, preserve brand, strength, dose PER ADMINISTRATION, tablet fraction, route, frequency, timing and duration independently. Never divide a per-dose amount by the number of daily administrations. Never calculate tablet counts from strength or substitute a usual dose. If ambiguous, mark the specific detail unclear for doctor confirmation; never guess.
+English and Malayalam instructions must express exactly the SAME dose at EACH time, including fractions, frequency, duration and taper phase. Keep numeric doses and fractions (1/2, 1/4, 1.5) unchanged in both languages to make comparison easy. Do not round a half tablet to a whole tablet. Do not add or remove noon, morning, evening or night doses. Do not change evening to night.
+Dictated example: Levipil 1 gram twice daily means 1 gram PER DOSE twice daily, NOT 500 mg twice daily. English: Take 1 gram twice daily. Malayalam: 1 gram വീതം ദിവസത്തിൽ 2 പ്രാവശ്യം കഴിക്കുക. Do not invent clock times or tablet counts.
+Dictated example: Tegrital 400 mg, 1 tablet morning, 1/2 tablet noon, 1 tablet night for 6 months. English: Take 1 tablet in the morning, 1/2 tablet at noon, and 1 tablet at night for 6 months. Malayalam: 6 മാസത്തേക്ക് രാവിലെ 1 ഗുളിക, ഉച്ചയ്ക്ക് 1/2 ഗുളിക, രാത്രി 1 ഗുളിക കഴിക്കുക. The noon dose MUST remain 1/2, never 1.
+SOS/as-needed does not imply a dose or tablet count. Preserve the stated dose; if none was stated, do not add one. Missing frequency or duration must remain unspecified.
+Before returning, compare every medication instruction against the source and compare English and Malayalam slot by slot. Correct mismatches using ONLY the source. If a translation cannot be made reliably, omit that translation rather than output a conflicting instruction. Do not output a guessed replacement dose.`;
+      }
       function ambientPrompt(patient, mode = activeAmbientMode) {
-        const context = `Patient context:
+        const context = `${clinicalFidelityRules()}
+
+Patient identity context (not a source of clinical facts):
 Name: ${patient?.name || ""}
 ID: ${patient ? patientDisplayId(patient) : ""}
-Mobile: ${patient?.mobile || ""}
-Diagnosis/main symptom: ${patient?.diagnosis || ""}`;
+Mobile: ${patient?.mobile || ""}`;
         if (mode === "addon") {
           return `You are a clinical review add-on assistant helping a doctor create a separate review draft note after an OPD consultation.
 
@@ -2166,7 +2176,7 @@ Format every prescribed medicine as a numbered list, one medicine entry at a tim
 2. ...
 
 Include dose, frequency, route, timing, and duration only if dictated.
-SOS/as-needed rule: if the doctor says SOS, as needed, when required, or as and when required, write exactly "Take 1 tablet SOS/as needed." in English and write a short Malayalam line meaning only "take one tablet only when needed". Never convert SOS/as-needed into daily, twice daily, morning, night, or a fixed schedule.
+SOS/as-needed rule: preserve the dictated dose and state only as needed in both languages. Do not invent a tablet count or convert as needed to a fixed schedule.
 Malayalam must exactly match the English instruction. If unsure, keep the Malayalam instruction short or leave it blank; do not invent frequency or duration.
 Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it with the timing as "morning 1 tablet", "noon 1 tablet", "night 1 tablet". Never write bare timing counts like "morning 1" or "night 1".
 Write the medicine name once only as the numbered medicine line. The English instruction line below it must not repeat the medicine name. The Malayalam instruction line below it must not repeat the medicine name and should only explain how to take it.
@@ -2281,7 +2291,7 @@ Formatting rules:
 - Vitals: always keep one compact line with these fields: "BP: ; Pulse rate: ; Oxygen saturation: ; Height: ; Weight: ; BMI:". Fill only dictated values, for example "BP: 120/80 mmHg; Pulse rate: 78/min; Oxygen saturation: 98%; Height: 170 cm; Weight: 70 kg; BMI: 24.2 kg/m2". If height and weight are both dictated and BMI is not dictated, calculate BMI from height and weight and add it to the same line. Do not guess missing vitals.
 - Review of Investigations: organize by test/report name and date when dictated. Put each investigation/report as a separate numbered item. Under each imaging/report item, place each finding on a separate line. For blood reports, include each value on a separate line with appropriate units. If a common lab value is dictated without a unit, add its conventional unit.
 - Current Medications: numbered list, one medicine per line, with dose and frequency if dictated.
-- Diagnosis: line by line.
+- Diagnosis: only diagnoses explicitly stated by the doctor, line by line. Omit this section if none was dictated; never generate a diagnosis.
 - Prescription: include only medicines that are prescribed, newly started, changed, stopped, dose-adjusted, or explicitly continued by the doctor in this visit. Do not duplicate the Current Medications section unless those medicines are explicitly prescribed or continued in the visit.
 - Do not put a medicine under Prescription merely because the patient says they are taking it, were advised it elsewhere, were asked by another doctor, or mentions it as past/current treatment history.
 - Advice / Instructions: include investigations, lab tests, imaging, EEG/NCS, scans, review plans, follow-up advice, precautions, certificates, and other non-medicine orders as a numbered list, one item per number.
@@ -2303,18 +2313,18 @@ Formatting rules:
      Tablet Levipil 500 mg രാത്രി കഴിക്കുക.
 - Do not put advice such as "continue medicines", "review after one month", investigation advice, certificates, or precautions as numbered medicine rows.
 - For each medication, keep brand name and dose clear in the numbered medicine line. Put timing, duration, and before food/after food/empty stomach instructions in the English and Malayalam instruction lines below it if dictated.
-- SOS/as-needed rule: if the doctor says SOS, as needed, when required, or as and when required, write exactly "Take 1 tablet SOS/as needed." in English and write a short Malayalam line meaning only "take one tablet only when needed". Never convert SOS/as-needed into daily, twice daily, morning, night, or a fixed schedule.
+- SOS/as-needed rule: preserve the dictated dose and state only as needed in both languages. Do not invent a tablet count or a fixed schedule.
 - Malayalam must exactly match the English instruction. If unsure, keep the Malayalam instruction short or leave it blank; do not invent frequency or duration.
 - In English prescription instructions, write duration in numeric form only, for example "1 month", "10 days", "2 weeks". Do not write "one month", "one more month", "for one more month", or vague words like "more" or "less".
-- In Malayalam patient instruction lines, spell general counts and durations in Malayalam words instead of English numerals when possible, especially at the start of a line or sentence. Examples: "1 tablet" -> "ഒരു ഗുളിക", "10 days" -> "പത്ത് ദിവസം", "20 days" -> "ഇരുപത് ദിവസം", "1 month" -> "ഒരു മാസം", "2 weeks" -> "രണ്ട് ആഴ്ച".
+- In Malayalam patient instruction lines, retain the exact numeric counts, fractions and durations from English, including 1/2 tablet as 1/2 ഗുളിക. Never replace fractional counts with whole numbers.
 - Keep drug names and doses in English/numerals inside Malayalam instruction lines, for example "Gabapin 300 mg" and "Levipil 250 mg" should remain in English.
-- If the English instruction says "After 10 days, take 1 tablet at night for 10 days", the Malayalam instruction should say "പത്ത് ദിവസത്തിന് ശേഷം, രാത്രിയിൽ ഒരു ഗുളിക പത്ത് ദിവസത്തേക്ക് കഴിക്കുക." The Malayalam line must not begin with "10".
+- If the English instruction says "After 10 days, take 1 tablet at night for 10 days", preserve both 10-day periods and the 1-tablet night dose exactly in Malayalam.
 - If one duration is dictated for a group of medicines, repeat that duration in every medication line. Do not leave duration implicit or blank for any prescribed medicine when a shared duration was spoken.
 - Always write tablet medicines as "Tablet", not "Tab". When a tablet count is dictated, write it clearly as "1 tablet in the morning", "1 tablet at noon", or "1 tablet at night".
 - When a specific clock time is dictated, keep the clock time in the instruction, for example "1 tablet at 7 AM before food".
-- If only the word evening is dictated without a clock time, write it as night.
+- Preserve evening as evening and night as night; do not substitute one timing for another.
 - Do not use internal labels like "morning:", "noon:", "night:", "bedtime:", "Duration:", or "Instructions:" in prescription lines. Write one clear patient-facing sentence after the medicine name.
-- For tapering or step-down prescriptions, create one numbered medicine entry for each step. Write the same medicine name once in each numbered medicine line. Write the phase clearly in the English instruction below it, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label, using Malayalam words for phase durations and tablet counts where possible.
+- For tapering or step-down prescriptions, create one numbered medicine entry for each step. Write the same medicine name once in each numbered medicine line. Write the phase clearly in the English instruction below it, for example "First 20 days", "Next 20 days", "Next 20 days, then stop". Put the Malayalam version directly below each English tapering instruction without any label, preserving the exact numeric phase durations, tablet counts and fractions.
 - For tapering medicines with different doses at different times, write each step as a medicine line followed by instruction lines, for example:
   1. Tablet Levipil
      Take 250 mg in the morning and 500 mg at night for the first 20 days.
@@ -2913,7 +2923,7 @@ The purpose / rest period / fitness details will appear here when dictated.`
       async function requestGeminiText(apiKey, prompt) {
         const response = await requestGeminiJson(apiKey, {
           contents: [{
-            parts: [{ text: prompt }]
+            parts: [{ text: `${clinicalFidelityRules()}\n\n${prompt}` }]
           }]
         }, "text generation");
         const result = await response.json();
@@ -3204,7 +3214,7 @@ Rules:
 - Under Prescription, use a numbered list with one medicine per number.
 - Always write tablet medicines as "Tablet", not "Tab".
 - Preserve brand names, dose, route, food timing, frequency, SOS/as-needed instructions, and duration exactly as present.
-- SOS/as-needed rule: if the doctor says SOS, as needed, when required, or as and when required, write exactly "Take 1 tablet SOS/as needed." in English and write a short Malayalam line meaning only "take one tablet only when needed". Never convert SOS/as-needed into daily, twice daily, morning, night, or a fixed schedule.
+- SOS/as-needed rule: preserve the dictated dose and state only as needed in both languages. Do not invent a tablet count or a fixed schedule.
 - Malayalam must exactly match the English instruction. If unsure, keep the Malayalam instruction short or leave it blank; do not invent frequency or duration.
 - If a medicine is mentioned without Tablet/Syrup prefix, keep it as a separate numbered medicine if it has a dose or instruction.
 - For every prescription medicine, write the medicine name once as the numbered line, then an English patient instruction line, then a Malayalam patient instruction line.
@@ -6200,7 +6210,7 @@ ${bulletList(advice, "No clear saved information.")}`;
             <div class="consult-head"><div class="consult-title"><b>${afterPatientLine(p)}</b></div><div class="consult-details">${p.diagnosis} · ${p.visitType} · ${p.mode}</div></div>
             <div class="post-consult-block">
               <div class="post-consult-left">
-                <div class="attendance-actions patient-row-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button><button class="secondary" data-edit-patient="${p.id}" type="button">Edit</button>${doctorAssistantButton(p.id)}</div>
+                <div class="attendance-actions patient-row-actions"><button class="choice ${p.attendance === "Came" ? "came" : ""}" data-attendance="${p.id}:Came" type="button">Came</button><button class="choice ${p.attendance === "No show" ? "noshow" : ""}" data-attendance="${p.id}:No show" type="button">No show</button><button class="secondary medical-record-btn" data-medical-record="${p.id}" type="button">Medical Record</button><button class="secondary" data-edit-patient="${p.id}" type="button">Edit</button></div>
                 <div class="test-options">${tests.map((test) => `<label class="test-check"><input type="checkbox" data-test="${p.id}:${test}" ${p.tests?.includes(test) ? "checked" : ""} />${test}</label>`).join("")}</div>
               </div>
               <div class="payment-group">
@@ -7482,7 +7492,6 @@ ${bulletList(advice, "No clear saved information.")}`;
       window.addEventListener("beforeunload", () => {
         stopAmbientTracks({ releaseMic: true });
       });
-      installDoctorAssistant({ auth, render: renderAfterList });
       onAuthStateChanged(auth, (user) => {
         if (user) {
           document.body.classList.remove("auth-locked");
